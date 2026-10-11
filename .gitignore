@@ -1,0 +1,52 @@
+# Dependencies and build output
+node_modules/
+
+# Environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# OS and editor junk
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+*.tmp
+*~
+.idea/
+.vscode/
+.cursor/
+
+# Runtime logs
+logs/
+*.log
+
+# WorkBuddy local memory
+.workbuddy/
+
+# Local ledger, queues, installed CLIs, and other runtime state.
+# The server creates data/store.json on first start. Do not publish it:
+# it holds API keys and the private ledger.
+data/*
+!data/.gitkeep
+!data/dropbox/
+data/dropbox/*
+!data/dropbox/.gitkeep
+!data/dropbox/processed/
+!data/dropbox/failed/
+data/dropbox/processed/*
+!data/dropbox/processed/.gitkeep
+data/dropbox/failed/*
+!data/dropbox/failed/.gitkeep
+
+# Handoff evidence that copies the live ledger, chats, or a second source tree.
+# The markdown under docs/交接/ stays; these dumps stay on this machine.
+docs/交接/evidence/当前台账.json
+docs/交接/evidence/agent-results/
+docs/交接/evidence/shared/
+docs/交接/evidence/*.png
+docs/交接/evidence/cursor-runtime.json
+docs/交接/archive/
+docs/交接/source-snapshot/

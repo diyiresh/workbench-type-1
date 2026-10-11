@@ -1,0 +1,680 @@
+[
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\agenda-reminders.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\agenda-reminders.js",
+    "sha256": "7804d92594b9860ab0404f8848765b9189dc83b290abc18d5145e72b50aa728a",
+    "bytes": 1796
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\agenda-report.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\agenda-report.js",
+    "sha256": "46d62fe38733d5af6869a2005b13c9f4cb934509d80a4702145aeca982d1da4a",
+    "bytes": 2126
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\agenda-utils.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\agenda-utils.js",
+    "sha256": "f62730b78c282dbb79ee2da001144b899463769a970d1d43ab043f07e9cb1b80",
+    "bytes": 4013
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\agent-dispatch.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\agent-dispatch.js",
+    "sha256": "101cc45f846bcab199b511ba517cc36e41144039d41f1afbb9b0ebd6dcbae26a",
+    "bytes": 3330
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\brief-hub.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\brief-hub.js",
+    "sha256": "661580c604e49018d8bd5cfcd2c55722026fbf88aaae58600b72df1d4988be48",
+    "bytes": 6495
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\briefing.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\briefing.js",
+    "sha256": "650b2c8063b6c894fa5ae0bcc3a15a06731a0feb0a93f062a9e2fe58a0e83f43",
+    "bytes": 4364
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\codex-jobs.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\codex-jobs.js",
+    "sha256": "076839fba9997089947d2b930cd9fda54f9ab72e5f55dc220e8465a2192ba837",
+    "bytes": 6519
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\codex.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\codex.js",
+    "sha256": "bd10cdbce1b44c05ff2ab994bab1272b5457a96d00310e1899c885b1d31fa1be",
+    "bytes": 5096
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\collaboration.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\collaboration.js",
+    "sha256": "474398587e1741a8f6c7e6d94394967641247436b50b66d103314403f605453d",
+    "bytes": 2329
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\default-store.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\default-store.js",
+    "sha256": "f9f4f3d6b0dc125099c3f75005a1ded1985b9ba614e3745f77d3263fe0e499a1",
+    "bytes": 24807
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\department.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\department.js",
+    "sha256": "c4130b1fe8859b4e5c526d1e09207a016831e114128ef6b1657fba0571df19b5",
+    "bytes": 11438
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\desktop-bridge.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\desktop-bridge.js",
+    "sha256": "9863bbb1249b3daee77ddf824a27abe0818daf5c3cc381567d0d90df9f7139ba",
+    "bytes": 2827
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\desktop-worker.mjs",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\desktop-worker.mjs",
+    "sha256": "8ea8e504e262890b225a33bf09eeee1db855ef6247600f6566225c46c1d7db28",
+    "bytes": 4335
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\dropbox.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\dropbox.js",
+    "sha256": "b224d457a7e865e376b82ac312d9cfec80e77deaa9dd30cc985694d339322dca",
+    "bytes": 3099
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\external-runtime.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\external-runtime.js",
+    "sha256": "dcf040c64967d23f6879b725a8cb4dc31f9906ca25b2cead04bd661cec9ed5d2",
+    "bytes": 12939
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\legacy-reminder.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\legacy-reminder.js",
+    "sha256": "1e8e4afd54fe556863af9013d9d2167ad32ef4508f45ac59560555b47d104636",
+    "bytes": 2644
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\life-learning.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\life-learning.js",
+    "sha256": "58e863de4a5c4ff39bdafe25ecb5d67f9c5540f94d298afdbea07fe43f9c7a93",
+    "bytes": 10233
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\llm.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\llm.js",
+    "sha256": "a155c34c7eed8ac27034d420060938fdf83af0e96712c022d8a22e5a3982f4fd",
+    "bytes": 3116
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\local-opener.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\local-opener.js",
+    "sha256": "cff899a185f7eea4ad05f46d42119e186f31ebc0fa39b92fbcac7da7df19c0ee",
+    "bytes": 949
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\migrate.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\migrate.js",
+    "sha256": "f2ceb7ab779a1e42a70072a9c57933e93b33037e30d079ec846625a2d7b6b930",
+    "bytes": 11188
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\model-status.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\model-status.js",
+    "sha256": "d86bc4e31ad543c374555f7b0f748d396006b2b1e86d9ad4838cb5850fe236d3",
+    "bytes": 878
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\network.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\network.js",
+    "sha256": "114f20e17327bd8687f396f12e38291ae6a61cab8155519acc64c965802d0257",
+    "bytes": 842
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\preparation-flow.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\preparation-flow.js",
+    "sha256": "67199730ed24d3794028a5236b9fe018513ace8f7a1e8d285bc6a23d3c70d7bb",
+    "bytes": 4582
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\project-chat.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\project-chat.js",
+    "sha256": "e4305037aa32da42e73e139789ebd710fa79c2a93cc73a1a5598af367de1d339",
+    "bytes": 6209
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\report.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\report.js",
+    "sha256": "078f10f9def125b491c06105d2aeadc3e345e56f7e1d86181cc50ef81524e7a9",
+    "bytes": 6200
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\vault.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\vault.js",
+    "sha256": "8323ff270f4acb72126ecfc3947b8eb79309ddf43e4c3b8c41e57b94479a9bac",
+    "bytes": 3170
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\workbuddy-profile.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\workbuddy-profile.js",
+    "sha256": "0ae9a8585126507664d758f27742b1a4d8a795952e2831ffaf43c5d363f49945",
+    "bytes": 1181
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\workbuddy-queue.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\workbuddy-queue.js",
+    "sha256": "4d52f96607461e2b1aa964f3f88adf28259a91a87e71683d04de1202c918cf8e",
+    "bytes": 2813
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\lib\\workspace.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\lib\\workspace.js",
+    "sha256": "12df3b644972d7d1eab7aa5e4bf49c839b6ab4f4bf6aea6e84c98e5ffc5d7892",
+    "bytes": 2562
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\public\\app.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\public\\app.js",
+    "sha256": "25f205105312326c2248263962f633c480248d57465b5d1eccd88965c2fe4d9f",
+    "bytes": 59620
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\public\\index.html",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\public\\index.html",
+    "sha256": "2c6ce6be92088907464d1e061b5753e156ad7ac8a1f1457655e5746294c2cb33",
+    "bytes": 1495
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\public\\js\\core.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\public\\js\\core.js",
+    "sha256": "3a5e6d1db2f94785b974c74a99cb2150e0599b55c2de2659329de5eb59ef049b",
+    "bytes": 5171
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\public\\js\\views.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\public\\js\\views.js",
+    "sha256": "62b5c651f065f05a1d721997aedccdfe7e79eb7e9b470cc98770191053b18037",
+    "bytes": 61148
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\public\\modules\\crew.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\public\\modules\\crew.js",
+    "sha256": "365b20018a77f483a6867f75f67b415f2390edaeca00ef94c6e3bbcf1d31289f",
+    "bytes": 1161
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\public\\modules\\index.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\public\\modules\\index.js",
+    "sha256": "fc034ed6596650be9d63bbb2356fe27f4b38a6839f2915aea777904279aa5013",
+    "bytes": 863
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\public\\modules\\learn.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\public\\modules\\learn.js",
+    "sha256": "e4bf19227696abe968f5521c60ffbddff91f4aea04f0a1a90c849cc1d2733793",
+    "bytes": 1122
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\public\\modules\\life.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\public\\modules\\life.js",
+    "sha256": "63c9ee6377d999050bb18e7e2470e682b75f382a664bcbc260d4ff09894a5a18",
+    "bytes": 1118
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\public\\modules\\ops.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\public\\modules\\ops.js",
+    "sha256": "ed89776e5541a29a30c3fb23055d781e88476eee3555052878d0b3abe359b941",
+    "bytes": 938
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\public\\modules\\project.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\public\\modules\\project.js",
+    "sha256": "bc14ca4cada67dbc8d95e4393450f648938cf6ff485bc27d9eecf6e0f5c464b7",
+    "bytes": 1414
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\public\\modules\\schedule.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\public\\modules\\schedule.js",
+    "sha256": "6491d5fceb7b9efa765567462882d2fa5ac38e8ffa1bc1b7db9269a484aebd44",
+    "bytes": 1580
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\public\\styles.css",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\public\\styles.css",
+    "sha256": "8f5000047b3abec2493a153d762c06221903f604cee5ce383dfd6b233cb6d78c",
+    "bytes": 26261
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\scripts\\cursor-review-recovery.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\scripts\\cursor-review-recovery.js",
+    "sha256": "e53d8b0c9ea4f49e78223d8ca959f119627d224eac9fb2ce3bca99f8913145a7",
+    "bytes": 2266
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\scripts\\wecom-trigger-probe.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\scripts\\wecom-trigger-probe.js",
+    "sha256": "4dbe58c88e95c750abb41f7ca91a2345372e6d27f6de221657711acc75f7f2ca",
+    "bytes": 5864
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\scripts\\workbuddy-login.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\scripts\\workbuddy-login.js",
+    "sha256": "6efb122107b93cdaf3b7c2aae47d0edc31657ecb2a0d6c52abe5f6681e491caf",
+    "bytes": 1585
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\scripts\\workbuddy-queue.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\scripts\\workbuddy-queue.js",
+    "sha256": "225ebf7a6e56d047673f73bafad8ee29210f585e6881f9524ca2f6380d28af30",
+    "bytes": 1181
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\agenda-edit.browser.cjs",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\agenda-edit.browser.cjs",
+    "sha256": "27e9957f674f723ef9d52d184919d01b8d41335e6c9dc18c6a487d2ecdf2cfdf",
+    "bytes": 2810
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\agenda-material-action.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\agenda-material-action.test.js",
+    "sha256": "b47791da20cb5380e8adbf756657eea16ecca8c0297cc6115abeba79bec7c6e4",
+    "bytes": 714
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\agenda-report-writing.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\agenda-report-writing.test.js",
+    "sha256": "472e9ff46e45186cfa295e25c02484348acd9131ab2d6e8c6cbe954277bd76fb",
+    "bytes": 1183
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\agenda-utils.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\agenda-utils.test.js",
+    "sha256": "f4cb55dccdd207fc09a5e8adee8b5f53a3761d3c25e5c234002b39e41f60ac21",
+    "bytes": 1242
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\agent-dispatch.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\agent-dispatch.test.js",
+    "sha256": "ff859fcef64e9c4bf0e58bdf501a379d1e74e0ffa7f77d42a4d3a1d3ccf061c5",
+    "bytes": 2031
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\automatic-department.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\automatic-department.test.js",
+    "sha256": "9531566572f6c61716fed979bce3dc469acfa75b32e2475e65594f25ff48f3c2",
+    "bytes": 2466
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\brief-hub.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\brief-hub.test.js",
+    "sha256": "be63740cf90c840fb7463133ae28147f7490b7e27a3a2bf40cb69de053928072",
+    "bytes": 2104
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\chat-bubbles.browser.cjs",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\chat-bubbles.browser.cjs",
+    "sha256": "82c64a698010b5c6483a4fae8c5052b1e8ea329fd99c9ceaa405567b06148fb9",
+    "bytes": 3026
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\chat-input.browser.cjs",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\chat-input.browser.cjs",
+    "sha256": "2982e6311c65ae70d1bdcd0af6985fcf4c369d3e3ac3ffe89e776b092ffc6881",
+    "bytes": 1748
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\codex-vault-failure.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\codex-vault-failure.test.js",
+    "sha256": "72f970c88cd43f3127e0953eb82eb1238cbcb875b177855c53f3026f0be305fa",
+    "bytes": 1359
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\codex.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\codex.test.js",
+    "sha256": "c433ce53bb1faa42a8be38d82e65e8ed0382f68512bdd795444a820d69985112",
+    "bytes": 3031
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\collaboration.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\collaboration.test.js",
+    "sha256": "95bee994acc59a91d13aec381537bb99d2eb64037ccd50436d4c1a6e978e73de",
+    "bytes": 1298
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\cursor-long-prompt.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\cursor-long-prompt.test.js",
+    "sha256": "9487163ed64827efcbecdadf834015022a18487dd272a263a2e24b6350e253a9",
+    "bytes": 1882
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\department-scroll.browser.cjs",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\department-scroll.browser.cjs",
+    "sha256": "95320b0aed8c360099c208e640fbca21fa97a770e871d91abe88d11d8a9a960e",
+    "bytes": 1518
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\department.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\department.test.js",
+    "sha256": "35e9f59cba43e73a79fd4fcf1fc2dc0d7dea8c4c70d5e18d758e1a6c06b7332c",
+    "bytes": 2718
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\desktop-bridge.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\desktop-bridge.test.js",
+    "sha256": "c04dc720a6d73923aa64ca2ebe353a1d0ee5dfe87f83ad7116409eaee4786b78",
+    "bytes": 1312
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\desktop-worker.test.mjs",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\desktop-worker.test.mjs",
+    "sha256": "4847e37c5783fdfcdcc8f09a9672001a5cf7bc5133703118135d552de2feb355",
+    "bytes": 1913
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\dropbox-brief.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\dropbox-brief.test.js",
+    "sha256": "bcf8537db7c88cbd31adae5984716425453566f7277099c8b20f42ade14889cc",
+    "bytes": 721
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\external-runtime.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\external-runtime.test.js",
+    "sha256": "1603abb0e3284d8920b58b6494e1f76a94624c79b53fce376d8a8f82671ecf44",
+    "bytes": 2885
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\life-learning.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\life-learning.test.js",
+    "sha256": "92ad56d8f230115bcf8172be98c7df06ddb7d4c268c51e52ff0b6959d994cbef",
+    "bytes": 2747
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\llm-options.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\llm-options.test.js",
+    "sha256": "394b790d049314677eb6cd37d96b7d7356e8ca690a7eb0cfed46586a337ab250",
+    "bytes": 391
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\local-opener.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\local-opener.test.js",
+    "sha256": "69e43e012b71008142fababb3fd24ad0970af8b2ca909685bcc38e0a4398806c",
+    "bytes": 1125
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\migration.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\migration.test.js",
+    "sha256": "1a8602ac4bc92a188212048287e3370e4e4f97e5985373ee90bb7c709468cd99",
+    "bytes": 671
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\model-status.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\model-status.test.js",
+    "sha256": "cb8125b8cda4a818376c30d1c4d25345b28731b7e5f65e31f9e38d3510bfdb82",
+    "bytes": 672
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\network.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\network.test.js",
+    "sha256": "0bb816096862f1074e1dae80700c27a53fead5a076355f4decd7ac734bed538b",
+    "bytes": 763
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\preparation-flow.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\preparation-flow.test.js",
+    "sha256": "c5251ab47cb099976bbe83eead9927877876b519eb4166dea4f05e54544ebe93",
+    "bytes": 2101
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\project-chat.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\project-chat.test.js",
+    "sha256": "fb8aa88091f2d45c6d4f14a9e7ebdbf6b40c240b215bb85b3a9a542cb59e6c28",
+    "bytes": 3683
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\reminders.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\reminders.test.js",
+    "sha256": "5243e029cd5c89ab7f67e83f171cde1585b266a6a9592f8f4b807f2bfde1d1d0",
+    "bytes": 947
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\start-script.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\start-script.test.js",
+    "sha256": "40a5de2135ec6e7c3aa25584201df44009bdfd8bd234863a5320336f7b4d9267",
+    "bytes": 648
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\theme-contrast.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\theme-contrast.test.js",
+    "sha256": "344d0a23437ba7f14053c7833af254f8d3a822f1ad5c0cffc65c3ae7aa33d18b",
+    "bytes": 1303
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\vault.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\vault.test.js",
+    "sha256": "e5ede907da4cb3350f2fa83ff74fc961dc4090e4c925285391f122a3c3a81fd9",
+    "bytes": 1825
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\wecom-trigger-probe.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\wecom-trigger-probe.test.js",
+    "sha256": "db6deee414045ca8d2b15e8ecc99a9281990f94279ba962bc220135475b9ab56",
+    "bytes": 1762
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\workbuddy-queue.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\workbuddy-queue.test.js",
+    "sha256": "0d577cca994f78e5bacf308811460bce370e8c850cff1166f0599eab3ecc2f5d",
+    "bytes": 1608
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\test\\workspace.test.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\test\\workspace.test.js",
+    "sha256": "3fa3ba28993b39b3da1dfdb3eca98e67f58b0fc77f7c63c14e764e7eba3c6bb9",
+    "bytes": 822
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\Agent接入邀请与项目协作协议.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\Agent接入邀请与项目协作协议.md",
+    "sha256": "e571652d0a8a0c4eb708b5a9968b66191c1b8f83cbd0ef696ffe52d58ab78b03",
+    "bytes": 11918
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\Cursor接入握手证明.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\Cursor接入握手证明.md",
+    "sha256": "18ecb58f5cbd01f0116ce0b31d8082d66ae444dc863e1ccf0a8af927c424bc01",
+    "bytes": 651
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\HANDOFF.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\HANDOFF.md",
+    "sha256": "ced89c872a5c1715e752d79467b115b7d9ac028a94a6e1f03ea69f5f6c0adf61",
+    "bytes": 1084
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\SPEC-agent-autonomous-loop.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\SPEC-agent-autonomous-loop.md",
+    "sha256": "ba571334ebab59ea75f3c401130faaaf7daff8283078c63478dbfc23ffe89d27",
+    "bytes": 1573
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\SPEC-codex-supervisor.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\SPEC-codex-supervisor.md",
+    "sha256": "3b9e6183498909d78f8793f52f3c4dcea9ae3751e36c539ae3d724d853f89a0e",
+    "bytes": 1671
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\SPEC-v0.4.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\SPEC-v0.4.md",
+    "sha256": "4f18c1f43a2373bdb0f874b815e30f2bc3b7b1818d66615b922e028d49dec7a7",
+    "bytes": 1189
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\SPEC-v0.5-agenda.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\SPEC-v0.5-agenda.md",
+    "sha256": "d6ed608a2f48b2a298fde7695a73b9b9e5db195c19d962de5327933b4064513b",
+    "bytes": 1801
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\SPEC-v0.6-life-learning.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\SPEC-v0.6-life-learning.md",
+    "sha256": "e451f56b134a2008a03f61cc295bfc11a63f8e82c24dce9bf477bbece0212a5d",
+    "bytes": 2975
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\SPEC-v0.7-brief-hub.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\SPEC-v0.7-brief-hub.md",
+    "sha256": "d07f3cec3455baf9c2de490b4799d2e68d89ff99a9e0ec07aeb033ac223f3636",
+    "bytes": 2688
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\SPEC-v0.8-virtual-department.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\SPEC-v0.8-virtual-department.md",
+    "sha256": "32d146c473acbfc54023f78c9ce44edf0b9858ac825ba26f6eb2ee35fd86b538",
+    "bytes": 3679
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\SPEC-vault-integration.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\SPEC-vault-integration.md",
+    "sha256": "4a467978e0151a15335b41ed2e29cd997f0f7e3fbdffd4bfa6126b8053c1ce67",
+    "bytes": 978
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\SPEC.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\SPEC.md",
+    "sha256": "16b1be59f59bc0bf7e9a84811cc65c8246dccdd911ca56cb54e4a4274730f6f9",
+    "bytes": 2469
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\VaultRAG验收与接手说明.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\VaultRAG验收与接手说明.md",
+    "sha256": "aa34a569c6198b42119ea71711b1570d58a302b13868b4b5b7df20c88efc56c9",
+    "bytes": 5434
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\WorkBuddy接入能力诊断与建议.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\WorkBuddy接入能力诊断与建议.md",
+    "sha256": "0333580b3c9a3e413d6d9219e915bc6321011fc67db58f47ab0c7e9373107444",
+    "bytes": 28273
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\WorkBuddy接入证明-M2.1.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\WorkBuddy接入证明-M2.1.md",
+    "sha256": "cdbfa16d36cd5110449d88defbc6fb23d05ae94afd63345c5335b1723adefb3f",
+    "bytes": 4791
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\企微消息触发验证说明.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\企微消息触发验证说明.md",
+    "sha256": "aefc93da90ca857d02c75cff05c16b4281adb231d4b87c2787f1cafca6a62daf",
+    "bytes": 3735
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\对照Kiro.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\对照Kiro.md",
+    "sha256": "1bcb4a5b1240dde220769679be33900b3ce198207e2ad89a8178162cb84d6223",
+    "bytes": 1109
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\工作台操作与开发指南.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\工作台操作与开发指南.md",
+    "sha256": "2f61df5e7cbaacb7f675cb9af1114569ddae322681cd5bc07650fc314a15b835",
+    "bytes": 42252
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\方案-项目群聊与Codex监督二期.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\方案-项目群聊与Codex监督二期.md",
+    "sha256": "683a06512b7813bd4ad978afda8f55fd6148ff94ba90077d66ceb4f44437f543",
+    "bytes": 12732
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\桌面桥接小版本验收.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\桌面桥接小版本验收.md",
+    "sha256": "fd44151fb3e7d4128d9b4dd3ec18d81ce2c29e937cde1e273978a3047fbff58d",
+    "bytes": 4639
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\正式项目邀请-节能报告修订.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\正式项目邀请-节能报告修订.md",
+    "sha256": "665c1453405a31d88339112bb7c5f9113ba958e10cc787d0acfd6a7536695008",
+    "bytes": 2205
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\简报接入说明.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\简报接入说明.md",
+    "sha256": "1f2236050bf64d87628c5221dddf441a7bee824119c9564eafcffc072b58c3ab",
+    "bytes": 2698
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\项目群聊接入与验收.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\docs\\项目群聊接入与验收.md",
+    "sha256": "83f10c78842d5d923b5b5f5428f2bdbd737d6e748f0289e31e2ed26b57cc69e3",
+    "bytes": 3294
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\agent-client.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\agent-client.js",
+    "sha256": "e218e28dcc27317c2c7924cd0c8f1f23c29b8dd0c3c7181ee7b116725979d01f",
+    "bytes": 2253
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\AGENTS.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\AGENTS.md",
+    "sha256": "00b86c93b975a8442a05cd59c26e610253f969d42898f041506dd6bfc9de6255",
+    "bytes": 7180
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\brief-2026-10-09.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\brief-2026-10-09.md",
+    "sha256": "10a2250284bc5c58784e75ebd27dd40ef7b4fe4a7faf9ff19a9f4f7ef5546f62",
+    "bytes": 8185
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\cli.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\cli.js",
+    "sha256": "4a13e69ec6dd0dab0d3f58fc0ae1fd074426c9d1de5565e8267bc00b43fc1397",
+    "bytes": 1657
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\package.json",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\package.json",
+    "sha256": "c4e178a1365490021b8d7d771af48ec6271f041fdfe36ea4c5c2f4f608020c0a",
+    "bytes": 1345
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\README.md",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\README.md",
+    "sha256": "3fa8bde37f26a35d65b716672330a8af6511ce77a57db6872d11ac09c4dbaa5f",
+    "bytes": 4687
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\server.js",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\server.js",
+    "sha256": "f9485c005903ef0e50a3ac5d77ace5f35a059d658d4d7162cb195e7c513366f3",
+    "bytes": 49500
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\start-lan.bat",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\start-lan.bat",
+    "sha256": "9747ab5a1d6003cc13422c200d712e5f73dec8d5ba4c863d706bae9a6c21f5ac",
+    "bytes": 224
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\start.bat",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\start.bat",
+    "sha256": "2ee21eba91da20c119eacec5c7cdb0ce4d534ba23af40c19f8b14b4fb7e71a34",
+    "bytes": 1160
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\登录WorkBuddy执行通道.cmd",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\登录WorkBuddy执行通道.cmd",
+    "sha256": "b3626babb69d12f5d944823a7d7d89e248f9f8f7afdac1acc4834296be56a9d2",
+    "bytes": 166
+  },
+  {
+    "sourcePath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\start-background.ps1",
+    "snapshotPath": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\docs\\交接\\source-snapshot\\start-background.ps1",
+    "sha256": "30a8e4fa21a6151640a6d42e058849e204e77fe65088337327e83d7f00414ed3",
+    "bytes": 2026
+  }
+]

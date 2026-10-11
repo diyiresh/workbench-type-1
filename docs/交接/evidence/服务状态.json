@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-11T07:54:41.136Z",
+  "health": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "at": "2026-10-11T07:54:41.237Z",
+      "tasks": 18
+    }
+  },
+  "codex": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "authenticated": true,
+      "version": "codex-cli 0.162.0-alpha.17.2",
+      "error": ""
+    }
+  }
+}

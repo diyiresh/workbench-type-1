@@ -1,0 +1,50 @@
+[
+  {
+    "command": "npm test",
+    "startedAt": "2026-10-11T07:54:41.340Z",
+    "completedAt": "2026-10-11T07:54:43.595Z",
+    "exitCode": 0,
+    "stdout": "\n> bench-workbench@0.1.0 test\n> node test/project-chat.test.js && node test/cursor-long-prompt.test.js && node test/preparation-flow.test.js && node test/theme-contrast.test.js && node test/agenda-utils.test.js && node test/migration.test.js && node test/reminders.test.js && node test/local-opener.test.js && node test/agenda-report-writing.test.js && node test/llm-options.test.js && node test/agenda-material-action.test.js && node test/life-learning.test.js && node test/brief-hub.test.js && node test/dropbox-brief.test.js && node test/model-status.test.js && node test/start-script.test.js && node test/department.test.js && node test/collaboration.test.js && node test/agent-dispatch.test.js && node test/desktop-bridge.test.js && node test/external-runtime.test.js && node test/workspace.test.js && node test/codex.test.js && node test/codex-vault-failure.test.js && node test/vault.test.js && node test/network.test.js\n\nProject chat routing, deduplication, paused discussion, real adapter contract, failure and recovery passed\nCursor long prompt file handoff and cleanup regression passed\nPreparation review, summary, deduplication, writing gate and failure checks passed\nTheme sidebar contrast checks passed.\nAgenda period and report-context checks passed.\nCurrent-week plan migration checks passed.\nAgenda reminder checks passed.\nLocal Explorer targeting checks passed.\nAgenda report-writing checks passed.\nLLM generation-limit checks passed.\nAgenda material action checks passed.\nLife and learning galaxy checks passed.\nBrief hub checks passed.\nDropbox brief checks passed.\nOnline-compatible model status checks passed.\nStart-script behavior checks passed.\nVirtual department workflow checks passed.\nProject collaboration message and artifact checks passed.\nAgent dispatch dependency, deduplication, claim and rework checks passed\nDesktop bridge identity, duplicate and timeout checks passed\nExternal runtime automatic start, duplicate prevention and writing gate checks passed\nWorkspace shared-root test passed\nCodex event, deduplication, persistence and failure recovery checks passed.\nCodex director unavailable-vault regression passed\nVault injection, provenance, local endpoint and failure checks passed.\nWorkbench system proxy and local vault bypass checks passed.\n",
+    "stderr": ""
+  },
+  {
+    "command": "npm run test:agents",
+    "startedAt": "2026-10-11T07:54:43.595Z",
+    "completedAt": "2026-10-11T07:54:44.250Z",
+    "exitCode": 0,
+    "stdout": "\n> bench-workbench@0.1.0 test:agents\n> node test/desktop-worker.test.mjs && node test/workbuddy-queue.test.js && node test/automatic-department.test.js\n\nDesktop worker single-action, uncertainty, serial and pause checks passed\nWorkBuddy queue serial, expiry, eligibility and path checks passed\nAutomatic department director, true claim, review and secretary checks passed\n",
+    "stderr": ""
+  },
+  {
+    "command": "node test/chat-input.browser.cjs",
+    "startedAt": "2026-10-11T07:54:44.251Z",
+    "completedAt": "2026-10-11T07:54:52.914Z",
+    "exitCode": 0,
+    "stdout": "Chat focus, caret, continued typing, IME and polling checks passed; no message sent\n",
+    "stderr": ""
+  },
+  {
+    "command": "node test/department-scroll.browser.cjs",
+    "startedAt": "2026-10-11T07:54:52.914Z",
+    "completedAt": "2026-10-11T07:55:01.281Z",
+    "exitCode": 0,
+    "stdout": "Department browser render, polling scroll and draft preservation passed\n",
+    "stderr": ""
+  },
+  {
+    "command": "node test/chat-bubbles.browser.cjs",
+    "startedAt": "2026-10-11T07:55:01.281Z",
+    "completedAt": "2026-10-11T07:55:09.970Z",
+    "exitCode": 0,
+    "stdout": "Chat sender positions, escaping, expansion, polling scroll, draft and mobile checks passed; real records unchanged\n",
+    "stderr": ""
+  },
+  {
+    "command": "node test/agenda-edit.browser.cjs",
+    "startedAt": "2026-10-11T07:55:09.971Z",
+    "completedAt": "2026-10-11T07:55:12.242Z",
+    "exitCode": 0,
+    "stdout": "Agenda edit, draft preservation, PATCH, metadata and cancel checks passed. No real agenda data changed.\n",
+    "stderr": ""
+  }
+]

@@ -1,0 +1,21 @@
+const assert = require('node:assert/strict');
+const { createPreparationFlow } = require('../lib/preparation-flow');
+const settle = () => new Promise(resolve => setTimeout(resolve, 20));
+(async () => {
+  let state = { departmentRuns: [{ id: 'r', externalAutomation: true, goal: '报告', context: '', items: [{ id: 'd', role: 'director', output: '方案' }, { id: 'e', role: 'executor', ownerAgentId: 'workbuddy', status: 'doing', preparationReady: true, output: '来源与纲要' }, { id: 'v', role: 'reviewer', ownerAgentId: 'cursor', status: 'blocked' }] }], projectMessages: [], artifacts: [] };
+  let reviews = 0, summaries = 0;
+  const flow = createPreparationFlow({ readStore: () => structuredClone(state), writeStore: value => { state = value; }, review: async () => { reviews++; return '证据缺口'; }, summarize: async prompt => { summaries++; assert(prompt.includes('证据缺口')); return { text: '仅需确认范围及 Start Writing' }; } });
+  flow.tick(); flow.tick(); await settle(); flow.tick(); await settle();
+  assert.equal(reviews, 1); assert.equal(summaries, 1);
+  assert.equal(state.departmentRuns[0].preparationFlow.status, 'awaiting_confirmation');
+  assert.equal(state.departmentRuns[0].items[1].status, 'doing');
+  assert.equal(state.departmentRuns[0].items[2].status, 'blocked');
+  assert.equal(state.departmentRuns[0].writingApproved, undefined);
+  assert(state.projectMessages.some(m => m.sender === 'cursor'));
+  delete state.departmentRuns[0].preparationFlow;
+  const failed = createPreparationFlow({ readStore: () => structuredClone(state), writeStore: value => { state = value; }, review: async () => { throw new Error('连接失败'); }, summarize: async () => { throw new Error('不得运行'); } });
+  failed.tick(); await settle(); failed.tick();
+  assert.equal(state.departmentRuns[0].preparationFlow.status, 'failed');
+  assert.equal(state.departmentRuns[0].preparationFlow.summary, '');
+  console.log('Preparation review, summary, deduplication, writing gate and failure checks passed');
+})().catch(error => { console.error(error); process.exitCode = 1; });

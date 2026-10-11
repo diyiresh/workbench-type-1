@@ -1,0 +1,1427 @@
+[
+  {
+    "file": "server.js",
+    "line": 46,
+    "text": "function ensureDirs() {"
+  },
+  {
+    "file": "server.js",
+    "line": 52,
+    "text": "function readStore() {"
+  },
+  {
+    "file": "server.js",
+    "line": 71,
+    "text": "function writeStore(store, { backup = true } = {}) {"
+  },
+  {
+    "file": "server.js",
+    "line": 108,
+    "text": "function send(res, code, body, headers) {"
+  },
+  {
+    "file": "server.js",
+    "line": 121,
+    "text": "function sendJson(res, code, obj) {"
+  },
+  {
+    "file": "server.js",
+    "line": 125,
+    "text": "function notFound(res) {"
+  },
+  {
+    "file": "server.js",
+    "line": 129,
+    "text": "function isLoopback(req) {"
+  },
+  {
+    "file": "server.js",
+    "line": 134,
+    "text": "async function ollamaStatus(store) {"
+  },
+  {
+    "file": "server.js",
+    "line": 142,
+    "text": "fetch(baseUrl + \"/api/version\", { signal: ctrl.signal }),"
+  },
+  {
+    "file": "server.js",
+    "line": 143,
+    "text": "fetch(baseUrl + \"/api/tags\", { signal: ctrl.signal }),"
+  },
+  {
+    "file": "server.js",
+    "line": 161,
+    "text": "function readBody(req) {"
+  },
+  {
+    "file": "server.js",
+    "line": 178,
+    "text": "function serveStatic(req, res, url) {"
+  },
+  {
+    "file": "server.js",
+    "line": 192,
+    "text": "function touch(store, collection, item) {"
+  },
+  {
+    "file": "server.js",
+    "line": 203,
+    "text": "function reminderPublicConfig(store) {"
+  },
+  {
+    "file": "server.js",
+    "line": 214,
+    "text": "async function sendAgendaReminder(store, item) {"
+  },
+  {
+    "file": "server.js",
+    "line": 235,
+    "text": "async function dispatchDueAgendaReminders() {"
+  },
+  {
+    "file": "server.js",
+    "line": 255,
+    "text": "async function openAgendaMaterial(store, agendaId, materialIndex) {"
+  },
+  {
+    "file": "server.js",
+    "line": 271,
+    "text": "async function handleApi(req, res, url) {"
+  },
+  {
+    "file": "server.js",
+    "line": 276,
+    "text": "if (method === \"GET\" && p === \"/api/codex/status\") return sendJson(res, 200, await codex.status());"
+  },
+  {
+    "file": "server.js",
+    "line": 277,
+    "text": "if (method === \"GET\" && p === \"/api/codex/jobs\") return sendJson(res, 200, { jobs: store.codexJobs || [] });"
+  },
+  {
+    "file": "server.js",
+    "line": 278,
+    "text": "if (method === \"POST\" && p === \"/api/codex/jobs\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 286,
+    "text": "if (method === \"GET\" && p === \"/api/state\") return sendJson(res, 200, store);"
+  },
+  {
+    "file": "server.js",
+    "line": 287,
+    "text": "if (method === \"GET\" && p === \"/api/health\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 291,
+    "text": "if (method === \"GET\" && p === \"/api/workspace\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 295,
+    "text": "if (method === \"PUT\" && p === \"/api/state\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 302,
+    "text": "if (method === \"POST\" && p === \"/api/reset\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 308,
+    "text": "if (method === \"POST\" && p === \"/api/dispatch\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 328,
+    "text": "if (method === \"GET\" && p === \"/api/departments\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 332,
+    "text": "if(method==='GET'&&p==='/api/workbuddy/queue-status') {"
+  },
+  {
+    "file": "server.js",
+    "line": 336,
+    "text": "if (method === \"POST\" && p === \"/api/departments/runs\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 353,
+    "text": "if (method === \"POST\" && p === \"/api/agents/claim\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 441,
+    "text": "if (body.sender === \"chairman\" && /(?:^|[。！？.!?\\s])Start Writing\\s*[。.!！]?$/i.test(String(body.text || \"\").trim())) {"
+  },
+  {
+    "file": "server.js",
+    "line": 443,
+    "text": "if (getItem(run, 'executor').preparationReady && run.preparationFlow?.status !== 'awaiting_confirmation') throw new Error('请等待 Cursor 准备材料复核及 Codex 建议完成后，再确认 Start Writing');"
+  },
+  {
+    "file": "server.js",
+    "line": 573,
+    "text": "if (method === \"POST\" && p === \"/api/reports/generate\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 588,
+    "text": "if (method === \"POST\" && p === \"/api/agenda/reports/draft\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 606,
+    "text": "if (method === \"POST\" && p === \"/api/remote/outbox\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 621,
+    "text": "if (method === \"PATCH\" && p === \"/api/remote\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 628,
+    "text": "if (method === \"POST\" && p === \"/api/checkpoint\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 648,
+    "text": "if (method === \"GET\" && p === \"/api/brief-runs\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 658,
+    "text": "if (method === \"POST\" && (p === \"/api/brief-runs\" || p === \"/api/briefs/intake\")) {"
+  },
+  {
+    "file": "server.js",
+    "line": 688,
+    "text": "if (method === \"GET\" && p === \"/api/briefings\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 692,
+    "text": "if (method === \"POST\" && p === \"/api/briefings/dismiss\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 698,
+    "text": "if (method === \"POST\" && p === \"/api/crew/sync\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 712,
+    "text": "if (method === \"GET\" && p === \"/api/inbox\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 722,
+    "text": "if (method === \"POST\" && p === \"/api/inbox\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 794,
+    "text": "if (method === \"POST\" && p === \"/api/modules/reorder\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 805,
+    "text": "if (method === \"PATCH\" && p === \"/api/fronts\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 813,
+    "text": "if (method === 'GET' && p === '/api/vault/config') {"
+  },
+  {
+    "file": "server.js",
+    "line": 816,
+    "text": "if (method === 'PUT' && p === '/api/vault/config') {"
+  },
+  {
+    "file": "server.js",
+    "line": 823,
+    "text": "if (method === 'GET' && p === '/api/vault/status') return sendJson(res, 200, await vault.request(store, '/v1/status'));"
+  },
+  {
+    "file": "server.js",
+    "line": 824,
+    "text": "if (method === 'GET' && p === '/api/vault/files') return sendJson(res, 200, await vault.request(store, '/v1/files?status=' + encodeURIComponent(url.searchParams.get('status') || '') + '&limit=100'));"
+  },
+  {
+    "file": "server.js",
+    "line": 825,
+    "text": "if (method === 'POST' && p === '/api/vault/sync') return sendJson(res, 202, await vault.request(store, '/v1/sync', {}));"
+  },
+  {
+    "file": "server.js",
+    "line": 826,
+    "text": "if (method === 'POST' && p === '/api/vault/search') {"
+  },
+  {
+    "file": "server.js",
+    "line": 835,
+    "text": "if (method === \"GET\" && p === \"/api/llm/config\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 842,
+    "text": "if (method === \"GET\" && p === \"/api/llm/status\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 846,
+    "text": "if (method === \"PUT\" && p === \"/api/llm/config\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 857,
+    "text": "if (method === \"POST\" && p === \"/api/llm/test\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 870,
+    "text": "if (method === \"POST\" && p === \"/api/llm/generate\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 885,
+    "text": "if (method === \"GET\" && p === \"/api/life/habits\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 906,
+    "text": "if (method === \"POST\" && p === \"/api/learning/plans/draft\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 933,
+    "text": "if (method === \"POST\" && p === \"/api/learning/plans\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 958,
+    "text": "if (method === \"GET\" && p === \"/api/reminder/config\") return sendJson(res, 200, reminderPublicConfig(store));"
+  },
+  {
+    "file": "server.js",
+    "line": 960,
+    "text": "if (method === \"PUT\" && p === \"/api/reminder/config\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 980,
+    "text": "if (method === \"PATCH\" && p === \"/api/meta\") {"
+  },
+  {
+    "file": "server.js",
+    "line": 1021,
+    "text": "function createServer() {"
+  },
+  {
+    "file": "server.js",
+    "line": 1025,
+    "text": "if (url.pathname.startsWith(\"/api/\")) {"
+  },
+  {
+    "file": "server.js",
+    "line": 1037,
+    "text": "async function main() {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 14,
+    "text": "function defaultDepartment() {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 31,
+    "text": "function ensureDepartmentSystem(store) {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 40,
+    "text": "function activeAgents(store) {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 44,
+    "text": "function chooseAgent(store, role, excluded = []) {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 64,
+    "text": "function chooseParticipant(store, preferred, participants, excluded = []) {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 70,
+    "text": "function createItem(store, runId, role, index, ownerAgentId) {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 90,
+    "text": "function createDepartmentRun(store, input = {}) {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 132,
+    "text": "function getRun(store, runId) {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 139,
+    "text": "function getItem(run, itemIdOrRole) {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 145,
+    "text": "function dependenciesDone(run, item) {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 149,
+    "text": "function unlockNext(run) {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 160,
+    "text": "function startItem(store, runId, itemId) {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 175,
+    "text": "function submitItem(store, runId, itemId, body = {}) {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 195,
+    "text": "function reviewExecutor(store, runId, body = {}) {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 225,
+    "text": "function completeRework(store, runId, itemId, body = {}) {"
+  },
+  {
+    "file": "lib/department.js",
+    "line": 243,
+    "text": "function rolePrompt(run, item) {"
+  },
+  {
+    "file": "lib/agent-dispatch.js",
+    "line": 6,
+    "text": "function syncAssignments(store) {"
+  },
+  {
+    "file": "lib/agent-dispatch.js",
+    "line": 37,
+    "text": "function claim(store, { agentId, runId }) {"
+  },
+  {
+    "file": "lib/project-chat.js",
+    "line": 5,
+    "text": "function targets(message, run) {"
+  },
+  {
+    "file": "lib/project-chat.js",
+    "line": 13,
+    "text": "function enqueue(store, message, run) {"
+  },
+  {
+    "file": "lib/project-chat.js",
+    "line": 21,
+    "text": "function promptFor(store, job) {"
+  },
+  {
+    "file": "lib/project-chat.js",
+    "line": 30,
+    "text": "function createChat({ readStore, writeStore, cwd = process.cwd(), execute = async (agentId, prompt, context) => agentId === 'codex' ? (await require('./codex').generate(prompt)).text : require('./external-runtime').generate(agentId, prompt, cwd, context) }) {"
+  },
+  {
+    "file": "lib/project-chat.js",
+    "line": 32,
+    "text": "function update(jobId, change) {"
+  },
+  {
+    "file": "lib/project-chat.js",
+    "line": 37,
+    "text": "function recover() {"
+  },
+  {
+    "file": "lib/project-chat.js",
+    "line": 49,
+    "text": "function tick() {"
+  },
+  {
+    "file": "lib/external-runtime.js",
+    "line": 10,
+    "text": "function command(agentId) {"
+  },
+  {
+    "file": "lib/external-runtime.js",
+    "line": 34,
+    "text": "function parseOutput(stdout) {"
+  },
+  {
+    "file": "lib/external-runtime.js",
+    "line": 43,
+    "text": "async function generate(agentId, prompt, cwd, context = {}) {"
+  },
+  {
+    "file": "lib/external-runtime.js",
+    "line": 72,
+    "text": "function createRuntime({ readStore, writeStore, execute = generate, artifactRoot }) {"
+  },
+  {
+    "file": "lib/external-runtime.js",
+    "line": 74,
+    "text": "function recover() {"
+  },
+  {
+    "file": "lib/external-runtime.js",
+    "line": 89,
+    "text": "function tick() {"
+  },
+  {
+    "file": "lib/external-runtime.js",
+    "line": 95,
+    "text": "const rejectedReviews = (run.discussion || []).filter(entry => entry.role === 'reviewer' && String(entry.text || '').startsWith('退回返工：')).length;"
+  },
+  {
+    "file": "lib/external-runtime.js",
+    "line": 96,
+    "text": "if(item.status==='rework'&&rejectedReviews>=3) {"
+  },
+  {
+    "file": "lib/external-runtime.js",
+    "line": 105,
+    "text": "function start(runId,itemId) {"
+  },
+  {
+    "file": "lib/external-runtime.js",
+    "line": 128,
+    "text": "postMessage(fresh,{runId,sender:job.agentId,type:\"question\",relatedTaskId:itemId,text:\"准备材料已返回，等待修订纲要确认及 Start Writing；未标记完整报告完成。\\n\"+output});"
+  },
+  {
+    "file": "lib/preparation-flow.js",
+    "line": 5,
+    "text": "function createPreparationFlow({ readStore, writeStore, review = prompt => require('./external-runtime').generate('cursor', prompt, process.cwd()), summarize = prompt => require('./codex').generate(prompt) }) {"
+  },
+  {
+    "file": "lib/preparation-flow.js",
+    "line": 7,
+    "text": "function update(runId, signature, mutate) {"
+  },
+  {
+    "file": "lib/preparation-flow.js",
+    "line": 12,
+    "text": "function recover() {"
+  },
+  {
+    "file": "lib/preparation-flow.js",
+    "line": 19,
+    "text": "function tick() {"
+  },
+  {
+    "file": "lib/preparation-flow.js",
+    "line": 39,
+    "text": "return summarize(`你是项目总管 Codex。根据真实准备材料及 Cursor 复核提出可执行处理建议。可由 Agent 查证修订的问题归为后续执行项；只向用户提出必须由用户决定的问题，给推荐选项和理由。对过期时限提出调整建议，不擅自承诺新日期。最后明确等待用户确认及 Start Writing。不写完整报告，不声称最终验收完成。\\n${context}\\nCursor 复核：${text}`);"
+  },
+  {
+    "file": "lib/codex.js",
+    "line": 9,
+    "text": "function executable() {"
+  },
+  {
+    "file": "lib/codex.js",
+    "line": 19,
+    "text": "function environment() {"
+  },
+  {
+    "file": "lib/codex.js",
+    "line": 24,
+    "text": "async function networkEnvironment() {"
+  },
+  {
+    "file": "lib/codex.js",
+    "line": 38,
+    "text": "async function status() {"
+  },
+  {
+    "file": "lib/codex.js",
+    "line": 47,
+    "text": "function parseEvents(stdout) {"
+  },
+  {
+    "file": "lib/codex.js",
+    "line": 60,
+    "text": "async function generate(prompt, { timeoutMs = 240000 } = {}) {"
+  },
+  {
+    "file": "lib/codex-jobs.js",
+    "line": 7,
+    "text": "function createManager({ readStore, writeStore, generate = codex.generate, prepareEvidence = vault.prepareEvidence }) {"
+  },
+  {
+    "file": "lib/codex-jobs.js",
+    "line": 9,
+    "text": "function recover() {"
+  },
+  {
+    "file": "lib/codex-jobs.js",
+    "line": 17,
+    "text": "function start({ runId, role, test = false }) {"
+  },
+  {
+    "file": "lib/codex-jobs.js",
+    "line": 83,
+    "text": "function tick() {"
+  },
+  {
+    "file": "lib/desktop-bridge.js",
+    "line": 5,
+    "text": "function generate(prompt, cwd, context = {}, options = {}) {"
+  },
+  {
+    "file": "lib/workbuddy-queue.js",
+    "line": 4,
+    "text": "function claim(root, {eligible=()=>true}={}) {"
+  },
+  {
+    "file": "lib/workbuddy-queue.js",
+    "line": 31,
+    "text": "function status(root) {"
+  },
+  {
+    "file": "lib/workbuddy-queue.js",
+    "line": 36,
+    "text": "function eligibleRequest(store, request) {"
+  },
+  {
+    "file": "scripts/workbuddy-queue.js",
+    "line": 12,
+    "text": "const response=await fetch('http://127.0.0.1:3780/api/agents/claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agentId:'workbuddy',runId:result.assignment.runId}),signal:AbortSignal.timeout(10000)});"
+  },
+  {
+    "file": "public/app.js",
+    "line": 36,
+    "text": "let agendaEditId = null;"
+  },
+  {
+    "file": "public/app.js",
+    "line": 39,
+    "text": "document.addEventListener('compositionstart', event => {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 52,
+    "text": "function loadLearningFormDraft() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 72,
+    "text": "function saveDepartmentGoalDraft(value) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 77,
+    "text": "function clearDepartmentGoalDraft() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 82,
+    "text": "function saveLearningFormDraft(value) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 90,
+    "text": "function clearLearningFormDraft() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 99,
+    "text": "function parseHash() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 105,
+    "text": "function go(p, s) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 114,
+    "text": "async function maybeBriefings() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 115,
+    "text": "const pack = await api(\"/api/briefings\");"
+  },
+  {
+    "file": "public/app.js",
+    "line": 122,
+    "text": "function showBrief() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 143,
+    "text": "function rail() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 154,
+    "text": "function channelBtn(id, label, extra) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 158,
+    "text": "function channels() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 221,
+    "text": "function currentModule() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 225,
+    "text": "function workspace() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 315,
+    "text": "async function refreshVaultStatus() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 319,
+    "text": "const s = await api('/api/vault/status');"
+  },
+  {
+    "file": "public/app.js",
+    "line": 324,
+    "text": "async function saveVault() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 325,
+    "text": "await api('/api/vault/config', { method:'PUT', body:{ enabled:$('vault-enabled').checked, baseUrl:$('vault-base').value.trim(), keyFile:$('vault-key-file').value.trim() } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 328,
+    "text": "async function searchVault() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 331,
+    "text": "const r = await api('/api/vault/search', { method:'POST', body:{ query:$('vault-query').value.trim() } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 342,
+    "text": "async function showVaultFiles() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 345,
+    "text": "const r = await api('/api/vault/files?status=' + encodeURIComponent($('vault-file-status').value));"
+  },
+  {
+    "file": "public/app.js",
+    "line": 352,
+    "text": "function render() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 364,
+    "text": "function bindDrag() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 383,
+    "text": "await api(\"/api/modules/reorder\", { method: \"POST\", body: { ids } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 391,
+    "text": "function currentContext() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 399,
+    "text": "function syncComposer() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 423,
+    "text": "function openSafeConfirm() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 451,
+    "text": "async function sendCommand() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 456,
+    "text": "await api(\"/api/inbox\", {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 468,
+    "text": "function openAddModule() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 498,
+    "text": "await api(\"/api/modules\", {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 517,
+    "text": "function openDecompose() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 523,
+    "text": "function resolveAgent(v) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 529,
+    "text": "async function createTasksFromDecompose() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 537,
+    "text": "await api(\"/api/tasks\", {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 555,
+    "text": "async function aiDecompose() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 565,
+    "text": "const r = await api(\"/api/llm/generate\", {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 581,
+    "text": "function openAddPrompt() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 594,
+    "text": "await api(\"/api/prompts\", {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 607,
+    "text": "async function saveLlm() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 615,
+    "text": "await api(\"/api/llm/config\", { method: \"PUT\", body });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 620,
+    "text": "async function saveTheme() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 622,
+    "text": "await api(\"/api/meta\", { method: \"PATCH\", body: { theme } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 626,
+    "text": "async function refreshReminderStatus() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 630,
+    "text": "const config = await api(\"/api/reminder/config\");"
+  },
+  {
+    "file": "public/app.js",
+    "line": 644,
+    "text": "async function saveReminder() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 650,
+    "text": "await api(\"/api/reminder/config\", { method: \"PUT\", body });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 654,
+    "text": "async function refreshOllamaStatus() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 658,
+    "text": "const r = await api(\"/api/llm/status\");"
+  },
+  {
+    "file": "public/app.js",
+    "line": 685,
+    "text": "async function refreshCodexStatus() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 688,
+    "text": "const r = await api(\"/api/codex/status\");"
+  },
+  {
+    "file": "public/app.js",
+    "line": 693,
+    "text": "async function startCodex(body, button) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 695,
+    "text": "try { await api(\"/api/codex/jobs\", { method: \"POST\", body }); await reload(); }"
+  },
+  {
+    "file": "public/app.js",
+    "line": 701,
+    "text": "const { jobs } = await api(\"/api/codex/jobs\");"
+  },
+  {
+    "file": "public/app.js",
+    "line": 712,
+    "text": "const result = await api(`/api/departments/runs/${encodeURIComponent(runId)}/messages`);"
+  },
+  {
+    "file": "public/app.js",
+    "line": 719,
+    "text": "async function enableOllama() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 728,
+    "text": "async function testLlm() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 732,
+    "text": "const r = await api(\"/api/llm/test\", { method: \"POST\", body: {} });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 739,
+    "text": "function bindAgenda() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 742,
+    "text": "if (agendaEditId && agendaEditDraft) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 755,
+    "text": "cancel.onclick = () => { agendaEditId = null; agendaEditDraft = null; render(); };"
+  },
+  {
+    "file": "public/app.js",
+    "line": 759,
+    "text": "if (!agendaEditId) return;"
+  },
+  {
+    "file": "public/app.js",
+    "line": 769,
+    "text": "const original = agendaEditId && (getStore().agendas || []).find(item => item.id === agendaEditId);"
+  },
+  {
+    "file": "public/app.js",
+    "line": 770,
+    "text": "if (agendaEditId && !original) throw new Error(\"该行程已不存在，请取消修改后刷新。\");"
+  },
+  {
+    "file": "public/app.js",
+    "line": 771,
+    "text": "await api(agendaEditId ? `/api/agendas/${agendaEditId}` : \"/api/agendas\", {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 772,
+    "text": "method: agendaEditId ? \"PATCH\" : \"POST\","
+  },
+  {
+    "file": "public/app.js",
+    "line": 788,
+    "text": "agendaEditId = null;"
+  },
+  {
+    "file": "public/app.js",
+    "line": 794,
+    "text": "if (date) date.onchange = () => { agendaDate = date.value || ymd(); agendaReportDraft = null; agendaEditId = null; agendaEditDraft = null; render(); };"
+  },
+  {
+    "file": "public/app.js",
+    "line": 797,
+    "text": "function editAgenda(id) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 800,
+    "text": "agendaEditId = id;"
+  },
+  {
+    "file": "public/app.js",
+    "line": 814,
+    "text": "function bindLearningPlan() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 833,
+    "text": "const result = await api(\"/api/learning/plans/draft\", {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 852,
+    "text": "function bindDepartment() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 855,
+    "text": "try { await api(`/api/departments/runs/${encodeURIComponent(button.dataset.runId)}/chat-jobs/${encodeURIComponent(button.dataset.chatRetry)}/retry`, {method:'POST',body:{}}); await reload(); }"
+  },
+  {
+    "file": "public/app.js",
+    "line": 872,
+    "text": "const run = await api(\"/api/departments/runs\", { method: \"POST\", body: { goal, context: String(data.get(\"context\") || \"\").trim(), participantAgentIds } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 879,
+    "text": "async function sendProjectMessage(form) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 887,
+    "text": "await api(`/api/departments/runs/${encodeURIComponent(runId)}/messages`, { method: \"POST\", body: { sender: \"chairman\", recipient, type: \"question\", text, chat: true } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 898,
+    "text": "async function modelExecuteDepartment(runId, itemId, button) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 902,
+    "text": "await api(`/api/departments/runs/${runId}/items/${itemId}/model-execute`, { method: \"POST\", body: {} });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 910,
+    "text": "async function autoRunDepartment(runId, button) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 915,
+    "text": "await api(`/api/departments/runs/${encodeURIComponent(runId)}/automation`, {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 918,
+    "text": "const result = await api(`/api/departments/runs/${runId}/auto-run`, { method: \"POST\", body: {} });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 927,
+    "text": "function openDepartmentManual(runId, itemId) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 948,
+    "text": "await api(`/api/departments/runs/${runId}/items/${itemId}/action`, { method: \"POST\", body: { action: \"start\" } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 950,
+    "text": "await api(`/api/departments/runs/${runId}/items/${itemId}/action`, {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 961,
+    "text": "async function toggleHabit(id) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 964,
+    "text": "await api(`/api/life/habits/${id}`, { method: \"PATCH\", body: { done: !item.done, skipped: false } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 968,
+    "text": "async function toggleLearningSession(planId, sessionId) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 972,
+    "text": "await api(`/api/learning/plans/${planId}/sessions/${sessionId}`, { method: \"PATCH\", body: { done: !session.done } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 976,
+    "text": "async function adoptLearningDraft() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 978,
+    "text": "await api(\"/api/learning/plans\", { method: \"POST\", body: learningPlanDraft });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 984,
+    "text": "function setAgendaView(mode) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 991,
+    "text": "function shiftAgendaPeriod(shift) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1002,
+    "text": "async function toggleAgenda(id) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1005,
+    "text": "await api(`/api/agendas/${id}`, { method: \"PATCH\", body: { done: !item.done } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1009,
+    "text": "async function reviewAgenda(id) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1014,
+    "text": "await api(`/api/agendas/${id}`, { method: \"PATCH\", body: { review: review.trim() } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1018,
+    "text": "async function editAgendaMaterials(id) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1025,
+    "text": "await api(`/api/agendas/${id}`, { method: \"PATCH\", body: { materials } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1029,
+    "text": "async function deleteAgenda(id) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1032,
+    "text": "await api(`/api/agendas/${id}`, { method: \"DELETE\" });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1036,
+    "text": "async function openAgendaMaterial(id, index) {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1038,
+    "text": "const result = await api(`/api/agendas/${id}/open-material`, { method: \"POST\", body: { index: Number(index) } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1045,
+    "text": "async function draftAgendaReport() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1047,
+    "text": "agendaReportDraft = await api(\"/api/agenda/reports/draft\", { method: \"POST\", body: { view: agendaMode, anchorDate: agendaDate } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1054,
+    "text": "async function saveAgendaReport() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1058,
+    "text": "await api(\"/api/reports\", { method: \"POST\", body: { ...agendaReportDraft, body } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1063,
+    "text": "async function draftAgendaWithAi() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1075,
+    "text": "const r = await api(\"/api/llm/generate\", {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1095,
+    "text": "await api(\"/api/briefings/dismiss\", { method: \"POST\", body: {} });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1101,
+    "text": "await api(\"/api/briefings/dismiss\", { method: \"POST\", body: {} });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1140,
+    "text": "if (a === 'sync-vault') { try { await api('/api/vault/sync',{method:'POST',body:{}}); await refreshVaultStatus(); } catch(err) { $('vault-status').textContent=err.message; } }"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1170,
+    "text": "await api(`/api/departments/runs/${encodeURIComponent(runId)}/automation`, {method:\"POST\",body:{enabled:true,retry:true}});"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1187,
+    "text": "const text = `请接入正式项目 ${run.id}。先读取 ${root}\\\\docs\\\\Agent接入邀请与项目协作协议.md。你的阶段：${item ? item.role + \" / \" + item.id : \"协作成员\"}。在你的工具环境运行：\\nnode \"${root}\\\\agent-client.js\" wait ${member} ${run.id}\\n有任务返回后先读取目标、约束、主管方案和项目原件，再执行。无任务时检查依赖并再次运行 wait；不要生成模拟回执。结果按协议通过 submit 回写。报告完整写作仍遵守用户的 Start Writing 要求。`;"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1200,
+    "text": "await api(`/api/departments/runs/${encodeURIComponent(run.id)}`, { method: \"DELETE\" });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1208,
+    "text": "await api(`/api/departments/runs/${encodeURIComponent(run.id)}`, { method: \"PATCH\", body });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1218,
+    "text": "await api(\"/api/crew/sync\", { method: \"POST\", body: {} });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1222,
+    "text": "await api(\"/api/reports/generate\", { method: \"POST\", body: { kind: act.dataset.kind } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1227,
+    "text": "await api(`/api/reports/${act.dataset.id}`, { method: \"PATCH\", body: { body } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1231,
+    "text": "await api(`/api/brief-runs/${act.dataset.id}`, { method: \"PATCH\", body: { unread: false } });"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1271,
+    "text": "async function reload() {"
+  },
+  {
+    "file": "public/app.js",
+    "line": 1272,
+    "text": "const s = await api(\"/api/state\");"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 14,
+    "text": "function agendaFor(date) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 18,
+    "text": "function percent(done, total) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 22,
+    "text": "export function homeAllView() {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 47,
+    "text": "export function moduleDetailView(m) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 60,
+    "text": "function latestBrief(sourceId, runs) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 66,
+    "text": "function briefHealth(source, runs) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 75,
+    "text": "function safeWebUrl(value) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 84,
+    "text": "function briefRunCard(run, source) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 99,
+    "text": "export function briefHubView(sourceId = \"all\") {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 129,
+    "text": "export function opsView(kind, secondaryName) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 161,
+    "text": "function broadcastGroups() {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 173,
+    "text": "export function crewAllView() {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 222,
+    "text": "export function agentDetailView(a) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 261,
+    "text": "function departmentItemCard(run, item) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 279,
+    "text": "export function projectMenu(run) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 284,
+    "text": "function roomMessage(message) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 299,
+    "text": "export function departmentView(runId = \"all\", draft = {}) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 331,
+    "text": "${externalStatus}${selected.preparationFlow ? `<section class=\"card\"><h3>准备材料接力</h3><p>${esc(({reviewing:\"Cursor 正在复核准备材料\",summarizing:\"Codex 正在汇总问题与建议\",awaiting_confirmation:\"复核与建议已完成，等待董事长确认及 Start Writing\",failed:\"准备材料接力失败，请查看原因后重试\"})[selected.preparationFlow.status] || selected.preparationFlow.s"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 341,
+    "text": "export function deckView() {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 413,
+    "text": "export function decomposeModal(agentNames) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 433,
+    "text": "function starAgendas(kind) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 440,
+    "text": "function starSection(kind) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 449,
+    "text": "function habitGalaxySection() {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 466,
+    "text": "function learningPlanCard(plan) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 477,
+    "text": "function learningDraftCard(draft) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 482,
+    "text": "function learningGalaxySection(draft, formDraft = {}) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 498,
+    "text": "export function frontView(kind, secondary, learningDraft = null, learningFormDraft = {}) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 505,
+    "text": "function localDate(value) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 510,
+    "text": "function dateText(value) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 516,
+    "text": "function periodForAgenda(mode, anchor) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 533,
+    "text": "function materialButtons(item) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 541,
+    "text": "function agendaActionButtons(item) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 550,
+    "text": "function agendaItem(item, { compact = false } = {}) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 561,
+    "text": "function groupedAgenda(entries) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 571,
+    "text": "export function agendaView(date, mode = \"day\", reportDraft = null) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 596,
+    "text": "export function memoryView(secondary) {"
+  },
+  {
+    "file": "public/js/views.js",
+    "line": 632,
+    "text": "export function setView() {"
+  }
+]

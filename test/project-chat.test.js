@@ -1,0 +1,42 @@
+const assert = require('node:assert/strict');
+const fs = require('fs'), os = require('os'), path = require('path');
+const { enqueue, createChat, targets, promptFor } = require('../lib/project-chat');
+const { postMessage } = require('../lib/collaboration');
+const { claim, eligibleRequest } = require('../lib/workbuddy-queue');
+const { generate } = require('../lib/desktop-bridge');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+(async () => {
+  let data = { departmentRuns: [{id:'run',participantAgentIds:['codex','cursor','workbuddy'],automationPaused:true,items:[{role:'executor',status:'rework',output:'已提交真实成果'}]}], projectMessages:[], chatJobs:[] };
+  const readStore = () => structuredClone(data), writeStore = s => { data = structuredClone(s); };
+  const message = postMessage(data, {runId:'run',sender:'chairman',recipient:'everyone',text:'为什么需要返工？'});
+  enqueue(data,message,data.departmentRuns[0]); enqueue(data,message,data.departmentRuns[0]);
+  assert.equal(data.chatJobs.length,3);
+  assert(eligibleRequest({...data,chatJobs:[{...data.chatJobs[2],status:'waiting'}]}, {jobId:data.chatJobs[2].id,runId:'run'}),'暂停的业务也能领取独立讨论');
+  assert(!eligibleRequest(data,{jobId:'unknown',runId:'run'}),'不能领取未登记队列任务');
+  assert.deepEqual(targets({...message,text:'@Cursor @WorkBuddy 请解释'},data.departmentRuns[0]),['cursor','workbuddy']);
+  assert.throws(()=>targets({...message,recipient:'doubao'},data.departmentRuns[0]),/尚未支持/);
+  assert(promptFor(data,data.chatJobs[0]).includes('已提交真实成果'));
+  let calls=[];
+  const manager=createChat({readStore,writeStore,execute:async (agent,prompt)=>{calls.push(agent);assert(prompt.includes('不修改文件'));return agent+'真实通道回复';}});
+  manager.tick();manager.tick(); await sleep(20); manager.tick(); await sleep(20);
+  assert.equal(calls.length,3);
+  assert(data.chatJobs.every(j=>j.status==='done'));
+  assert.equal(data.projectMessages.filter(m=>m.replyTo===message.id).length,3);
+  assert.equal(data.departmentRuns[0].automationPaused,true);
+  assert.equal(data.departmentRuns[0].items[0].status,'rework');
+  manager.tick();await sleep(10);assert.equal(calls.length,3,'成员回复不触发无限循环');
+  const fail=postMessage(data,{runId:'run',sender:'chairman',text:'测试失败'});enqueue(data,fail,data.departmentRuns[0]);
+  const failing=createChat({readStore,writeStore,execute:async()=>{throw Error('未登录');}});failing.tick();await sleep(20);
+  assert.equal(data.chatJobs.at(-1).status,'failed'); assert.equal(data.chatJobs.at(-1).error,'未登录');
+  data.chatJobs.push({id:'interrupted',agentId:'codex',status:'doing'});manager.recover();assert.equal(data.chatJobs.at(-1).status,'failed');
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'bench-chat-test-'));
+  try {
+    const pending=generate('回答当前问题',root,{jobId:'chat-proof',runId:'run',transport:'desktop-scheduled'},{root, pollMs:5,timeoutMs:1000});
+    const assignment=claim(root).assignment;
+    assert.equal(assignment.jobId,'chat-proof');assert.equal(assignment.itemId,null);
+    fs.writeFileSync(assignment.resultPath,JSON.stringify({jobId:assignment.jobId,agentId:'workbuddy',output:'WorkBuddy 回复'}));
+    assert.equal(await pending,'WorkBuddy 回复');
+    assert.equal(JSON.parse(fs.readFileSync(path.join(root,'chat-proof.request.json'))).status,'collected');
+  } finally {fs.rmSync(root,{recursive:true,force:true});}
+  console.log('Project chat routing, deduplication, paused discussion, real adapter contract, failure and recovery passed');
+})().catch(err=>{console.error(err);process.exitCode=1;});

@@ -1,0 +1,764 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-11T07:54:41.136Z",
+  "workspace": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台",
+  "scope": "文档、可见对话与调用位置索引、当前源码副本、指定项目只读状态与验收证据。不含账号目录、完整原始工具日志或大型运行时。",
+  "files": [
+    {
+      "path": "00-交接材料编制提纲.md",
+      "bytes": 5292,
+      "sha256": "e90353a6166c2fd41496e058408a79e4425bf214d78e0cab679f73a5c49f92b8"
+    },
+    {
+      "path": "01-接手必读.md",
+      "bytes": 2870,
+      "sha256": "cd3f0e0cf98078f1e07ad89a5b99c6b70739b17f862166c935f6c0e342ce2a9b"
+    },
+    {
+      "path": "02-需求与决策演变.md",
+      "bytes": 3474,
+      "sha256": "5fad8635de3a93678be9821971771481f96dd2053d9be3005fe1888d9302a275"
+    },
+    {
+      "path": "03-架构与代码索引.md",
+      "bytes": 4458,
+      "sha256": "3d1e828ad5b67605ada0ee7bff20873ebc9ba1ec3334644663cfe8e0999f6cbc"
+    },
+    {
+      "path": "04-开发变更与故障历史.md",
+      "bytes": 4096,
+      "sha256": "5a0b66ab933ed02add16c7f92e23ac19c5d3e57e11ed43a537110e7ea0ef807c"
+    },
+    {
+      "path": "05-安装运行与接入协议.md",
+      "bytes": 3927,
+      "sha256": "b02eefd1d07ce855bb71b5dddc9efe42d91322ed171d7384a4b34e3f3ae27245"
+    },
+    {
+      "path": "06-当前台账与未完成事项.md",
+      "bytes": 5612,
+      "sha256": "7e57ce5b359767e260e82eaa4d62247a836372a68c90697ae0dffba12feda769"
+    },
+    {
+      "path": "07-测试与验收证据.md",
+      "bytes": 2273,
+      "sha256": "d6af6ef95e97e2aea0dfffa45cae0bf7edd1980a07d73d2f3686d9f73eacf37e"
+    },
+    {
+      "path": "08-下一阶段接续指令与Goal草案.md",
+      "bytes": 2887,
+      "sha256": "03e667091cec6cd92467d4f4e4a39ec47677b40f34f69dc200ebcb7e25b93aa8"
+    },
+    {
+      "path": "09-历史记录与文件清单.md",
+      "bytes": 3412,
+      "sha256": "d1f4b36e208b2313d1178e202e75cf63bb079b7f64256bd4d45414c80f7f69c0"
+    },
+    {
+      "path": "archive\\工具调用索引.json",
+      "bytes": 115305,
+      "sha256": "d8317a29a87730551fb35f33773c8f0a361aeedc6e3104691b1fd1e51a5c6a91"
+    },
+    {
+      "path": "archive\\用户助手对话.jsonl",
+      "bytes": 292933,
+      "sha256": "27066d854a365b5cd88b7664988b57a620f94b3186bd909cf7d6dde91526fa30"
+    },
+    {
+      "path": "build-handoff.cjs",
+      "bytes": 34718,
+      "sha256": "22a4bdbf5ffd61e5ae1eb012fa75dd7c572fd51743f330f2607dd06dd6a7a9ca"
+    },
+    {
+      "path": "evidence\\agent-results\\ej-2qbfw77ifc.md",
+      "bytes": 80966,
+      "sha256": "89604dc00b1b3ff54e61ccd5c2588d8644c9da24abc0680755c3f5b14c225405"
+    },
+    {
+      "path": "evidence\\agent-results\\ej-aci1dp67qd.md",
+      "bytes": 99264,
+      "sha256": "2198a8871a3fafffb92b1462a854764388f2dee3d1ee37375d26ea544b245518"
+    },
+    {
+      "path": "evidence\\agent-results\\ej-dq6fpvi7ik.md",
+      "bytes": 92375,
+      "sha256": "b14c69e60bae8bbaa0f1605f3ecb8246d1b12fd9b9825b4e8406115ed3dcabe1"
+    },
+    {
+      "path": "evidence\\agent-results\\ej-fb1hdhp200.md",
+      "bytes": 39493,
+      "sha256": "057ad2686f621f814bf885667ec2e2ca5e1d4008de7052192cff493076a5ae7f"
+    },
+    {
+      "path": "evidence\\agent-results\\ej-kw3slhzd9p.md",
+      "bytes": 2302,
+      "sha256": "060036d36c5c64d17613d5ae9d370e086921893ae2ca5bf2b73d6c76be984237"
+    },
+    {
+      "path": "evidence\\agent-results\\ej-uzd27u4rxu.md",
+      "bytes": 2111,
+      "sha256": "ee5b28378c8b9ddbb0fe87e0f395552edbaae636e5d9fb9d22ab5b0b4adf1c4a"
+    },
+    {
+      "path": "evidence\\chat-bubbles-desktop.png",
+      "bytes": 32334,
+      "sha256": "2ce2c9d09df07c6ae6fe634c4595ba2de3dc5fb91b0683b5ea0e355a85d6d348"
+    },
+    {
+      "path": "evidence\\chat-bubbles-mobile.png",
+      "bytes": 27091,
+      "sha256": "007446cf5219e3c3ea4b9241b8ea91bdbfb832b27420270a0f628309c279ee5d"
+    },
+    {
+      "path": "evidence\\cursor-runtime.json",
+      "bytes": 196,
+      "sha256": "5a1de57f63203a12f6b2487bd6ef3d21ba912a0b5f88978e2c7ba86dde8ca58a"
+    },
+    {
+      "path": "evidence\\project-chat-acceptance.json",
+      "bytes": 4165,
+      "sha256": "69082930d8094d6f033a66f7cdbc2d995e83edf2cb9f702b7ff1e037ff8c6a1a"
+    },
+    {
+      "path": "evidence\\project-chat-ui.png",
+      "bytes": 74301,
+      "sha256": "460008717da3181b91e039ae368d79c1c794a760715a9d89dd4ce0680d5d36b9"
+    },
+    {
+      "path": "evidence\\shared\\.workbench\\workspace.json",
+      "bytes": 866,
+      "sha256": "ccec94f98f0594001eee1a9cd00af6799c4e6a6e1656eaba49af733aff0aea26"
+    },
+    {
+      "path": "evidence\\shared\\WORKSPACE.md",
+      "bytes": 2503,
+      "sha256": "9b109f12bda2f68840b1b650262cb87a94c7a9d1308a9149f04a5429e9f0d577"
+    },
+    {
+      "path": "evidence\\代码索引.json",
+      "bytes": 37071,
+      "sha256": "3b33d525f78589558f8aa283de725a9472fdee388f6390737abb37720d83500a"
+    },
+    {
+      "path": "evidence\\实际退回意见.json",
+      "bytes": 7637,
+      "sha256": "ad1822b264e6b1ac51216bb4a3233327f299493dd917fd1c1639370597a4b12a"
+    },
+    {
+      "path": "evidence\\当前台账.json",
+      "bytes": 1279928,
+      "sha256": "c9707819a7dd13ac4b73899248f153da9efaf398aab488f8276c2c6809e92a9a"
+    },
+    {
+      "path": "evidence\\成果文件索引.json",
+      "bytes": 1778,
+      "sha256": "2a0277a3c8c21220eba6dcfe6169e15749af73258598c2cbbbce5c987597f32c"
+    },
+    {
+      "path": "evidence\\文件位置.json",
+      "bytes": 10194,
+      "sha256": "bbfba8eb7e484d5e47f495aababb30597750838652ccc7388afe5dc70eca971d"
+    },
+    {
+      "path": "evidence\\服务状态.json",
+      "bytes": 359,
+      "sha256": "2447a5f3df8988ef6c1be9f7d22d38a236216a24129f6e69c9c23fa71ffedee6"
+    },
+    {
+      "path": "evidence\\档案覆盖.json",
+      "bytes": 4699,
+      "sha256": "b0691820080f87a0cd54587bf31f618655dc56488ffb180b050f6d03d15c8036"
+    },
+    {
+      "path": "evidence\\测试记录.json",
+      "bytes": 4282,
+      "sha256": "bdf2b8ef7a9582c5fbeee70027a3d697857e7efe1de0ee27c92c9730b80998f2"
+    },
+    {
+      "path": "evidence\\源码清单.json",
+      "bytes": 41045,
+      "sha256": "ddf95cc9204aa40a359f36aed09e758bd3310d2eaeec7fa78c5e59b135944ba7"
+    },
+    {
+      "path": "finalize-handoff.cjs",
+      "bytes": 5207,
+      "sha256": "2fb4f1c055582a0088f6c7f8889ab987e4666722de89790a855450e41864cff9"
+    },
+    {
+      "path": "README.md",
+      "bytes": 409,
+      "sha256": "026ce7dcda4c327ed0785475484495b90c06fb0afe052b528e500c3db8994bf9"
+    },
+    {
+      "path": "source-snapshot\\agent-client.js",
+      "bytes": 2253,
+      "sha256": "e218e28dcc27317c2c7924cd0c8f1f23c29b8dd0c3c7181ee7b116725979d01f"
+    },
+    {
+      "path": "source-snapshot\\AGENTS.md",
+      "bytes": 7180,
+      "sha256": "00b86c93b975a8442a05cd59c26e610253f969d42898f041506dd6bfc9de6255"
+    },
+    {
+      "path": "source-snapshot\\brief-2026-10-09.md",
+      "bytes": 8185,
+      "sha256": "10a2250284bc5c58784e75ebd27dd40ef7b4fe4a7faf9ff19a9f4f7ef5546f62"
+    },
+    {
+      "path": "source-snapshot\\cli.js",
+      "bytes": 1657,
+      "sha256": "4a13e69ec6dd0dab0d3f58fc0ae1fd074426c9d1de5565e8267bc00b43fc1397"
+    },
+    {
+      "path": "source-snapshot\\docs\\Agent接入邀请与项目协作协议.md",
+      "bytes": 11918,
+      "sha256": "e571652d0a8a0c4eb708b5a9968b66191c1b8f83cbd0ef696ffe52d58ab78b03"
+    },
+    {
+      "path": "source-snapshot\\docs\\Cursor接入握手证明.md",
+      "bytes": 651,
+      "sha256": "18ecb58f5cbd01f0116ce0b31d8082d66ae444dc863e1ccf0a8af927c424bc01"
+    },
+    {
+      "path": "source-snapshot\\docs\\HANDOFF.md",
+      "bytes": 1084,
+      "sha256": "ced89c872a5c1715e752d79467b115b7d9ac028a94a6e1f03ea69f5f6c0adf61"
+    },
+    {
+      "path": "source-snapshot\\docs\\SPEC-agent-autonomous-loop.md",
+      "bytes": 1573,
+      "sha256": "ba571334ebab59ea75f3c401130faaaf7daff8283078c63478dbfc23ffe89d27"
+    },
+    {
+      "path": "source-snapshot\\docs\\SPEC-codex-supervisor.md",
+      "bytes": 1671,
+      "sha256": "3b9e6183498909d78f8793f52f3c4dcea9ae3751e36c539ae3d724d853f89a0e"
+    },
+    {
+      "path": "source-snapshot\\docs\\SPEC-v0.4.md",
+      "bytes": 1189,
+      "sha256": "4f18c1f43a2373bdb0f874b815e30f2bc3b7b1818d66615b922e028d49dec7a7"
+    },
+    {
+      "path": "source-snapshot\\docs\\SPEC-v0.5-agenda.md",
+      "bytes": 1801,
+      "sha256": "d6ed608a2f48b2a298fde7695a73b9b9e5db195c19d962de5327933b4064513b"
+    },
+    {
+      "path": "source-snapshot\\docs\\SPEC-v0.6-life-learning.md",
+      "bytes": 2975,
+      "sha256": "e451f56b134a2008a03f61cc295bfc11a63f8e82c24dce9bf477bbece0212a5d"
+    },
+    {
+      "path": "source-snapshot\\docs\\SPEC-v0.7-brief-hub.md",
+      "bytes": 2688,
+      "sha256": "d07f3cec3455baf9c2de490b4799d2e68d89ff99a9e0ec07aeb033ac223f3636"
+    },
+    {
+      "path": "source-snapshot\\docs\\SPEC-v0.8-virtual-department.md",
+      "bytes": 3679,
+      "sha256": "32d146c473acbfc54023f78c9ce44edf0b9858ac825ba26f6eb2ee35fd86b538"
+    },
+    {
+      "path": "source-snapshot\\docs\\SPEC-vault-integration.md",
+      "bytes": 978,
+      "sha256": "4a467978e0151a15335b41ed2e29cd997f0f7e3fbdffd4bfa6126b8053c1ce67"
+    },
+    {
+      "path": "source-snapshot\\docs\\SPEC.md",
+      "bytes": 2469,
+      "sha256": "16b1be59f59bc0bf7e9a84811cc65c8246dccdd911ca56cb54e4a4274730f6f9"
+    },
+    {
+      "path": "source-snapshot\\docs\\VaultRAG验收与接手说明.md",
+      "bytes": 5434,
+      "sha256": "aa34a569c6198b42119ea71711b1570d58a302b13868b4b5b7df20c88efc56c9"
+    },
+    {
+      "path": "source-snapshot\\docs\\WorkBuddy接入能力诊断与建议.md",
+      "bytes": 28273,
+      "sha256": "0333580b3c9a3e413d6d9219e915bc6321011fc67db58f47ab0c7e9373107444"
+    },
+    {
+      "path": "source-snapshot\\docs\\WorkBuddy接入证明-M2.1.md",
+      "bytes": 4791,
+      "sha256": "cdbfa16d36cd5110449d88defbc6fb23d05ae94afd63345c5335b1723adefb3f"
+    },
+    {
+      "path": "source-snapshot\\docs\\企微消息触发验证说明.md",
+      "bytes": 3735,
+      "sha256": "aefc93da90ca857d02c75cff05c16b4281adb231d4b87c2787f1cafca6a62daf"
+    },
+    {
+      "path": "source-snapshot\\docs\\对照Kiro.md",
+      "bytes": 1109,
+      "sha256": "1bcb4a5b1240dde220769679be33900b3ce198207e2ad89a8178162cb84d6223"
+    },
+    {
+      "path": "source-snapshot\\docs\\工作台操作与开发指南.md",
+      "bytes": 42252,
+      "sha256": "2f61df5e7cbaacb7f675cb9af1114569ddae322681cd5bc07650fc314a15b835"
+    },
+    {
+      "path": "source-snapshot\\docs\\方案-项目群聊与Codex监督二期.md",
+      "bytes": 12732,
+      "sha256": "683a06512b7813bd4ad978afda8f55fd6148ff94ba90077d66ceb4f44437f543"
+    },
+    {
+      "path": "source-snapshot\\docs\\桌面桥接小版本验收.md",
+      "bytes": 4639,
+      "sha256": "fd44151fb3e7d4128d9b4dd3ec18d81ce2c29e937cde1e273978a3047fbff58d"
+    },
+    {
+      "path": "source-snapshot\\docs\\正式项目邀请-节能报告修订.md",
+      "bytes": 2205,
+      "sha256": "665c1453405a31d88339112bb7c5f9113ba958e10cc787d0acfd6a7536695008"
+    },
+    {
+      "path": "source-snapshot\\docs\\简报接入说明.md",
+      "bytes": 2698,
+      "sha256": "1f2236050bf64d87628c5221dddf441a7bee824119c9564eafcffc072b58c3ab"
+    },
+    {
+      "path": "source-snapshot\\docs\\项目群聊接入与验收.md",
+      "bytes": 3294,
+      "sha256": "83f10c78842d5d923b5b5f5428f2bdbd737d6e748f0289e31e2ed26b57cc69e3"
+    },
+    {
+      "path": "source-snapshot\\lib\\agenda-reminders.js",
+      "bytes": 1796,
+      "sha256": "7804d92594b9860ab0404f8848765b9189dc83b290abc18d5145e72b50aa728a"
+    },
+    {
+      "path": "source-snapshot\\lib\\agenda-report.js",
+      "bytes": 2126,
+      "sha256": "46d62fe38733d5af6869a2005b13c9f4cb934509d80a4702145aeca982d1da4a"
+    },
+    {
+      "path": "source-snapshot\\lib\\agenda-utils.js",
+      "bytes": 4013,
+      "sha256": "f62730b78c282dbb79ee2da001144b899463769a970d1d43ab043f07e9cb1b80"
+    },
+    {
+      "path": "source-snapshot\\lib\\agent-dispatch.js",
+      "bytes": 3330,
+      "sha256": "101cc45f846bcab199b511ba517cc36e41144039d41f1afbb9b0ebd6dcbae26a"
+    },
+    {
+      "path": "source-snapshot\\lib\\brief-hub.js",
+      "bytes": 6495,
+      "sha256": "661580c604e49018d8bd5cfcd2c55722026fbf88aaae58600b72df1d4988be48"
+    },
+    {
+      "path": "source-snapshot\\lib\\briefing.js",
+      "bytes": 4364,
+      "sha256": "650b2c8063b6c894fa5ae0bcc3a15a06731a0feb0a93f062a9e2fe58a0e83f43"
+    },
+    {
+      "path": "source-snapshot\\lib\\codex-jobs.js",
+      "bytes": 6519,
+      "sha256": "076839fba9997089947d2b930cd9fda54f9ab72e5f55dc220e8465a2192ba837"
+    },
+    {
+      "path": "source-snapshot\\lib\\codex.js",
+      "bytes": 5096,
+      "sha256": "bd10cdbce1b44c05ff2ab994bab1272b5457a96d00310e1899c885b1d31fa1be"
+    },
+    {
+      "path": "source-snapshot\\lib\\collaboration.js",
+      "bytes": 2329,
+      "sha256": "474398587e1741a8f6c7e6d94394967641247436b50b66d103314403f605453d"
+    },
+    {
+      "path": "source-snapshot\\lib\\default-store.js",
+      "bytes": 24807,
+      "sha256": "f9f4f3d6b0dc125099c3f75005a1ded1985b9ba614e3745f77d3263fe0e499a1"
+    },
+    {
+      "path": "source-snapshot\\lib\\department.js",
+      "bytes": 11438,
+      "sha256": "c4130b1fe8859b4e5c526d1e09207a016831e114128ef6b1657fba0571df19b5"
+    },
+    {
+      "path": "source-snapshot\\lib\\desktop-bridge.js",
+      "bytes": 2827,
+      "sha256": "9863bbb1249b3daee77ddf824a27abe0818daf5c3cc381567d0d90df9f7139ba"
+    },
+    {
+      "path": "source-snapshot\\lib\\desktop-worker.mjs",
+      "bytes": 4335,
+      "sha256": "8ea8e504e262890b225a33bf09eeee1db855ef6247600f6566225c46c1d7db28"
+    },
+    {
+      "path": "source-snapshot\\lib\\dropbox.js",
+      "bytes": 3099,
+      "sha256": "b224d457a7e865e376b82ac312d9cfec80e77deaa9dd30cc985694d339322dca"
+    },
+    {
+      "path": "source-snapshot\\lib\\external-runtime.js",
+      "bytes": 12939,
+      "sha256": "dcf040c64967d23f6879b725a8cb4dc31f9906ca25b2cead04bd661cec9ed5d2"
+    },
+    {
+      "path": "source-snapshot\\lib\\legacy-reminder.js",
+      "bytes": 2644,
+      "sha256": "1e8e4afd54fe556863af9013d9d2167ad32ef4508f45ac59560555b47d104636"
+    },
+    {
+      "path": "source-snapshot\\lib\\life-learning.js",
+      "bytes": 10233,
+      "sha256": "58e863de4a5c4ff39bdafe25ecb5d67f9c5540f94d298afdbea07fe43f9c7a93"
+    },
+    {
+      "path": "source-snapshot\\lib\\llm.js",
+      "bytes": 3116,
+      "sha256": "a155c34c7eed8ac27034d420060938fdf83af0e96712c022d8a22e5a3982f4fd"
+    },
+    {
+      "path": "source-snapshot\\lib\\local-opener.js",
+      "bytes": 949,
+      "sha256": "cff899a185f7eea4ad05f46d42119e186f31ebc0fa39b92fbcac7da7df19c0ee"
+    },
+    {
+      "path": "source-snapshot\\lib\\migrate.js",
+      "bytes": 11188,
+      "sha256": "f2ceb7ab779a1e42a70072a9c57933e93b33037e30d079ec846625a2d7b6b930"
+    },
+    {
+      "path": "source-snapshot\\lib\\model-status.js",
+      "bytes": 878,
+      "sha256": "d86bc4e31ad543c374555f7b0f748d396006b2b1e86d9ad4838cb5850fe236d3"
+    },
+    {
+      "path": "source-snapshot\\lib\\network.js",
+      "bytes": 842,
+      "sha256": "114f20e17327bd8687f396f12e38291ae6a61cab8155519acc64c965802d0257"
+    },
+    {
+      "path": "source-snapshot\\lib\\preparation-flow.js",
+      "bytes": 4582,
+      "sha256": "67199730ed24d3794028a5236b9fe018513ace8f7a1e8d285bc6a23d3c70d7bb"
+    },
+    {
+      "path": "source-snapshot\\lib\\project-chat.js",
+      "bytes": 6209,
+      "sha256": "e4305037aa32da42e73e139789ebd710fa79c2a93cc73a1a5598af367de1d339"
+    },
+    {
+      "path": "source-snapshot\\lib\\report.js",
+      "bytes": 6200,
+      "sha256": "078f10f9def125b491c06105d2aeadc3e345e56f7e1d86181cc50ef81524e7a9"
+    },
+    {
+      "path": "source-snapshot\\lib\\vault.js",
+      "bytes": 3170,
+      "sha256": "8323ff270f4acb72126ecfc3947b8eb79309ddf43e4c3b8c41e57b94479a9bac"
+    },
+    {
+      "path": "source-snapshot\\lib\\workbuddy-profile.js",
+      "bytes": 1181,
+      "sha256": "0ae9a8585126507664d758f27742b1a4d8a795952e2831ffaf43c5d363f49945"
+    },
+    {
+      "path": "source-snapshot\\lib\\workbuddy-queue.js",
+      "bytes": 2813,
+      "sha256": "4d52f96607461e2b1aa964f3f88adf28259a91a87e71683d04de1202c918cf8e"
+    },
+    {
+      "path": "source-snapshot\\lib\\workspace.js",
+      "bytes": 2562,
+      "sha256": "12df3b644972d7d1eab7aa5e4bf49c839b6ab4f4bf6aea6e84c98e5ffc5d7892"
+    },
+    {
+      "path": "source-snapshot\\package.json",
+      "bytes": 1345,
+      "sha256": "c4e178a1365490021b8d7d771af48ec6271f041fdfe36ea4c5c2f4f608020c0a"
+    },
+    {
+      "path": "source-snapshot\\public\\app.js",
+      "bytes": 59620,
+      "sha256": "25f205105312326c2248263962f633c480248d57465b5d1eccd88965c2fe4d9f"
+    },
+    {
+      "path": "source-snapshot\\public\\index.html",
+      "bytes": 1495,
+      "sha256": "2c6ce6be92088907464d1e061b5753e156ad7ac8a1f1457655e5746294c2cb33"
+    },
+    {
+      "path": "source-snapshot\\public\\js\\core.js",
+      "bytes": 5171,
+      "sha256": "3a5e6d1db2f94785b974c74a99cb2150e0599b55c2de2659329de5eb59ef049b"
+    },
+    {
+      "path": "source-snapshot\\public\\js\\views.js",
+      "bytes": 61148,
+      "sha256": "62b5c651f065f05a1d721997aedccdfe7e79eb7e9b470cc98770191053b18037"
+    },
+    {
+      "path": "source-snapshot\\public\\modules\\crew.js",
+      "bytes": 1161,
+      "sha256": "365b20018a77f483a6867f75f67b415f2390edaeca00ef94c6e3bbcf1d31289f"
+    },
+    {
+      "path": "source-snapshot\\public\\modules\\index.js",
+      "bytes": 863,
+      "sha256": "fc034ed6596650be9d63bbb2356fe27f4b38a6839f2915aea777904279aa5013"
+    },
+    {
+      "path": "source-snapshot\\public\\modules\\learn.js",
+      "bytes": 1122,
+      "sha256": "e4bf19227696abe968f5521c60ffbddff91f4aea04f0a1a90c849cc1d2733793"
+    },
+    {
+      "path": "source-snapshot\\public\\modules\\life.js",
+      "bytes": 1118,
+      "sha256": "63c9ee6377d999050bb18e7e2470e682b75f382a664bcbc260d4ff09894a5a18"
+    },
+    {
+      "path": "source-snapshot\\public\\modules\\ops.js",
+      "bytes": 938,
+      "sha256": "ed89776e5541a29a30c3fb23055d781e88476eee3555052878d0b3abe359b941"
+    },
+    {
+      "path": "source-snapshot\\public\\modules\\project.js",
+      "bytes": 1414,
+      "sha256": "bc14ca4cada67dbc8d95e4393450f648938cf6ff485bc27d9eecf6e0f5c464b7"
+    },
+    {
+      "path": "source-snapshot\\public\\modules\\schedule.js",
+      "bytes": 1580,
+      "sha256": "6491d5fceb7b9efa765567462882d2fa5ac38e8ffa1bc1b7db9269a484aebd44"
+    },
+    {
+      "path": "source-snapshot\\public\\styles.css",
+      "bytes": 26261,
+      "sha256": "8f5000047b3abec2493a153d762c06221903f604cee5ce383dfd6b233cb6d78c"
+    },
+    {
+      "path": "source-snapshot\\README.md",
+      "bytes": 4687,
+      "sha256": "3fa8bde37f26a35d65b716672330a8af6511ce77a57db6872d11ac09c4dbaa5f"
+    },
+    {
+      "path": "source-snapshot\\scripts\\cursor-review-recovery.js",
+      "bytes": 2266,
+      "sha256": "e53d8b0c9ea4f49e78223d8ca959f119627d224eac9fb2ce3bca99f8913145a7"
+    },
+    {
+      "path": "source-snapshot\\scripts\\wecom-trigger-probe.js",
+      "bytes": 5864,
+      "sha256": "4dbe58c88e95c750abb41f7ca91a2345372e6d27f6de221657711acc75f7f2ca"
+    },
+    {
+      "path": "source-snapshot\\scripts\\workbuddy-login.js",
+      "bytes": 1585,
+      "sha256": "6efb122107b93cdaf3b7c2aae47d0edc31657ecb2a0d6c52abe5f6681e491caf"
+    },
+    {
+      "path": "source-snapshot\\scripts\\workbuddy-queue.js",
+      "bytes": 1181,
+      "sha256": "225ebf7a6e56d047673f73bafad8ee29210f585e6881f9524ca2f6380d28af30"
+    },
+    {
+      "path": "source-snapshot\\server.js",
+      "bytes": 49500,
+      "sha256": "f9485c005903ef0e50a3ac5d77ace5f35a059d658d4d7162cb195e7c513366f3"
+    },
+    {
+      "path": "source-snapshot\\start-background.ps1",
+      "bytes": 2026,
+      "sha256": "30a8e4fa21a6151640a6d42e058849e204e77fe65088337327e83d7f00414ed3"
+    },
+    {
+      "path": "source-snapshot\\start-lan.bat",
+      "bytes": 224,
+      "sha256": "9747ab5a1d6003cc13422c200d712e5f73dec8d5ba4c863d706bae9a6c21f5ac"
+    },
+    {
+      "path": "source-snapshot\\start.bat",
+      "bytes": 1160,
+      "sha256": "2ee21eba91da20c119eacec5c7cdb0ce4d534ba23af40c19f8b14b4fb7e71a34"
+    },
+    {
+      "path": "source-snapshot\\test\\agenda-edit.browser.cjs",
+      "bytes": 2810,
+      "sha256": "27e9957f674f723ef9d52d184919d01b8d41335e6c9dc18c6a487d2ecdf2cfdf"
+    },
+    {
+      "path": "source-snapshot\\test\\agenda-material-action.test.js",
+      "bytes": 714,
+      "sha256": "b47791da20cb5380e8adbf756657eea16ecca8c0297cc6115abeba79bec7c6e4"
+    },
+    {
+      "path": "source-snapshot\\test\\agenda-report-writing.test.js",
+      "bytes": 1183,
+      "sha256": "472e9ff46e45186cfa295e25c02484348acd9131ab2d6e8c6cbe954277bd76fb"
+    },
+    {
+      "path": "source-snapshot\\test\\agenda-utils.test.js",
+      "bytes": 1242,
+      "sha256": "f4cb55dccdd207fc09a5e8adee8b5f53a3761d3c25e5c234002b39e41f60ac21"
+    },
+    {
+      "path": "source-snapshot\\test\\agent-dispatch.test.js",
+      "bytes": 2031,
+      "sha256": "ff859fcef64e9c4bf0e58bdf501a379d1e74e0ffa7f77d42a4d3a1d3ccf061c5"
+    },
+    {
+      "path": "source-snapshot\\test\\automatic-department.test.js",
+      "bytes": 2466,
+      "sha256": "9531566572f6c61716fed979bce3dc469acfa75b32e2475e65594f25ff48f3c2"
+    },
+    {
+      "path": "source-snapshot\\test\\brief-hub.test.js",
+      "bytes": 2104,
+      "sha256": "be63740cf90c840fb7463133ae28147f7490b7e27a3a2bf40cb69de053928072"
+    },
+    {
+      "path": "source-snapshot\\test\\chat-bubbles.browser.cjs",
+      "bytes": 3026,
+      "sha256": "82c64a698010b5c6483a4fae8c5052b1e8ea329fd99c9ceaa405567b06148fb9"
+    },
+    {
+      "path": "source-snapshot\\test\\chat-input.browser.cjs",
+      "bytes": 1748,
+      "sha256": "2982e6311c65ae70d1bdcd0af6985fcf4c369d3e3ac3ffe89e776b092ffc6881"
+    },
+    {
+      "path": "source-snapshot\\test\\codex-vault-failure.test.js",
+      "bytes": 1359,
+      "sha256": "72f970c88cd43f3127e0953eb82eb1238cbcb875b177855c53f3026f0be305fa"
+    },
+    {
+      "path": "source-snapshot\\test\\codex.test.js",
+      "bytes": 3031,
+      "sha256": "c433ce53bb1faa42a8be38d82e65e8ed0382f68512bdd795444a820d69985112"
+    },
+    {
+      "path": "source-snapshot\\test\\collaboration.test.js",
+      "bytes": 1298,
+      "sha256": "95bee994acc59a91d13aec381537bb99d2eb64037ccd50436d4c1a6e978e73de"
+    },
+    {
+      "path": "source-snapshot\\test\\cursor-long-prompt.test.js",
+      "bytes": 1882,
+      "sha256": "9487163ed64827efcbecdadf834015022a18487dd272a263a2e24b6350e253a9"
+    },
+    {
+      "path": "source-snapshot\\test\\department-scroll.browser.cjs",
+      "bytes": 1518,
+      "sha256": "95320b0aed8c360099c208e640fbca21fa97a770e871d91abe88d11d8a9a960e"
+    },
+    {
+      "path": "source-snapshot\\test\\department.test.js",
+      "bytes": 2718,
+      "sha256": "35e9f59cba43e73a79fd4fcf1fc2dc0d7dea8c4c70d5e18d758e1a6c06b7332c"
+    },
+    {
+      "path": "source-snapshot\\test\\desktop-bridge.test.js",
+      "bytes": 1312,
+      "sha256": "c04dc720a6d73923aa64ca2ebe353a1d0ee5dfe87f83ad7116409eaee4786b78"
+    },
+    {
+      "path": "source-snapshot\\test\\desktop-worker.test.mjs",
+      "bytes": 1913,
+      "sha256": "4847e37c5783fdfcdcc8f09a9672001a5cf7bc5133703118135d552de2feb355"
+    },
+    {
+      "path": "source-snapshot\\test\\dropbox-brief.test.js",
+      "bytes": 721,
+      "sha256": "bcf8537db7c88cbd31adae5984716425453566f7277099c8b20f42ade14889cc"
+    },
+    {
+      "path": "source-snapshot\\test\\external-runtime.test.js",
+      "bytes": 2885,
+      "sha256": "1603abb0e3284d8920b58b6494e1f76a94624c79b53fce376d8a8f82671ecf44"
+    },
+    {
+      "path": "source-snapshot\\test\\life-learning.test.js",
+      "bytes": 2747,
+      "sha256": "92ad56d8f230115bcf8172be98c7df06ddb7d4c268c51e52ff0b6959d994cbef"
+    },
+    {
+      "path": "source-snapshot\\test\\llm-options.test.js",
+      "bytes": 391,
+      "sha256": "394b790d049314677eb6cd37d96b7d7356e8ca690a7eb0cfed46586a337ab250"
+    },
+    {
+      "path": "source-snapshot\\test\\local-opener.test.js",
+      "bytes": 1125,
+      "sha256": "69e43e012b71008142fababb3fd24ad0970af8b2ca909685bcc38e0a4398806c"
+    },
+    {
+      "path": "source-snapshot\\test\\migration.test.js",
+      "bytes": 671,
+      "sha256": "1a8602ac4bc92a188212048287e3370e4e4f97e5985373ee90bb7c709468cd99"
+    },
+    {
+      "path": "source-snapshot\\test\\model-status.test.js",
+      "bytes": 672,
+      "sha256": "cb8125b8cda4a818376c30d1c4d25345b28731b7e5f65e31f9e38d3510bfdb82"
+    },
+    {
+      "path": "source-snapshot\\test\\network.test.js",
+      "bytes": 763,
+      "sha256": "0bb816096862f1074e1dae80700c27a53fead5a076355f4decd7ac734bed538b"
+    },
+    {
+      "path": "source-snapshot\\test\\preparation-flow.test.js",
+      "bytes": 2101,
+      "sha256": "c5251ab47cb099976bbe83eead9927877876b519eb4166dea4f05e54544ebe93"
+    },
+    {
+      "path": "source-snapshot\\test\\project-chat.test.js",
+      "bytes": 3683,
+      "sha256": "fb8aa88091f2d45c6d4f14a9e7ebdbf6b40c240b215bb85b3a9a542cb59e6c28"
+    },
+    {
+      "path": "source-snapshot\\test\\reminders.test.js",
+      "bytes": 947,
+      "sha256": "5243e029cd5c89ab7f67e83f171cde1585b266a6a9592f8f4b807f2bfde1d1d0"
+    },
+    {
+      "path": "source-snapshot\\test\\start-script.test.js",
+      "bytes": 648,
+      "sha256": "40a5de2135ec6e7c3aa25584201df44009bdfd8bd234863a5320336f7b4d9267"
+    },
+    {
+      "path": "source-snapshot\\test\\theme-contrast.test.js",
+      "bytes": 1303,
+      "sha256": "344d0a23437ba7f14053c7833af254f8d3a822f1ad5c0cffc65c3ae7aa33d18b"
+    },
+    {
+      "path": "source-snapshot\\test\\vault.test.js",
+      "bytes": 1825,
+      "sha256": "e5ede907da4cb3350f2fa83ff74fc961dc4090e4c925285391f122a3c3a81fd9"
+    },
+    {
+      "path": "source-snapshot\\test\\wecom-trigger-probe.test.js",
+      "bytes": 1762,
+      "sha256": "db6deee414045ca8d2b15e8ecc99a9281990f94279ba962bc220135475b9ab56"
+    },
+    {
+      "path": "source-snapshot\\test\\workbuddy-queue.test.js",
+      "bytes": 1608,
+      "sha256": "0d577cca994f78e5bacf308811460bce370e8c850cff1166f0599eab3ecc2f5d"
+    },
+    {
+      "path": "source-snapshot\\test\\workspace.test.js",
+      "bytes": 822,
+      "sha256": "3fa3ba28993b39b3da1dfdb3eca98e67f58b0fc77f7c63c14e764e7eba3c6bb9"
+    },
+    {
+      "path": "source-snapshot\\登录WorkBuddy执行通道.cmd",
+      "bytes": 166,
+      "sha256": "b3626babb69d12f5d944823a7d7d89e248f9f8f7afdac1acc4834296be56a9d2"
+    },
+    {
+      "path": "verify-handoff.cjs",
+      "bytes": 2514,
+      "sha256": "12f117f6a3076f1e5b943608338818b083463128ff1c0b593f3d2c49dfe7c36d"
+    }
+  ],
+  "finalizedAt": "2026-10-11T07:56:07.185Z"
+}

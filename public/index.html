@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>统筹工作台</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="shell">
+    <nav id="rail" aria-label="一级目录"></nav>
+    <aside id="sidebar">
+      <div class="ws-name">
+        <strong id="ws-name">BEN · 一人公司</strong>
+        <span id="ws-role">董事长工作台</span>
+      </div>
+      <input id="search" type="search" placeholder="搜索模块、部门、报告" />
+      <div id="channels"></div>
+      <button type="button" class="add-mod" data-act="add-module">+ 新模块 / 新事业部</button>
+    </aside>
+    <section id="workspace">
+      <header id="ws-head"></header>
+      <div id="ws-body"></div>
+      <form id="composer">
+        <div id="cmd-target">
+          <select id="cmd-to" aria-label="下达对象"></select>
+          <small id="cmd-hint"></small>
+        </div>
+        <textarea id="cmd-body" rows="2" placeholder="董事长指令台：选对象（选「全员」即通告），输入指令。下达前会先确认。点项目卡片上的「指挥」可直达。"></textarea>
+        <button type="submit">下达</button>
+      </form>
+    </section>
+  </div>
+  <div id="briefing" class="overlay" hidden></div>
+  <div id="modal" class="overlay" hidden></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

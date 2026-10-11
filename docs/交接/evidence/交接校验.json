@@ -1,0 +1,98 @@
+{
+  "verifiedAt": "2026-10-11T07:56:07.242Z",
+  "files": 151,
+  "hashFailures": [],
+  "documentCount": 9,
+  "testCommands": [
+    {
+      "command": "npm test",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:agents",
+      "exitCode": 0
+    },
+    {
+      "command": "node test/chat-input.browser.cjs",
+      "exitCode": 0
+    },
+    {
+      "command": "node test/department-scroll.browser.cjs",
+      "exitCode": 0
+    },
+    {
+      "command": "node test/chat-bubbles.browser.cjs",
+      "exitCode": 0
+    },
+    {
+      "command": "node test/agenda-edit.browser.cjs",
+      "exitCode": 0
+    }
+  ],
+  "runStatus": "rework",
+  "automationPaused": true,
+  "writingApproved": true,
+  "items": [
+    {
+      "role": "director",
+      "owner": "codex",
+      "status": "done"
+    },
+    {
+      "role": "executor",
+      "owner": "workbuddy",
+      "status": "rework"
+    },
+    {
+      "role": "reviewer",
+      "owner": "cursor",
+      "status": "blocked"
+    },
+    {
+      "role": "secretary",
+      "owner": "codex",
+      "status": "blocked"
+    }
+  ],
+  "note": "没有启动第二服务，没有修改业务项目/队列/认证，没有重新发送模型测试消息。",
+  "sourceFiles": 113,
+  "documents": [
+    {
+      "name": "01-接手必读.md",
+      "bytes": 2870
+    },
+    {
+      "name": "02-需求与决策演变.md",
+      "bytes": 3474
+    },
+    {
+      "name": "03-架构与代码索引.md",
+      "bytes": 4458
+    },
+    {
+      "name": "04-开发变更与故障历史.md",
+      "bytes": 4096
+    },
+    {
+      "name": "05-安装运行与接入协议.md",
+      "bytes": 3927
+    },
+    {
+      "name": "06-当前台账与未完成事项.md",
+      "bytes": 5612
+    },
+    {
+      "name": "07-测试与验收证据.md",
+      "bytes": 2273
+    },
+    {
+      "name": "08-下一阶段接续指令与Goal草案.md",
+      "bytes": 2887
+    },
+    {
+      "name": "09-历史记录与文件清单.md",
+      "bytes": 3412
+    }
+  ],
+  "totalBytes": 2938464
+}

@@ -1,0 +1,125 @@
+{
+  "capturedAt": "2026-10-11T07:54:04.225Z",
+  "source": "C:/Users/Benjamin/.codex/sessions/2026/09/30/rollout-2026-09-30T10-50-57-01a0f038-ee27-7a11-be55-8c0f9d871b55.jsonl",
+  "sourceBytes": 114968212,
+  "sourceSha256": "d3485fb50a73471b5bc7bd78519b2f5e600b9727d306f4233259ac8cebbe18b9",
+  "dialogueRecords": 342,
+  "toolCalls": 736,
+  "compactions": 9,
+  "sourceFiles": 112,
+  "missingAttachments": [
+    {
+      "path": "C:/Users/Benjamin/AppData/Local/Temp/codex-clipboard-b0782f34-fe60-43aa-841d-f9a276a38f58.png",
+      "exists": false
+    },
+    {
+      "path": "C:/Users/Benjamin/AppData/Local/Temp/codex-clipboard-ded8f96e-de1c-47b7-a046-b604afb707ed.png",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\Benjamin\\AppData\\Local\\Temp\\codex-clipboard-b0782f34-fe60-43aa-841d-f9a276a38f58.png",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\Benjamin\\AppData\\Local\\Temp\\codex-clipboard-ded8f96e-de1c-47b7-a046-b604afb707ed.png",
+      "exists": false
+    },
+    {
+      "path": "C:/Users/Benjamin/AppData/Local/Temp/codex-clipboard-576bcfdb-2844-4466-be09-bcb389160f82.png",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\Benjamin\\AppData\\Local\\Temp\\codex-clipboard-576bcfdb-2844-4466-be09-bcb389160f82.png",
+      "exists": false
+    },
+    {
+      "path": "C:/Users/Benjamin/AppData/Local/Temp/codex-clipboard-d087e984-11fe-4328-b2f1-31d7541c72b8.png",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\Benjamin\\AppData\\Local\\Temp\\codex-clipboard-d087e984-11fe-4328-b2f1-31d7541c72b8.png",
+      "exists": false
+    },
+    {
+      "path": "C:/Users/Benjamin/AppData/Local/Temp/codex-clipboard-3354079b-7055-4f8e-861c-91b03d591735.png",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\Benjamin\\AppData\\Local\\Temp\\codex-clipboard-3354079b-7055-4f8e-861c-91b03d591735.png",
+      "exists": false
+    },
+    {
+      "path": "C:/Users/Benjamin/AppData/Local/Temp/codex-clipboard-a0db5dd4-a283-443d-bf66-44f971d1ea29.png",
+      "exists": false
+    },
+    {
+      "path": "C:/Users/Benjamin/AppData/Local/Temp/codex-clipboard-f782eb40-0eeb-4cfb-936b-a2cb83ceb14e.png",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\Benjamin\\AppData\\Local\\Temp\\codex-clipboard-a0db5dd4-a283-443d-bf66-44f971d1ea29.png",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\Benjamin\\AppData\\Local\\Temp\\codex-clipboard-f782eb40-0eeb-4cfb-936b-a2cb83ceb14e.png",
+      "exists": false
+    },
+    {
+      "path": "C:/Users/Benjamin/AppData/Local/Temp/codex-clipboard-a8d2e1bf-8ea7-444b-9cdc-b174e2e949c4.png",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\Benjamin\\AppData\\Local\\Temp\\codex-clipboard-a8d2e1bf-8ea7-444b-9cdc-b174e2e949c4.png",
+      "exists": false
+    },
+    {
+      "path": "C:/Users/Benjamin/AppData/Local/Temp/codex-clipboard-8f20dfa8-8cef-4a00-859a-2defd6c17ee6.png",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\Benjamin\\AppData\\Local\\Temp\\codex-clipboard-8f20dfa8-8cef-4a00-859a-2defd6c17ee6.png",
+      "exists": false
+    },
+    {
+      "path": "C:/Users/Benjamin/AppData/Local/Temp/codex-clipboard-1d8f2cb0-4a4f-4e58-b562-fa42e2678083.png",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\Benjamin\\AppData\\Local\\Temp\\codex-clipboard-1d8f2cb0-4a4f-4e58-b562-fa42e2678083.png",
+      "exists": false
+    },
+    {
+      "path": "C:/Users/Benjamin/AppData/Local/Temp/codex-clipboard-2f88e57c-3d3a-43bb-8d76-81d33236dfff.png",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\Benjamin\\AppData\\Local\\Temp\\codex-clipboard-2f88e57c-3d3a-43bb-8d76-81d33236dfff.png",
+      "exists": false
+    },
+    {
+      "path": "C:/Users/Benjamin/AppData/Local/Temp/codex-clipboard-5fe05c7b-f20e-486d-a94b-e03e707ab32b.png",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\Benjamin\\AppData\\Local\\Temp\\codex-clipboard-5fe05c7b-f20e-486d-a94b-e03e707ab32b.png",
+      "exists": false
+    },
+    {
+      "path": "C:/Users/Benjamin/AppData/Local/Temp/codex-clipboard-953a3120-c460-4e99-89f8-43b4c42279bd.png",
+      "exists": false
+    },
+    {
+      "path": "C:/Users/Benjamin/AppData/Local/Temp/codex-clipboard-cea2a89e-a19b-44bc-b063-ff3931d0d38e.png",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\Benjamin\\AppData\\Local\\Temp\\codex-clipboard-953a3120-c460-4e99-89f8-43b4c42279bd.png",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\Benjamin\\AppData\\Local\\Temp\\codex-clipboard-cea2a89e-a19b-44bc-b063-ff3931d0d38e.png",
+      "exists": false
+    }
+  ],
+  "scope": "仅导出用户/助手可见文本；不导出原始工具输出、内部推理或完整账号配置。"
+}
