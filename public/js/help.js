@@ -53,22 +53,23 @@ export async function renderLogic() {
     container.innerHTML=blocks.map((block,index)=>{
       if(index%3===1)return '';
       if(index%3===2){
-        if(blocks[index-1]==='mermaid'){const id='logic-'+diagrams.length;diagrams.push({id,source:block});return `<details class="logic-figure" open><summary>${tr('图形 · 点击折叠')}</summary><button type="button" data-zoom-logic="${id}">${tr('放大查看')}</button><div id="${id}" class="logic-svg"></div></details>`;}
+        if(blocks[index-1]==='mermaid'){const id='logic-'+diagrams.length;diagrams.push({id,source:block});return `<details class="logic-figure" open><summary>${tr('图形 · 点击折叠')}</summary><button type="button" data-zoom-logic="${id}" disabled>${tr('放大查看')}</button><div id="${id}" class="logic-svg"></div></details>`;}
         return `<pre>${esc(block)}</pre>`;
       }
       return prose(block);
     }).join('');
+    container.querySelectorAll('[data-zoom-logic]').forEach(button=>button.onclick=()=>{
+      const figure=document.createElement('dialog');figure.className='logic-zoom';
+      figure.innerHTML=`<button type="button">${tr('关闭')}</button><div>${container.querySelector('#'+button.dataset.zoomLogic).innerHTML}</div>`;
+      document.body.append(figure);figure.querySelector('button').onclick=()=>figure.close();figure.onclose=()=>figure.remove();figure.showModal();
+    });
     const {default:mermaid}=await import('../vendor/mermaid.js');
     mermaid.initialize({startOnLoad:false,securityLevel:'strict',flowchart:{htmlLabels:false},theme:document.documentElement.dataset.theme==='night'?'dark':'default'});
     for(const diagram of diagrams){
       const target=container.querySelector('#'+diagram.id);if(!target)continue;
       const {svg}=await mermaid.render('svg-'+diagram.id+'-'+Date.now(),diagram.source);
       if(!target.isConnected)return;target.innerHTML=svg;
+      container.querySelector(`[data-zoom-logic="${diagram.id}"]`).disabled=false;
     }
-    container.querySelectorAll('[data-zoom-logic]').forEach(button=>button.onclick=()=>{
-      const figure=document.createElement('dialog');figure.className='logic-zoom';
-      figure.innerHTML=`<button type="button">${tr('关闭')}</button><div>${container.querySelector('#'+button.dataset.zoomLogic).innerHTML}</div>`;
-      document.body.append(figure);figure.querySelector('button').onclick=()=>figure.close();figure.onclose=()=>figure.remove();figure.showModal();
-    });
   }catch(error){container.textContent=tr('逻辑图加载失败：')+error.message;}
 }

@@ -48,12 +48,13 @@ const server=createServer();
     await page.waitForFunction(()=>document.documentElement.lang==='zh-CN');
     assert.equal(await page.locator('[data-primary="set"]').first().textContent(),'设置');
     await page.reload();await page.locator('#language-select').waitFor();assert.equal(await page.locator('#language-select').inputValue(),'zh-CN');
-    await page.goto(base+'/#set/help');await page.waitForFunction(()=>document.querySelectorAll('#logic-document svg').length>=7,{},{timeout:45000});
+    await page.goto(base+'/#set/help');await page.locator('#logic-document svg').first().waitFor({timeout:45000});
     await page.getByRole('button',{name:'放大查看',exact:true}).first().click();await page.locator('dialog[open]').waitFor();await page.locator('dialog button').click();
+    await page.waitForFunction(()=>document.querySelectorAll('#logic-document svg').length>=9,{},{timeout:45000});
     await page.goto(base+'/#set');await page.locator('#language-select').selectOption('en');await page.getByRole('button',{name:'应用语言',exact:true}).click();await page.waitForFunction(()=>document.documentElement.lang==='en');
     for(const theme of ['violet','warm','night']){
       await page.locator('#theme-select').selectOption(theme);await page.getByRole('button',{name:'Apply theme',exact:true}).click();
-      await page.goto(base+'/#set/help');await page.waitForFunction(()=>document.querySelectorAll('#logic-document svg').length>=7,{},{timeout:45000});
+      await page.goto(base+'/#set/help');await page.waitForFunction(()=>document.querySelectorAll('#logic-document svg').length>=8,{},{timeout:45000});
       assert((await page.locator('#logic-document').textContent()).includes('Single ledger'));
       await page.goto(base+'/#set');
     }
