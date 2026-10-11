@@ -1,3 +1,4 @@
+import { t as tr, ui, systemFragment } from "../js/i18n.js";
 // 模块注册表：加一种模块类型 = 在这里 import 一份清单，主框架零改动。
 // 每份清单自带 card / detail，渲染失败由 safe() 隔离为单卡错误，不塌整页。
 import { safe } from "../js/core.js";
@@ -17,10 +18,10 @@ export function manifestFor(m) {
 
 export function renderCard(m) {
   const mf = manifestFor(m);
-  return safe(() => mf.card(m), `模块「${m.title}」`);
+  return safe(() => mf.card(m), ui`模块「${m.title}」`);
 }
 
 export function renderDetail(m) {
   const mf = manifestFor(m);
-  return safe(() => (mf.detail ? mf.detail(m) : ""), `模块「${m.title}」详情`);
+  return safe(() => (mf.detail ? mf.detail(m) : ""), ui`模块「${m.title}」详情`);
 }

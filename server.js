@@ -24,6 +24,7 @@ const { lifeHabitsForDate, normalizeLearningDraft, adoptLearningPlan, completeLe
 const { onlineCompatibleStatus } = require("./lib/model-status");
 const { ingestBrief, sourceSummaries } = require("./lib/brief-hub");
 const dropbox = require("./lib/dropbox");
+const { inactive, operationalStore, changeArchive } = require("./lib/archive");
 const { ensureCollaboration, postMessage, addArtifact, messagesFor, artifactsFor } = require("./lib/collaboration");
 const {
   ensureDepartmentSystem, createDepartmentRun, getRun, getItem, startItem, submitItem,
@@ -34,7 +35,7 @@ const {
 const ROOT = __dirname;
 const WORKSPACE_ROOT = path.resolve(ROOT, "..", "..");
 const PUBLIC = path.join(ROOT, "public");
-const DATA = path.join(ROOT, "data");
+const DATA = process.env.BENCH_DATA_DIR ? path.resolve(process.env.BENCH_DATA_DIR) : path.join(ROOT,"data");
 const STORE = path.join(DATA, "store.json");
 const BACKUP = path.join(DATA, "backups");
 const externalRuntime = createRuntime({ readStore, writeStore, artifactRoot: path.join(DATA,"agent-results") });
@@ -285,6 +286,13 @@ async function handleApi(req, res, url) {
   if (method === "POST" && lockedRun && codexManager.busy(lockedRun[1])) return sendJson(res, 409, { error: "Codex 正在处理此项目，请等待完成。" });
 
   if (method === "GET" && p === "/api/state") return sendJson(res, 200, store);
+  if(method==='POST'&&['/api/archive','/api/archive/preview'].includes(p)){
+    if(!isLoopback(req))return sendJson(res,403,{error:'archive_local_only'});
+    try{const body=await readBody(req)||{};const result=changeArchive(store,body,{preview:p.endsWith('/preview')});
+      if(!p.endsWith('/preview'))writeStore(store);return sendJson(res,200,result);
+    }catch(error){return sendJson(res,409,{error:error.message})}
+  }
+  if(method==='GET'&&p==='/api/help/logic')return send(res,200,fs.readFileSync(path.join(ROOT,'docs',url.searchParams.get('language')==='en'?'workbench-logic-type1.en.md':'工作台全图-类型1.md'),'utf8'),{'Content-Type':MIME['.md']});
   if (method === "GET" && p === "/api/health") {
     return sendJson(res, 200, { ok: true, at: nowIso(), tasks: store.tasks.length });
   }
@@ -309,7 +317,8 @@ async function handleApi(req, res, url) {
   if (method === "POST" && p === "/api/dispatch") {
     const body = await readBody(req) || {};
     const task = (store.tasks || []).find((t) => t.id === body.taskId);
-    if (!task) return sendJson(res, 404, { error: "task_not_found" });
+    if (!task) return sendJson(res,404,{error:"task_not_found"});
+    if(inactive(task))return sendJson(res,409,{error:"record_paused_or_archived"});
     if (body.ownerAgentId) task.ownerAgentId = body.ownerAgentId;
     if (Array.isArray(body.helperAgentIds)) task.helperAgentIds = body.helperAgentIds;
     if (body.collab) task.collab = body.collab;
@@ -367,6 +376,7 @@ async function handleApi(req, res, url) {
     const body=await readBody(req)||{},fresh=readStore();
     try {
       const run=getRun(fresh,automationMatch[1]);
+      if(inactive(run))return sendJson(res,409,{error:"project_paused_or_archived"});
       if(body.workbuddyTransport) {
         if(!["desktop-ui","desktop-scheduled","cli"].includes(body.workbuddyTransport))throw new Error("unsupported_workbuddy_transport");
         run.workbuddyTransport=body.workbuddyTransport;
@@ -398,6 +408,7 @@ async function handleApi(req, res, url) {
     try {
       const run = getRun(store, departmentRunMatch[1]);
       if (body.roleOwners && typeof body.roleOwners === "object") {
+        if(inactive(run))return sendJson(res,409,{error:"project_paused_or_archived"});
         const changes = Object.entries(body.roleOwners);
         for (const [role, agentId] of changes) {
           const item = getItem(run, role);
@@ -416,8 +427,7 @@ async function handleApi(req, res, url) {
       }
       if (typeof body.pinned === "boolean") run.pinned = body.pinned;
       if (typeof body.archived === "boolean") {
-        run.archived = body.archived;
-        run.archivedAt = body.archived ? nowIso() : null;
+        changeArchive(store,{action:body.archived?'archive':'restore',items:[{collection:'departmentRuns',id:run.id}]});
       }
       run.updatedAt = nowIso();
       writeStore(store);
@@ -435,7 +445,7 @@ async function handleApi(req, res, url) {
   if (departmentMessages && method === "POST") {
     const body = await readBody(req) || {};
     try {
-      getRun(store, departmentMessages[1]);
+      if(inactive(getRun(store, departmentMessages[1])))return sendJson(res,409,{error:"project_paused_or_archived"});
       const message = postMessage(store, { ...body, runId: departmentMessages[1] });
       if (body.sender === "chairman" && /(?:^|[。！？.!?\s])Start Writing\s*[。.!！]?$/i.test(String(body.text || "").trim())) {
         const run=getRun(store,departmentMessages[1]);
@@ -465,7 +475,7 @@ async function handleApi(req, res, url) {
     try {
       const run = getRun(store, chatRetry[1]);
       const job = (store.chatJobs || []).find(j => j.runId === run.id && j.id === chatRetry[2]);
-      if (!job || job.status !== 'failed' || run.archived) throw new Error('仅能重试未归档项目的失败回复');
+      if (!job || job.status !== 'failed' || inactive(run) || inactive(job)) throw new Error('仅能重试未归档项目的失败回复');
       store.chatJobs.push({ ...job, id: id('chat'), status: 'queued', createdAt: nowIso(), startedAt: null, completedAt: null, error: '', replyId: null });
       writeStore(store); projectChat.tick(); return sendJson(res, 202, { ok: true });
     } catch (err) { return sendJson(res, 400, { error: err.message }); }
@@ -514,36 +524,34 @@ async function handleApi(req, res, url) {
 
   const departmentModelExecute = p.match(/^\/api\/departments\/runs\/([^/]+)\/items\/([^/]+)\/model-execute$/);
   if (departmentModelExecute && method === "POST") {
-    const runId = departmentModelExecute[1];
-    const itemId = departmentModelExecute[2];
+    const runId=departmentModelExecute[1],itemId=departmentModelExecute[2];
+    let generation,owner;
     try {
-      const run = getRun(store, runId);
-      const item = getItem(run, itemId);
-      if (["queued", "rework"].includes(item.status)) startItem(store, runId, itemId);
-      if (item.status !== "doing") throw new Error("item_not_in_progress");
-      const prompt = rolePrompt(run, item);
-      const text = await chat(store, { ...prompt, vaultQuery: run.goal, onEvidence: evidence => { item.evidence = evidence; }, temperature: item.role === "reviewer" ? 0.1 : 0.35, maxTokens: 1600, timeoutMs: 180000 });
-      if (!String(text || "").trim()) throw new Error("model_returned_empty_output");
-      if (item.role === "reviewer") {
-        const verdict = /VERDICT\s*:\s*REJECT/i.test(text) ? "reject" : /VERDICT\s*:\s*PASS/i.test(text) ? "pass" : "reject";
-        reviewExecutor(store, runId, { reviewerAgentId: item.ownerAgentId, verdict, comment: text });
-      } else if (item.role === "executor" && item.status === "rework") {
-        completeRework(store, runId, itemId, { output: text });
-      } else {
-        submitItem(store, runId, itemId, { output: text });
+      let run=getRun(store,runId),item=getItem(run,itemId);
+      if(inactive(run))return sendJson(res,409,{error:"project_paused_or_archived"});
+      if (["queued","rework"].includes(item.status))startItem(store,runId,itemId);
+      if(item.status!=="doing")throw new Error("item_not_in_progress");
+      generation=run.archiveGeneration||0;owner=item.ownerAgentId;
+      writeStore(store);
+      const prompt=rolePrompt(run,item);let evidence;
+      const text=await chat(store,{...prompt,vaultQuery:run.goal,onEvidence:value=>{evidence=value;},temperature:item.role==="reviewer"?0.1:0.35,maxTokens:1600,timeoutMs:180000});
+      if(!String(text||"").trim())throw new Error("model_returned_empty_output");
+      // Never write an asynchronous result using a pre-call ledger snapshot.
+      store=readStore();run=getRun(store,runId);item=getItem(run,itemId);
+      if(inactive(run)||(run.archiveGeneration||0)!==generation||item.status!=="doing"||item.ownerAgentId!==owner){
+        run.modelLateResults||=[];run.modelLateResults.push({itemId,output:text,evidence,status:"held",completedAt:nowIso()});
+        if(item.status==="doing"&&item.ownerAgentId===owner)item.status="queued";
+        writeStore(store);return sendJson(res,200,{held:true,run});
       }
-      run.planningMode = "model-assisted";
-      store.events.unshift({
-        id: id("ev"), type: "department-stage", agentId: item.ownerAgentId,
-        text: `虚拟部门「${run.title}」完成阶段：${item.label}`, createdAt: nowIso(),
-      });
-      postMessage(store, { runId, sender: item.ownerAgentId, type: item.role === "reviewer" ? "review" : "artifact", relatedTaskId: item.id, text: String(text).slice(0, 4000) });
-      writeStore(store);
-      return sendJson(res, 200, { run, item: getItem(run, itemId) });
-    } catch (err) {
-      // 目标与已开始状态仍写入台账，避免模型失败导致用户输入消失。
-      writeStore(store);
-      return sendJson(res, 500, { error: String((err && err.message) || err) });
+      if(evidence)item.evidence=evidence;
+      if(item.role==="reviewer")reviewExecutor(store,runId,{reviewerAgentId:owner,verdict:/VERDICT\s*:\s*PASS/i.test(text)&&!/VERDICT\s*:\s*REJECT/i.test(text)?"pass":"reject",comment:text});
+      else submitItem(store,runId,itemId,{output:text});
+      run.planningMode="model-assisted";
+      postMessage(store,{runId,sender:owner,type:item.role==="reviewer"?"review":"artifact",relatedTaskId:item.id,text:String(text).slice(0,4000)});
+      writeStore(store);return sendJson(res,200,{run,item});
+    }catch(err){
+      if(generation!==undefined){const fresh=readStore();try{const item=getItem(getRun(fresh,runId),itemId);if(item.status==="doing"&&item.ownerAgentId===owner)item.status="queued";writeStore(fresh);}catch(_) {}}
+      return sendJson(res,500,{error:String(err.message||err)});
     }
   }
 
@@ -552,7 +560,7 @@ async function handleApi(req, res, url) {
     const runId = departmentAutoRun[1];
     try {
       const run = getRun(store, runId);
-      if (run.archived) return sendJson(res, 409, { error: "project_archived" });
+      if (inactive(run)) return sendJson(res, 409, { error: "project_paused_or_archived" });
       const director = getItem(run, "director");
       run.externalAutomation = true;
       writeStore(store);
@@ -628,6 +636,7 @@ async function handleApi(req, res, url) {
     const body = await readBody(req) || {};
     const task = (store.tasks || []).find((t) => t.id === body.taskId);
     if (!task) return sendJson(res, 404, { error: "task_not_found" });
+    if(inactive(task))return sendJson(res,409,{error:"record_paused_or_archived"});
     if (typeof body.progress === "number") task.progress = Math.max(0, Math.min(100, body.progress));
     if (body.status) task.status = body.status;
     if (body.nextAction) task.nextAction = body.nextAction;
@@ -647,7 +656,7 @@ async function handleApi(req, res, url) {
   if (method === "GET" && p === "/api/brief-runs") {
     const sourceId = url.searchParams.get("sourceId") || "";
     const unread = url.searchParams.get("unread");
-    let runs = store.briefRuns || [];
+    let runs = (store.briefRuns||[]).filter(run=>!run.archived);
     if (sourceId) runs = runs.filter((item) => item.sourceId === sourceId);
     if (unread === "true") runs = runs.filter((item) => item.unread !== false);
     if (unread === "false") runs = runs.filter((item) => item.unread === false);
@@ -711,7 +720,7 @@ async function handleApi(req, res, url) {
   if (method === "GET" && p === "/api/inbox") {
     const agentId = url.searchParams.get("agentId");
     const status = url.searchParams.get("status");
-    let list = store.inbox || [];
+    let list = (store.inbox||[]).filter(item=>!inactive(item)&&!(store.departmentRuns||[]).some(run=>run.id===item.runId&&inactive(run)));
     if (agentId) list = list.filter((m) => m.toAgentId === agentId);
     if (status) list = list.filter((m) => m.status === status);
     return sendJson(res, 200, list);
@@ -733,7 +742,7 @@ async function handleApi(req, res, url) {
     if (body.toAgentId === "__all" || body.toAgentId === "all") {
       const broadcastId = id("bc");
       const items = [];
-      for (const a of store.agents || []) {
+      for (const a of (store.agents||[]).filter(a=>!inactive(a))) {
         const item = { id: id("in"), ...base, toAgentId: a.id, broadcastId, broadcast: true };
         store.inbox.unshift(item);
         items.push(item);
@@ -750,7 +759,8 @@ async function handleApi(req, res, url) {
       return sendJson(res, 200, { broadcastId, count: items.length, items });
     }
     const agent = (store.agents || []).find((a) => a.id === body.toAgentId);
-    if (!agent) return sendJson(res, 404, { error: "agent_not_found" });
+    if (!agent) return sendJson(res,404,{error:"agent_not_found"});
+    if(inactive(agent))return sendJson(res,409,{error:"agent_paused_or_archived"});
     const item = { id: id("in"), ...base, toAgentId: body.toAgentId };
     store.inbox.unshift(item);
     agent.unread = (agent.unread || 0) + 1;
@@ -771,6 +781,7 @@ async function handleApi(req, res, url) {
     const msg = (store.inbox || []).find((m) => m.id === inboxPatch[1]);
     if (!msg) return notFound(res);
     const body = await readBody(req) || {};
+    if(inactive(msg)||(store.departmentRuns||[]).some(run=>run.id===msg.runId&&inactive(run)))return sendJson(res,409,{error:"record_paused_or_archived"});
     const prevStatus = msg.status;
     Object.assign(msg, body, { id: msg.id, updatedAt: nowIso() });
     if (prevStatus === "queued" && msg.status !== "queued") {
@@ -803,7 +814,19 @@ async function handleApi(req, res, url) {
 
   if (method === "PATCH" && p === "/api/fronts") {
     const body = await readBody(req) || {};
-    store.fronts = { ...store.fronts, ...body };
+    for(const key of ['learn','life']) {
+      if(!Object.hasOwn(body,key))continue;
+      if(!Array.isArray(body[key]))return sendJson(res,400,{error:"invalid_front_records"});
+      const current=store.fronts[key]||[];
+      const incoming=body[key];
+      if(incoming.some(record=>!record.id || Object.hasOwn(record,'archived') || Object.hasOwn(record,'resumeRequired'))) {
+        // Existing metadata may be round-tripped, but cannot be changed here.
+        if(incoming.some(record=>!record.id || ['archived','resumeRequired'].some(field=>Object.hasOwn(record,field)&&record[field]!==current.find(row=>row.id===record.id)?.[field])))return sendJson(res,400,{error:"use_archive_endpoint"});
+      }
+      if(incoming.some(record=>inactive(current.find(row=>row.id===record.id))&&JSON.stringify(record)!==JSON.stringify(current.find(row=>row.id===record.id))))return sendJson(res,409,{error:"record_paused_or_archived"});
+      // A filtered UI submits current records only; preserve archived and paused rows.
+      store.fronts[key]=[...incoming,...current.filter(record=>inactive(record)&&!incoming.some(row=>row.id===record.id))];
+    }
     writeStore(store);
     return sendJson(res, 200, store.fronts);
   }
@@ -894,6 +917,7 @@ async function handleApi(req, res, url) {
     const run = ((store.lifeSystem && store.lifeSystem.habitRuns) || []).find((item) => item.id === habitRunMatch[1]);
     if (!run) return notFound(res);
     const body = await readBody(req) || {};
+    if(inactive(run))return sendJson(res,409,{error:"record_paused_or_archived"});
     if (typeof body.done === "boolean") run.done = body.done;
     if (typeof body.skipped === "boolean") run.skipped = body.skipped;
     if (typeof body.review === "string") run.review = body.review.slice(0, 1000);
@@ -979,7 +1003,8 @@ async function handleApi(req, res, url) {
   if (method === "PATCH" && p === "/api/meta") {
     const body = await readBody(req) || {};
     // 元数据只允许界面偏好字段，避免把整份台账暴露成任意写入口。
-    const allowed = ["theme"];
+    if(Object.hasOwn(body,"language")&&!["zh-CN","en"].includes(body.language))return sendJson(res,400,{error:"invalid_language"});
+    const allowed = ["theme","language"];
     store.meta = store.meta || {};
     for (const key of allowed) if (typeof body[key] === "string") store.meta[key] = body[key];
     writeStore(store);
@@ -1002,6 +1027,8 @@ async function handleApi(req, res, url) {
     if (idx < 0) return notFound(res);
     if (method === "PATCH") {
       const body = await readBody(req);
+      if(Object.hasOwn(body||{},"archived")||Object.hasOwn(body||{},"resumeRequired"))return sendJson(res,400,{error:"use_archive_endpoint"});
+      if(inactive(list[idx]))return sendJson(res,409,{error:"record_paused_or_archived"});
       list[idx] = { ...list[idx], ...body, id: itemId, updatedAt: nowIso() };
       writeStore(store);
       return sendJson(res, 200, list[idx]);
@@ -1018,6 +1045,7 @@ async function handleApi(req, res, url) {
 }
 
 function createServer() {
+  ensureDirs();
   return http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, `http://${HOST}:${PORT}`);
@@ -1062,4 +1090,5 @@ async function main() {
   });
 }
 
-main().catch(err => { console.error('工作台启动失败：', err.message); process.exitCode = 1; });
+if(require.main===module)main().catch(err => { console.error('工作台启动失败：', err.message); process.exitCode = 1; });
+module.exports={createServer,readStore,writeStore};

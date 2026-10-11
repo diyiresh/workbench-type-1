@@ -1,6 +1,6 @@
 {
   "name": "bench-workbench",
-  "version": "0.1.0",
+  "version": "0.10.0",
   "private": true,
   "description": "本机统筹工作台 — 跨会话记忆、多 Agent 协作、规范驱动长期任务",
   "scripts": {
@@ -8,6 +8,21 @@
     "brief": "node cli.js brief",
     "tasks": "node cli.js tasks",
     "test:agents": "node test/desktop-worker.test.mjs && node test/workbuddy-queue.test.js && node test/automatic-department.test.js",
-    "test": "node test/project-chat.test.js && node test/cursor-long-prompt.test.js && node test/preparation-flow.test.js && node test/theme-contrast.test.js && node test/agenda-utils.test.js && node test/migration.test.js && node test/reminders.test.js && node test/local-opener.test.js && node test/agenda-report-writing.test.js && node test/llm-options.test.js && node test/agenda-material-action.test.js && node test/life-learning.test.js && node test/brief-hub.test.js && node test/dropbox-brief.test.js && node test/model-status.test.js && node test/start-script.test.js && node test/department.test.js && node test/collaboration.test.js && node test/agent-dispatch.test.js && node test/desktop-bridge.test.js && node test/external-runtime.test.js && node test/workspace.test.js && node test/codex.test.js && node test/codex-vault-failure.test.js && node test/vault.test.js && node test/network.test.js"
+    "test": "node test/project-chat.test.js && node test/cursor-long-prompt.test.js && node test/preparation-flow.test.js && node test/theme-contrast.test.js && node test/agenda-utils.test.js && node test/migration.test.js && node test/reminders.test.js && node test/local-opener.test.js && node test/agenda-report-writing.test.js && node test/llm-options.test.js && node test/agenda-material-action.test.js && node test/life-learning.test.js && node test/brief-hub.test.js && node test/dropbox-brief.test.js && node test/model-status.test.js && node test/start-script.test.js && node test/department.test.js && node test/collaboration.test.js && node test/agent-dispatch.test.js && node test/desktop-bridge.test.js && node test/external-runtime.test.js && node test/workspace.test.js && node test/codex.test.js && node test/codex-vault-failure.test.js && node test/vault.test.js && node test/network.test.js && node test/archive.test.js && node test/archive-api.test.js && node scripts/check-translations.cjs",
+    "build:assets": "node scripts/build-assets.cjs",
+    "prestart": "npm run build:assets",
+    "test:ui": "node test/workbench-v010.browser.cjs"
+  },
+  "dependencies": {
+    "i18next": "26.4.3",
+    "mermaid": "12.1.0"
+  },
+  "devDependencies": {
+    "acorn": "8.19.0",
+    "esbuild": "0.28.2",
+    "playwright": "1.64.0"
+  },
+  "overrides": {
+    "katex": "0.18.2"
   }
 }

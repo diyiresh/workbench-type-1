@@ -4,11 +4,14 @@
 // ============================================================
 
 import {
-  api, esc, fmt, ymd, getStore, setStore, agent, taskById,
+  api, esc, fmt, ymd, getStore, getRawStore, setStore, agent, taskById,
   modulesSorted, STATUS, CMD_STATUS, OPS, safe, errorCard,
 } from "./js/core.js";
 import { renderCard, renderDetail, manifestFor } from "./modules/index.js";
 import * as V from "./js/views.js";
+import { t as tr, ui, systemFragment } from "./js/i18n.js";
+import { openArchive } from "./js/archive-ui.js";
+import { helpView, renderLogic } from "./js/help.js";
 
 const PRIMARY = [
   { id: "home", icon: "⌂", name: "指挥舱" },
@@ -127,13 +130,13 @@ function showBrief() {
     return;
   }
   el.hidden = false;
-  el.innerHTML = `<div class="sheet">
+  el.innerHTML = ui`<div class="sheet">
     <div class="kicker">${esc(b.kicker)} · ${b.index} / ${b.total}</div>
     <h2>${esc(b.title)}</h2>
     <div class="brief-body">${esc(b.body)}</div>
     <div class="actions">
       <button type="button" class="ghost" data-brief="skip">今日不再弹出</button>
-      <button type="button" class="solid" data-brief="next">${briefIndex + 1 >= briefs.length ? "进入指挥台" : "下一份"}</button>
+      <button type="button" class="solid" data-brief="next">${briefIndex + 1 >= briefs.length ? tr("进入指挥台") : tr("下一份")}</button>
     </div>
   </div>`;
 }
@@ -147,7 +150,7 @@ function rail() {
     PRIMARY.map((p) => {
       const count = p.id === "crew" ? unread : p.id === "briefs" ? unreadBriefs : 0;
       const badge = count ? `<span class="badge">${count}</span>` : "";
-      return `<button type="button" class="rail-btn ${p.id === primary ? "active" : ""}" title="${p.name}" data-primary="${p.id}"><span class="rail-label">${p.name}</span>${badge}</button>`;
+      return `<button type="button" class="rail-btn ${p.id === primary ? "active" : ""}" title="${esc(tr(p.name))}" data-primary="${p.id}"><span class="rail-label">${esc(tr(p.name))}</span>${badge}</button>`;
     }).join("") + `<div class="rail-gap"></div>`;
 }
 
@@ -160,62 +163,62 @@ function channels() {
   const hit = (t) => !q || String(t).toLowerCase().includes(q);
   let html = "";
   if (primary === "home") {
-    html += `<div class="sec">指挥舱</div>${channelBtn("all", "全部模块")}`;
-    html += `<div class="sec">模块（可拖到工作区改序）</div>`;
+    html += ui`<div class="sec">指挥舱</div>${channelBtn("all", tr("全部模块"))}`;
+    html += ui`<div class="sec">模块（可拖到工作区改序）</div>`;
     html += modulesSorted()
       .filter((m) => hit(m.title))
       .map((m) => channelBtn(m.id, m.title, String(m.importance || "")))
       .join("");
   } else if (primary === "deck") {
-    html += `<div class="sec">决策台</div>${channelBtn("all", "总控 / 风险 / 决策表")}`;
+    html += ui`<div class="sec">决策台</div>${channelBtn("all", tr("总控 / 风险 / 决策表"))}`;
   } else if (primary === "department") {
     const runs = (getStore().departmentRuns || []).filter((run) => hit(run.title + run.goal)).slice().sort((a,b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)));
-    html += `<div class="sec">虚拟部门</div>${channelBtn("new", "＋ 新建项目 · New project")}${channelBtn("all", "项目工作区")}`;
+    html += ui`<div class="sec">虚拟部门</div>${channelBtn("new", tr("＋ 新建项目 · New project"))}${channelBtn("all", tr("项目工作区"))}`;
     const groups = [["置顶", runs.filter(r => r.pinned && !r.archived)], ["进行中", runs.filter(r => !r.pinned && !r.archived && r.status !== "completed")], ["已完成", runs.filter(r => !r.pinned && !r.archived && r.status === "completed")], ["已归档", runs.filter(r => r.archived)]];
     for (const [label, items] of groups) {
       if (!items.length) continue;
-      html += `<div class="sec">${label}</div>` + items.map(run => `<div class="project-nav-row">${channelBtn(run.id, run.title)}${V.projectMenu(run)}</div>`).join("");
+      html += `<div class="sec">${tr(label)}</div>` + items.map(run => `<div class="project-nav-row">${channelBtn(run.id, run.title)}${V.projectMenu(run)}</div>`).join("");
     }
   } else if (primary === "agenda") {
-    html += `<div class="sec">每日行程</div>${channelBtn("all", "时间轴 / 周计划")}`;
+    html += ui`<div class="sec">每日行程</div>${channelBtn("all", tr("时间轴 / 周计划"))}`;
   } else if (primary === "briefs") {
-    html += `<div class="sec">统一简报</div>${channelBtn("all", "全部来源", String((getStore().briefRuns || []).length))}`;
+    html += ui`<div class="sec">统一简报</div>${channelBtn("all", tr("全部来源"), String((getStore().briefRuns || []).length))}`;
     html += (getStore().briefSources || [])
       .filter((source) => source.enabled !== false && hit(source.platform + source.name))
       .map((source) => {
         const n = (getStore().briefRuns || []).filter((run) => run.sourceId === source.id && run.unread !== false).length;
-        return channelBtn(source.id, source.name, n ? `未读 ${n}` : source.platform);
+        return channelBtn(source.id, source.name, n ? ui`未读 ${n}` : source.platform);
       }).join("");
   } else if (primary === "ops") {
-    html += `<div class="sec">经营秘书</div>`;
-    html += OPS.filter((o) => hit(o.name)).map((o) => channelBtn(o.id, o.name)).join("");
+    html += ui`<div class="sec">经营秘书</div>`;
+    html += OPS.filter((o) => hit(o.name)).map((o) => channelBtn(o.id, tr(o.name))).join("");
   } else if (primary === "crew") {
-    html += `<div class="sec">直属部门</div>${channelBtn("all", "全部舰队")}`;
+    html += ui`<div class="sec">直属部门</div>${channelBtn("all", tr("全部舰队"))}`;
     html += (getStore().agents || [])
       .filter((a) => hit(a.name + a.role))
       .map((a) => {
         const n = (getStore().inbox || []).filter((m) => m.toAgentId === a.id && m.status === "queued").length;
-        return channelBtn(a.id, a.name, n ? `待领 ${n}` : a.role);
+        return channelBtn(a.id, a.name, n ? ui`待领 ${n}` : a.role);
       })
       .join("");
   } else if (primary === "work") {
     const projs = modulesSorted().filter((m) => m.type === "project");
-    html += `<div class="sec">事业部</div>${channelBtn("all", "全部事业")}`;
+    html += ui`<div class="sec">事业部</div>${channelBtn("all", tr("全部事业"))}`;
     html += projs.filter((m) => hit(m.title)).map((m) => channelBtn(m.id, m.title)).join("");
   } else if (primary === "learn") {
     const plans = ((getStore().lifeSystem || {}).learningPlans || []).filter((x) => x.status === "active");
-    html += `<div class="sec">学习战线</div>${channelBtn("all", "繁星与银河", plans.length ? `${plans.length} 个计划` : "")}`;
+    html += ui`<div class="sec">学习战线</div>${channelBtn("all", tr("繁星与银河"), plans.length ? ui`${plans.length} 个计划` : "")}`;
   } else if (primary === "life") {
     const todayRuns = ((getStore().lifeSystem || {}).habitRuns || []).filter((x) => x.date === ymd());
-    html += `<div class="sec">生活战线</div>${channelBtn("all", "繁星与银河", todayRuns.length ? `${todayRuns.length} 项今日习惯` : "")}`;
+    html += ui`<div class="sec">生活战线</div>${channelBtn("all", tr("繁星与银河"), todayRuns.length ? ui`${todayRuns.length} 项今日习惯` : "")}`;
   } else if (primary === "memory") {
-    html += `<div class="sec">知识库</div>${channelBtn("all", "总览")}${channelBtn("lessons", "教训")}${channelBtn("skills", "技能")}${channelBtn("prompts", "提示词")}`;
+    html += ui`<div class="sec">知识库</div>${channelBtn("all", tr("总览"))}${channelBtn("lessons", tr("教训"))}${channelBtn("skills", tr("技能"))}${channelBtn("prompts", tr("提示词"))}`;
   } else {
-    html += `<div class="sec">设置</div>${channelBtn("all", "简报与偏好")}`;
+    html += ui`<div class="sec">设置</div>${channelBtn("all", tr("简报与偏好"))}${channelBtn("help", tr("使用说明与逻辑图"))}`;
   }
   $("channels").innerHTML = html;
-  $("ws-name").textContent = "BEN · 一人公司";
-  $("ws-role").textContent = (PRIMARY.find((p) => p.id === primary) || {}).name + " · 私人秘书";
+  $("ws-name").textContent = tr("BEN · 一人公司");
+  $("ws-role").textContent = tr((PRIMARY.find((p) => p.id === primary) || {}).name) + " · " + tr("私人秘书");
 }
 
 function currentModule() {
@@ -225,51 +228,51 @@ function currentModule() {
 function workspace() {
   const m = currentModule();
   const titleMap = {
-    home: secondary === "all" ? "指挥舱" : (m || {}).title || "",
-    deck: "决策台",
-    department: secondary === "all" ? "虚拟部门" : ((getStore().departmentRuns || []).find((run) => run.id === secondary) || {}).title || "虚拟部门",
-    agenda: "每日行程",
-    briefs: secondary === "all" ? "简报中心" : ((getStore().briefSources || []).find((x) => x.id === secondary) || {}).name || "简报中心",
-    ops: (OPS.find((o) => o.id === secondary) || { name: "经营" }).name,
-    crew: secondary === "all" ? "舰队" : agent(secondary).name,
-    work: secondary === "all" ? "事业部" : (m || {}).title || "",
-    learn: "学习战线",
-    life: "生活战线",
-    memory: "知识库",
-    set: "设置",
+    home: secondary === "all" ? tr("指挥舱") : (m || {}).title || "",
+    deck: tr("决策台"),
+    department: secondary === "all" ? tr("虚拟部门") : ((getStore().departmentRuns || []).find((run) => run.id === secondary) || {}).title || tr("虚拟部门"),
+    agenda: tr("每日行程"),
+    briefs: secondary === "all" ? tr("简报中心") : ((getStore().briefSources || []).find((x) => x.id === secondary) || {}).name || tr("简报中心"),
+    ops: tr((OPS.find((o) => o.id === secondary) || { name: "经营" }).name),
+    crew: secondary === "all" ? tr("舰队") : agent(secondary).name,
+    work: secondary === "all" ? tr("事业部") : (m || {}).title || "",
+    learn: tr("学习战线"),
+    life: tr("生活战线"),
+    memory: tr("知识库"),
+    set: tr("设置"),
   };
   const ledeMap = {
-    home: "模块化首页。新项目上线就加一块；重要性变了就拖顺序。",
-    deck: "总控指标 + 风险雷达 + 全项目决策表。会议记录在这里拆成待办。",
-    department: "只说一次目标，由主管、执行人、独立复核人与整合秘书接力完成。",
-    agenda: "把真正占用今天的时间排出来，再让 AI 给出可编辑的建议。",
-    briefs: "ChatGPT、WorkBuddy 与其他 Agent 继续各自生成；这里统一收件、去重和阅读。",
-    ops: "行程与经营文件。生成初稿，改成人话再归档。",
-    crew: "各部门进度与指令追踪。全员通告在这页顶部。",
-    deck: "董事长一屏决策：谁在干、干到哪、哪里有风险。",
-    work: "每一个事业部相当于公司里新接的一条业务线。",
-    learn: "繁星引用临时学习行程；银河保存经您采纳的学习计划。",
-    life: "繁星保留生活行程；银河自动载入当天到期习惯。",
-    memory: "知识总览 + 教训 + 技能 + 提示词。AI 的产出要变成资产。",
-    set: "简报自动化、指令规则与导出。",
+    home: tr("模块化首页。新项目上线就加一块；重要性变了就拖顺序。"),
+    deck: tr("总控指标 + 风险雷达 + 全项目决策表。会议记录在这里拆成待办。"),
+    department: tr("只说一次目标，由主管、执行人、独立复核人与整合秘书接力完成。"),
+    agenda: tr("把真正占用今天的时间排出来，再让 AI 给出可编辑的建议。"),
+    briefs: tr("ChatGPT、WorkBuddy 与其他 Agent 继续各自生成；这里统一收件、去重和阅读。"),
+    ops: tr("行程与经营文件。生成初稿，改成人话再归档。"),
+    crew: tr("各部门进度与指令追踪。全员通告在这页顶部。"),
+    deck: tr("董事长一屏决策：谁在干、干到哪、哪里有风险。"),
+    work: tr("每一个事业部相当于公司里新接的一条业务线。"),
+    learn: tr("繁星引用临时学习行程；银河保存经您采纳的学习计划。"),
+    life: tr("繁星保留生活行程；银河自动载入当天到期习惯。"),
+    memory: tr("知识总览 + 教训 + 技能 + 提示词。AI 的产出要变成资产。"),
+    set: tr("简报自动化、指令规则与导出。"),
   };
-  $("ws-head").innerHTML = `<div><h1>${esc(titleMap[primary] || "")}</h1><p>${esc(ledeMap[primary] || "")}</p></div>`;
+  $("ws-head").innerHTML = `<div><h1>${esc(["home","department","briefs","crew","work"].includes(primary) && secondary!=="all" ? titleMap[primary] : tr(titleMap[primary] || ""))}</h1><p>${esc(ledeMap[primary] || "")}</p></div><button type="button" class="ghost" data-act="manage-records">${tr(tr("管理与归档"))}</button>`;
 
   const body = safe(() => {
-    if (primary === "home") return secondary === "all" ? V.homeAllView() : V.moduleDetailView(m || { id: secondary, type: "project", title: "未知名" });
+    if (primary === "home") return secondary === "all" ? V.homeAllView() : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
     if (primary === "deck") return V.deckView();
     if (primary === "department") return V.departmentView(secondary, departmentGoalDraft);
     if (primary === "agenda") return V.agendaView(agendaDate, agendaMode, agendaReportDraft);
     if (primary === "briefs") return V.briefHubView(secondary);
-    if (primary === "work") return secondary === "all" ? V.homeAllView() : V.moduleDetailView(m || { id: secondary, type: "project", title: "未知名" });
-    if (primary === "ops") return V.opsView(secondary === "all" ? "today" : secondary, (OPS.find((o) => o.id === secondary) || {}).name);
+    if (primary === "work") return secondary === "all" ? V.homeAllView() : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
+    if (primary === "ops") return V.opsView(secondary === "all" ? "today" : secondary, tr((OPS.find((o) => o.id === secondary) || {}).name));
     if (primary === "crew") return secondary === "all" ? V.crewAllView() : V.agentDetailView(agent(secondary));
     if (primary === "learn") return V.frontView("learn", secondary, learningPlanDraft, learningFormDraft);
     if (primary === "life") return V.frontView("life", secondary);
     if (primary === "memory") return V.memoryView(secondary);
-    if (primary === "set") return V.setView();
+    if (primary === "set") return secondary === "help" ? helpView() : V.setView();
     return V.homeAllView();
-  }, "页面视图");
+  }, tr("页面视图"));
 
   const oldRoom = $("ws-body").querySelector('[data-room-form]');
   const oldChat = $("ws-body").querySelector('.project-messages');
@@ -304,6 +307,7 @@ function workspace() {
       input.scrollTop = reading.inputTop || 0;
     }
   }
+  if(primary === "set" && secondary === "help")void renderLogic();
   bindDrag();
   bindAgenda();
   bindLearningPlan();
@@ -314,11 +318,11 @@ function workspace() {
 
 async function refreshVaultStatus() {
   const el = $('vault-status'); if (!el) return;
-  if (!getStore().remote?.vault?.enabled) { el.textContent = '尚未启用资料库连接。'; return; }
+  if (!getStore().remote?.vault?.enabled) { el.textContent = tr('尚未启用资料库连接。'); return; }
   try {
     const s = await api('/api/vault/status');
-    const labels = { indexed:'可检索', excluded:'排除', empty:'无文本', failed:'失败', unsupported:'不支持', needs_ocr:'需OCR', capped:'截断', non_document:'非文档', blocked:'阻止访问' };
-    el.textContent = `登记 ${s.files || 0} 个文件 · ${s.documents || 0} 篇文档 · ${s.chunks || 0} 个文本块 · 同步 ${s.sync.status}。` + Object.entries(s.statuses || {}).map(([k,v]) => `${labels[k] || k} ${v}`).join(' · ') + (s.sync.error ? '。' + s.sync.error : '');
+    const labels = { indexed:tr('可检索'), excluded:tr('排除'), empty:tr('无文本'), failed:tr('失败'), unsupported:tr('不支持'), needs_ocr:tr('需OCR'), capped:tr('截断'), non_document:tr('非文档'), blocked:tr('阻止访问') };
+    el.textContent = ui`登记 ${s.files || 0} 个文件 · ${s.documents || 0} 篇文档 · ${s.chunks || 0} 个文本块 · 同步 ${s.sync.status}。` + Object.entries(s.statuses || {}).map(([k,v]) => `${labels[k] || k} ${v}`).join(' · ') + (s.sync.error ? '。' + s.sync.error : '');
   } catch (err) { el.textContent = '资料库未接通：' + err.message; }
 }
 async function saveVault() {
@@ -326,26 +330,26 @@ async function saveVault() {
   await reload();
 }
 async function searchVault() {
-  const box = $('vault-results'); box.textContent = '检索中…';
+  const box = $('vault-results'); box.textContent = tr('检索中…');
   try {
     const r = await api('/api/vault/search', { method:'POST', body:{ query:$('vault-query').value.trim() } });
     box.replaceChildren();
     for (const h of r.hits || []) {
       const item = document.createElement('p');
       const link = document.createElement('a'); link.href = h.uri; link.textContent = h.rel;
-      item.append(link, document.createElement('br'), document.createTextNode(`${h.locator === 'extracted_lines' ? '抽取文本行' : '原文行'} ${h.start_line}-${h.end_line} · 版本 ${h.source_sha.slice(0,12)}`), document.createElement('br'), document.createTextNode(h.text));
+      item.append(link, document.createElement('br'), document.createTextNode(ui`${h.locator === 'extracted_lines' ? tr('抽取文本行') : tr('原文行')} ${h.start_line}-${h.end_line} · 版本 ${h.source_sha.slice(0,12)}`), document.createElement('br'), document.createTextNode(h.text));
       box.append(item);
     }
-    if (!r.hits?.length) box.textContent = '没有检到可用依据；请检查资料覆盖和同步状态。';
+    if (!r.hits?.length) box.textContent = tr('没有检到可用依据；请检查资料覆盖和同步状态。');
   } catch (err) { box.textContent = err.message; }
 }
 async function showVaultFiles() {
-  const box = $('vault-files'); box.textContent = '读取中…';
+  const box = $('vault-files'); box.textContent = tr('读取中…');
   try {
     const r = await api('/api/vault/files?status=' + encodeURIComponent($('vault-file-status').value));
     box.replaceChildren();
     for (const f of r.files) { const row=document.createElement('p'); row.textContent=f.rel + '：' + f.reason; box.append(row); }
-    if (!r.files.length) box.textContent='该状态没有文件。';
+    if (!r.files.length) box.textContent=tr('该状态没有文件。');
   } catch (err) { box.textContent=err.message; }
 }
 
@@ -354,6 +358,13 @@ function render() {
   if (roomComposing) return;
   parseHash();
   document.documentElement.dataset.theme = (getStore().meta && getStore().meta.theme) || "violet";
+  document.title=tr("统筹工作台");
+  $("search").placeholder=tr("搜索模块、部门、报告");
+  $("composer").querySelector("button[type=submit]").textContent=tr("下达");
+  $("cmd-body").placeholder=tr("董事长指令台：选对象（选「全员」即通告），输入指令。下达前会先确认。点项目卡片上的「指挥」可直达。");
+  $("cmd-to").setAttribute("aria-label",tr("下达对象"));
+  $("rail").setAttribute("aria-label",tr("一级目录"));
+  $("sidebar").querySelector(".add-mod").textContent=tr("+ 新模块 / 新事业部");
   rail();
   channels();
   workspace();
@@ -391,7 +402,7 @@ function bindDrag() {
 function currentContext() {
   const m = currentModule();
   if ((primary === "home" || primary === "work") && m) {
-    return { relatedId: m.id, relatedModuleId: m.id, label: `项目「${m.title}」` };
+    return { relatedId: m.id, relatedModuleId: m.id, label: ui`项目「${m.title}」` };
   }
   return { relatedId: "", relatedModuleId: "", label: "" };
 }
@@ -403,16 +414,16 @@ function syncComposer() {
   sel.innerHTML =
     (s.agents || [])
       .map((a) => `<option value="${esc(a.id)}">${esc(a.name)}</option>`)
-      .join("") + `<option value="__all">📣 全员（通告）</option>`;
+      .join("") + ui`<option value="__all">📣 全员（通告）</option>`;
   let hint = "";
   const m = currentModule();
   if (primary === "crew" && secondary !== "all") {
     sel.value = secondary;
-    hint = "已切到该部门";
+    hint = tr("已切到该部门");
   } else if ((primary === "home" || primary === "work") && m && (m.ownerAgentId || (m.taskId && taskById(m.taskId) && taskById(m.taskId).ownerAgentId))) {
     const owner = m.ownerAgentId || taskById(m.taskId).ownerAgentId;
     if ([...sel.options].some((o) => o.value === owner)) sel.value = owner;
-    hint = `已按「${m.title}」责任部门路由`;
+    hint = ui`已按「${m.title}」责任部门路由`;
   } else if (prev && [...sel.options].some((o) => o.value === prev)) {
     sel.value = prev;
   }
@@ -425,22 +436,22 @@ function openSafeConfirm() {
   const body = $("cmd-body").value.trim();
   if (!to || !body) return;
   const all = to === "__all";
-  const targetName = all ? "全体部门（通告）" : agent(to).name;
+  const targetName = all ? tr("全体部门（通告）") : agent(to).name;
   const ctx = currentContext();
   const modal = $("modal");
   modal.hidden = false;
-  modal.innerHTML = `<div class="sheet">
+  modal.innerHTML = ui`<div class="sheet">
     <div class="kicker">下达确认 · Safe Mode</div>
     <h2>确认下达这条指令？</h2>
     <div class="msg">
       <div class="who">下达对象</div>
-      <div><b>${esc(targetName)}</b>${ctx.label ? ` · 关联 ${esc(ctx.label)}` : ""}</div>
+      <div><b>${esc(targetName)}</b>${ctx.label ? ui` · 关联 ${esc(ctx.label)}` : ""}</div>
     </div>
     <div class="msg">
       <div class="who">指令内容</div>
       <div>${esc(body)}</div>
     </div>
-    ${all ? `<p class="k">全员通告会展开为每人一条，各agent须回执确认。</p>` : `<p class="k">对方按 AGENTS.md 领取并推进状态：待领 → 已收悉 → 执行中 → 完成。</p>`}
+    ${all ? ui`<p class="k">全员通告会展开为每人一条，各agent须回执确认。</p>` : ui`<p class="k">对方按 AGENTS.md 领取并推进状态：待领 → 已收悉 → 执行中 → 完成。</p>`}
     <div class="actions">
       <button type="button" class="ghost" data-act="close-modal">取消</button>
       <button type="button" class="solid" data-act="confirm-send">确认下达</button>
@@ -458,7 +469,7 @@ async function sendCommand() {
     body: { toAgentId: to, body, relatedId: ctx.relatedId, relatedModuleId: ctx.relatedModuleId },
   });
   $("cmd-body").value = "";
-  $("cmd-hint").textContent = "已下达 ✓";
+  $("cmd-hint").textContent = tr("已下达 ✓");
   setTimeout(() => ($("cmd-hint").textContent = ""), 2500);
   await reload();
 }
@@ -469,7 +480,7 @@ function openAddModule() {
   const s = getStore();
   const modal = $("modal");
   modal.hidden = false;
-  modal.innerHTML = `<form class="sheet" id="add-form">
+  modal.innerHTML = ui`<form class="sheet" id="add-form">
     <h2>新模块 / 新事业部</h2>
     <p>像公司新接一条业务，或新设一个部门：它会出现在指挥舱首页，也可在中栏点进去。</p>
     <label>名称</label><input name="title" type="text" required placeholder="例如：某次调研项目组" />
@@ -556,10 +567,10 @@ async function aiDecompose() {
   const src = $("decomp-src") && $("decomp-src").value.trim();
   const msg = $("decomp-msg");
   if (!src) {
-    msg.textContent = "先把原始素材贴进①里。";
+    msg.textContent = tr("先把原始素材贴进①里。");
     return;
   }
-  msg.textContent = "AI 拆解中，十几秒属正常……";
+  msg.textContent = tr("AI 拆解中，十几秒属正常……");
   const names = (getStore().agents || []).map((a) => a.name).join("、");
   try {
     const r = await api("/api/llm/generate", {
@@ -572,7 +583,7 @@ async function aiDecompose() {
       },
     });
     $("decomp-out").value = (r.text || "").trim();
-    msg.textContent = "AI 拆解完成，请人工过目再生成待办。参谋的活，董事签的字。";
+    msg.textContent = tr("AI 拆解完成，请人工过目再生成待办。参谋的活，董事签的字。");
   } catch (err) {
     msg.textContent = "AI 拆解失败：" + (err.message || err) + "（可到「设置」检查模型路由，或直接手写②）";
   }
@@ -581,7 +592,7 @@ async function aiDecompose() {
 function openAddPrompt() {
   const modal = $("modal");
   modal.hidden = false;
-  modal.innerHTML = `<form class="sheet" id="prompt-form">
+  modal.innerHTML = ui`<form class="sheet" id="prompt-form">
     <h2>新增提示词（能力资产）</h2>
     <label>标题</label><input name="title" type="text" required />
     <label>标签（逗号分隔）</label><input name="tags" type="text" placeholder="公文, 周报" />
@@ -613,7 +624,7 @@ async function saveLlm() {
     enabled: $("llm-enabled").checked,
   };
   await api("/api/llm/config", { method: "PUT", body });
-  $("llm-result").textContent = "已保存 ✓";
+  $("llm-result").textContent = tr("已保存 ✓");
   await reload();
 }
 
@@ -630,10 +641,10 @@ async function refreshReminderStatus() {
     const config = await api("/api/reminder/config");
     if (config.enabled && config.hasToken) {
       box.className = "engine-status up";
-      box.innerHTML = `<b>微信提醒已就绪</b><span>${esc(config.provider === "serverchan" ? "Server酱" : "PushPlus")} · ${config.importedFrom === "daily-plan" ? "已从旧 daily-plan 迁移" : "本机配置"} · 重点事项提前 12 小时发送</span>`;
+      box.innerHTML = ui`<b>微信提醒已就绪</b><span>${esc(config.provider === "serverchan" ? tr("Server酱") : "PushPlus")} · ${config.importedFrom === "daily-plan" ? tr("已从旧 daily-plan 迁移") : tr("本机配置")} · 重点事项提前 12 小时发送</span>`;
     } else {
       box.className = "engine-status down";
-      box.textContent = "微信提醒未启用或缺少 Token；重点事项不会向手机发送。";
+      box.textContent = tr("微信提醒未启用或缺少 Token；重点事项不会向手机发送。");
     }
   } catch (err) {
     box.className = "engine-status down";
@@ -659,21 +670,21 @@ async function refreshOllamaStatus() {
     if (r.provider === "openai") {
       if (!r.configured) {
         box.className = "engine-status down";
-        box.textContent = "在线接口尚未配置完整：请填写 API Key 并启用模型路由。";
+        box.textContent = tr("在线接口尚未配置完整：请填写 API Key 并启用模型路由。");
         return;
       }
       box.className = "engine-status up";
-      const tested = r.lastTest && r.lastTest.ok ? `最近测试成功 · ${fmt(r.lastTest.at)}` : "已配置 · 请点“测试连接”验证";
-      box.innerHTML = `<b>在线 OpenAI 兼容接口 ${esc(tested)}</b><span>${esc(r.baseUrl)} · ${esc(r.model || "未填写模型")}</span>`;
+      const tested = r.lastTest && r.lastTest.ok ? ui`最近测试成功 · ${fmt(r.lastTest.at)}` : tr("已配置 · 请点“测试连接”验证");
+      box.innerHTML = ui`<b>在线 OpenAI 兼容接口 ${esc(tested)}</b><span>${esc(r.baseUrl)} · ${esc(r.model || tr("未填写模型"))}</span>`;
       return;
     }
     if (!r.ok) {
       box.className = "engine-status down";
-      box.textContent = `本地 Ollama 未连通 · ${r.baseUrl} · ${r.error || "请检查 Docker 容器"}`;
+      box.textContent = ui`本地 Ollama 未连通 · ${r.baseUrl} · ${r.error || tr("请检查 Docker 容器")}`;
       return;
     }
     box.className = "engine-status up";
-    box.innerHTML = `<b>本地 Ollama 已就绪</b><span>${esc(r.baseUrl)} · v${esc(r.version || "—")} · ${r.models.length} 个可用模型</span>`;
+    box.innerHTML = ui`<b>本地 Ollama 已就绪</b><span>${esc(r.baseUrl)} · v${esc(r.version || "—")} · ${r.models.length} 个可用模型</span>`;
     const list = $("llm-model-list");
     if (list) list.innerHTML = r.models.map((m) => `<option value="${esc(m.name)}"></option>`).join("");
   } catch (err) {
@@ -687,7 +698,7 @@ async function refreshCodexStatus() {
   try {
     const r = await api("/api/codex/status");
     box.className = "engine-status " + (r.ok ? "up" : "down");
-    box.textContent = r.ok ? `${r.version} · 已通过 ChatGPT 登录 · 可测试真实调用` : r.error;
+    box.textContent = r.ok ? ui`${r.version} · 已通过 ChatGPT 登录 · 可测试真实调用` : r.error;
   } catch (err) { box.textContent = "无法检测 Codex：" + err.message; }
 }
 async function startCodex(body, button) {
@@ -726,7 +737,7 @@ async function enableOllama() {
 }
 
 async function testLlm() {
-  $("llm-result").textContent = "测试中……";
+  $("llm-result").textContent = tr("测试中……");
   await saveLlm();
   try {
     const r = await api("/api/llm/test", { method: "POST", body: {} });
@@ -746,12 +757,12 @@ function bindAgenda() {
         if (field.type === "checkbox") field.checked = Boolean(value);
         else field.value = value;
       }
-      form.querySelector("h2").textContent = "修改行程";
-      form.querySelector('[type="submit"]').textContent = "保存修改";
+      form.querySelector("h2").textContent = tr("修改行程");
+      form.querySelector('[type="submit"]').textContent = tr("保存修改");
       const cancel = document.createElement("button");
       cancel.type = "button";
       cancel.className = "ghost";
-      cancel.textContent = "取消修改";
+      cancel.textContent = tr("取消修改");
       cancel.onclick = () => { agendaEditId = null; agendaEditDraft = null; render(); };
       form.append(cancel);
     }
@@ -767,7 +778,7 @@ function bindAgenda() {
       const title = String(f.get("title") || "").trim();
       if (!title) return;
       const original = agendaEditId && (getStore().agendas || []).find(item => item.id === agendaEditId);
-      if (agendaEditId && !original) throw new Error("该行程已不存在，请取消修改后刷新。");
+      if (agendaEditId && !original) throw new Error(tr("该行程已不存在，请取消修改后刷新。"));
       await api(agendaEditId ? `/api/agendas/${agendaEditId}` : "/api/agendas", {
         method: agendaEditId ? "PATCH" : "POST",
         body: {
@@ -828,7 +839,7 @@ function bindLearningPlan() {
     const f = new FormData(form);
     capture();
     const submit = form.querySelector("button[type=submit]");
-    if (submit) { submit.disabled = true; submit.textContent = "当前模型正在制定候选计划…"; }
+    if (submit) { submit.disabled = true; submit.textContent = tr("当前模型正在制定候选计划…"); }
     try {
       const result = await api("/api/learning/plans/draft", {
         method: "POST",
@@ -844,7 +855,7 @@ function bindLearningPlan() {
       render();
     } catch (err) {
       window.alert("学习计划未生成：" + (err.message || err) + "。请到“设置”确认当前模型路由已启用并测试连接成功。");
-      if (submit) { submit.disabled = false; submit.textContent = "由当前模型制定候选计划"; }
+      if (submit) { submit.disabled = false; submit.textContent = tr("由当前模型制定候选计划"); }
     }
   };
 }
@@ -881,7 +892,7 @@ async function sendProjectMessage(form) {
   const text = String(new FormData(form).get("text") || "").trim();
   if (!runId || !text) return;
   const button = form.querySelector("button[type=submit]");
-  if (button) { button.disabled = true; button.textContent = "发送中…"; }
+  if (button) { button.disabled = true; button.textContent = tr("发送中…"); }
   try {
     const recipient = String(new FormData(form).get('recipient') || 'all');
     await api(`/api/departments/runs/${encodeURIComponent(runId)}/messages`, { method: "POST", body: { sender: "chairman", recipient, type: "question", text, chat: true } });
@@ -891,13 +902,13 @@ async function sendProjectMessage(form) {
     await reload();
   } catch (err) {
     window.alert("项目消息未发送：" + (err.message || err));
-    if (button) { button.disabled = false; button.textContent = "发送"; }
+    if (button) { button.disabled = false; button.textContent = tr("发送"); }
   }
 }
 
 async function modelExecuteDepartment(runId, itemId, button) {
   const original = button && button.textContent;
-  if (button) { button.disabled = true; button.textContent = "当前模型正在工作…"; }
+  if (button) { button.disabled = true; button.textContent = tr("当前模型正在工作…"); }
   try {
     await api(`/api/departments/runs/${runId}/items/${itemId}/model-execute`, { method: "POST", body: {} });
     await reload();
@@ -908,16 +919,16 @@ async function modelExecuteDepartment(runId, itemId, button) {
 }
 
 async function autoRunDepartment(runId, button) {
-  if (!window.confirm("通过已登录的 Codex 拆解目标；完成后等待真实执行成员领取任务。确认启动？")) return;
+  if (!window.confirm(tr("通过已登录的 Codex 拆解目标；完成后等待真实执行成员领取任务。确认启动？"))) return;
   const original = button && button.textContent;
-  if (button) { button.disabled = true; button.textContent = "正在启动 Codex…"; }
+  if (button) { button.disabled = true; button.textContent = tr("正在启动 Codex…"); }
   try {
     await api(`/api/departments/runs/${encodeURIComponent(runId)}/automation`, {
       method: "POST", body: { enabled: true, retry: true, workbuddyTransport: "desktop-scheduled" },
     });
     const result = await api(`/api/departments/runs/${runId}/auto-run`, { method: "POST", body: {} });
     await reload();
-    if (result.waitingForAgent) window.alert(`主管方案已完成，等待 ${result.waitingForAgent} 真实执行；目前不会自动唤醒外部软件。`);
+    if (result.waitingForAgent) window.alert(ui`主管方案已完成，等待 ${result.waitingForAgent} 真实执行；目前不会自动唤醒外部软件。`);
   } catch (err) {
     window.alert("Codex 启动失败：" + (err.message || err) + "。已完成的阶段不会丢失，请查看 Codex 任务错误后重试。 ");
     if (button) { button.disabled = false; button.textContent = original; }
@@ -931,12 +942,12 @@ function openDepartmentManual(runId, itemId) {
   const isReview = item.role === "reviewer";
   const modal = $("modal");
   modal.hidden = false;
-  modal.innerHTML = `<form class="sheet" id="department-manual-form">
+  modal.innerHTML = ui`<form class="sheet" id="department-manual-form">
     <div class="kicker">虚拟部门 · ${esc(item.label)}</div><h2>回填真实成果</h2>
     <p class="k">适用于您本人或尚未自动接入的 Cursor、Codex、WorkBuddy、ChatGPT。工作台只记录实际回填内容，不声称已经自动唤醒它们。</p>
-    ${isReview ? `<label>复核结论</label><select name="verdict" class="full"><option value="pass">通过</option><option value="reject">退回返工</option></select>` : ""}
-    <label>${isReview ? "复核意见" : "阶段成果"}</label><textarea name="output" class="full" style="min-height:220px" required>${esc(item.output || "")}</textarea>
-    ${!isReview ? `<label>材料路径（每行一条，可选）</label><textarea name="materials" class="full">${esc((item.materials || []).join("\n"))}</textarea>` : ""}
+    ${isReview ? ui`<label>复核结论</label><select name="verdict" class="full"><option value="pass">通过</option><option value="reject">退回返工</option></select>` : ""}
+    <label>${isReview ? tr("复核意见") : tr("阶段成果")}</label><textarea name="output" class="full" style="min-height:220px" required>${esc(item.output || "")}</textarea>
+    ${!isReview ? ui`<label>材料路径（每行一条，可选）</label><textarea name="materials" class="full">${esc((item.materials || []).join("\n"))}</textarea>` : ""}
     <div class="actions"><button type="button" class="ghost" data-act="close-modal">取消</button><button type="submit" class="solid">确认写入台账</button></div>
   </form>`;
   $("department-manual-form").onsubmit = async (e) => {
@@ -1009,7 +1020,7 @@ async function toggleAgenda(id) {
 async function reviewAgenda(id) {
   const item = (getStore().agendas || []).find((x) => x.id === id);
   if (!item) return;
-  const review = window.prompt("写一句复盘（留空取消）：", item.review || "");
+  const review = window.prompt(tr("写一句复盘（留空取消）："), item.review || "");
   if (review === null) return;
   await api(`/api/agendas/${id}`, { method: "PATCH", body: { review: review.trim() } });
   await reload();
@@ -1019,7 +1030,7 @@ async function editAgendaMaterials(id) {
   const item = (getStore().agendas || []).find((x) => x.id === id);
   if (!item) return;
   const current = (item.materials || []).map((material) => typeof material === "string" ? material : material.path).filter(Boolean).join("\n");
-  const raw = window.prompt("填写材料存放路径（每行一条；留空可清除）：", current);
+  const raw = window.prompt(tr("填写材料存放路径（每行一条；留空可清除）："), current);
   if (raw === null) return;
   const materials = raw.split(/\r?\n/).map((value) => value.trim()).filter(Boolean).map((path) => ({ path }));
   await api(`/api/agendas/${id}`, { method: "PATCH", body: { materials } });
@@ -1028,7 +1039,7 @@ async function editAgendaMaterials(id) {
 
 async function deleteAgenda(id) {
   const item = (getStore().agendas || []).find((x) => x.id === id);
-  if (!item || !window.confirm(`删除行程「${item.title}」？`)) return;
+  if (!item || !window.confirm(ui`删除行程「${item.title}」？`)) return;
   await api(`/api/agendas/${id}`, { method: "DELETE" });
   await reload();
 }
@@ -1036,7 +1047,7 @@ async function deleteAgenda(id) {
 async function openAgendaMaterial(id, index) {
   try {
     const result = await api(`/api/agendas/${id}/open-material`, { method: "POST", body: { index: Number(index) } });
-    if (!result.ok) throw new Error(result.error || "无法打开材料路径");
+    if (!result.ok) throw new Error(result.error || tr("无法打开材料路径"));
   } catch (err) {
     window.alert("材料路径无法打开：" + (err.message || err) + "。请确认该文件或文件夹仍存在。");
   }
@@ -1066,11 +1077,11 @@ async function draftAgendaWithAi() {
   box.hidden = false;
   const entries = (getStore().agendas || []).filter((x) => x.date === agendaDate);
   if (!entries.length) {
-    box.textContent = "请先录入至少一条真实事项。为了不凭空编造会议、人员或任务，空日程不调用 AI。";
+    box.textContent = tr("请先录入至少一条真实事项。为了不凭空编造会议、人员或任务，空日程不调用 AI。");
     return;
   }
-  box.textContent = "正在请本地 Ollama 只对已有事项进行排序…";
-  const events = entries.map((x, i) => `[${i + 1}] ${x.time || "待定"} | ${x.title}${x.done ? "（已完成）" : ""}`).join("\n");
+  box.textContent = tr("正在请本地 Ollama 只对已有事项进行排序…");
+  const events = entries.map((x, i) => `[${i + 1}] ${x.time || tr("待定")} | ${x.title}${x.done ? tr("（已完成）") : ""}`).join("\n");
   try {
     const r = await api("/api/llm/generate", {
       method: "POST",
@@ -1079,7 +1090,7 @@ async function draftAgendaWithAi() {
         prompt: `日期：${agendaDate}。以下是唯一允许引用的真实事项：\n${events}\n请只给排序建议。`,
       },
     });
-    box.textContent = r.text || "模型没有返回建议。";
+    box.textContent = r.text || tr("模型没有返回建议。");
   } catch (err) {
     box.textContent = "AI 建议未生成：" + (err.message || err) + "。请先到设置启用本地 Ollama。";
   }
@@ -1110,7 +1121,7 @@ document.addEventListener("click", async (e) => {
   if (cmd) {
     const sel = $("cmd-to");
     if ([...sel.options].some((o) => o.value === cmd.dataset.cmd)) sel.value = cmd.dataset.cmd;
-    $("cmd-hint").textContent = "已锁定下达对象，请输入指令";
+    $("cmd-hint").textContent = tr("已锁定下达对象，请输入指令");
     $("composer").scrollIntoView({ behavior: "smooth", block: "nearest" });
     $("cmd-body").focus();
     return;
@@ -1141,6 +1152,8 @@ document.addEventListener("click", async (e) => {
   if (a === "test-llm") await testLlm();
   if (a === "enable-ollama") await enableOllama();
   if (a === "save-theme") await saveTheme();
+  if (a === "manage-records") openArchive(primary,reload);
+  if (a === "save-language") { await api("/api/meta",{method:"PATCH",body:{language:$("language-select").value}}); await reload(); }
   if (a === "save-reminder") await saveReminder();
   if (a === "agenda-toggle") await toggleAgenda(act.dataset.id);
   if (a === "agenda-materials") await editAgendaMaterials(act.dataset.id);
@@ -1165,29 +1178,29 @@ document.addEventListener("click", async (e) => {
   if (a === "external-retry") {
     const runId = act.dataset.runId;
     act.disabled = true;
-    act.textContent = "正在重试…";
+    act.textContent = tr("正在重试…");
     try {
       await api(`/api/departments/runs/${encodeURIComponent(runId)}/automation`, {method:"POST",body:{enabled:true,retry:true}});
       await reload();
       const latest = (getStore().externalJobs || []).find(job => job.runId === runId);
-      window.alert(latest?.status === 'failed' ? "重试未能启动：" + latest.error : "重试请求已提交，请查看成员自动执行状态。等待 WorkBuddy 领取时，也可手动运行其领取任务。");
+      window.alert(latest?.status === 'failed' ? "重试未能启动：" + latest.error : tr("重试请求已提交，请查看成员自动执行状态。等待 WorkBuddy 领取时，也可手动运行其领取任务。"));
     } catch (error) {
       window.alert("重试失败：" + error.message);
     } finally {
       act.disabled = false;
-      act.textContent = "重试成员执行";
+      act.textContent = tr("重试成员执行");
     }
   }
   if (a === "agent-invitation") {
     const run = (getStore().departmentRuns || []).find(r => r.id === act.dataset.runId);
     if (!run) return;
-    const root = "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台";
+    const root = tr("D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台");
     const invitations = ["workbuddy", "cursor"].map(member => {
       const item = run.items.find(stage => stage.ownerAgentId === member);
-      const text = `请接入正式项目 ${run.id}。先读取 ${root}\\docs\\Agent接入邀请与项目协作协议.md。你的阶段：${item ? item.role + " / " + item.id : "协作成员"}。在你的工具环境运行：\nnode "${root}\\agent-client.js" wait ${member} ${run.id}\n有任务返回后先读取目标、约束、主管方案和项目原件，再执行。无任务时检查依赖并再次运行 wait；不要生成模拟回执。结果按协议通过 submit 回写。报告完整写作仍遵守用户的 Start Writing 要求。`;
+      const text = ui`请接入正式项目 ${run.id}。先读取 ${root}\\docs\\Agent接入邀请与项目协作协议.md。你的阶段：${item ? item.role + " / " + item.id : tr("协作成员")}。在你的工具环境运行：\nnode "${root}\\agent-client.js" wait ${member} ${run.id}\n有任务返回后先读取目标、约束、主管方案和项目原件，再执行。无任务时检查依赖并再次运行 wait；不要生成模拟回执。结果按协议通过 submit 回写。报告完整写作仍遵守用户的 Start Writing 要求。`;
       return `<h3>${member}</h3><textarea class="full" rows="8" readonly>${esc(text)}</textarea>`;
     }).join("");
-    $("modal").innerHTML = `<div class="sheet"><h2>一次性成员接入邀请</h2><p>将对应邀请发到成员自己的会话。领取命令会等待最多50秒，不会自行启动该软件。</p>${invitations}<button type="button" class="ghost" data-act="close-modal">关闭</button></div>`;
+    $("modal").innerHTML = ui`<div class="sheet"><h2>一次性成员接入邀请</h2><p>将对应邀请发到成员自己的会话。领取命令会等待最多50秒，不会自行启动该软件。</p>${invitations}<button type="button" class="ghost" data-act="close-modal">关闭</button></div>`;
     $("modal").hidden = false;
   }
   if (a === "project-manage") {
@@ -1196,15 +1209,15 @@ document.addEventListener("click", async (e) => {
     const operation = act.dataset.operation;
     let body = {};
     if (operation === "delete") {
-      if (!window.confirm(`删除项目“${run.title}”？将删除工作台中的消息、阶段成果和成果登记，项目目录内的实际文件保留。`)) return;
+      if (!window.confirm(ui`删除项目“${run.title}”？将删除工作台中的消息、阶段成果和成果登记，项目目录内的实际文件保留。`)) return;
       await api(`/api/departments/runs/${encodeURIComponent(run.id)}`, { method: "DELETE" });
     } else {
       if (operation === "rename") {
-        const title = window.prompt("项目名称", run.title);
+        const title = window.prompt(tr("项目名称"), run.title);
         if (title === null || !title.trim()) return;
         body.title = title.trim();
       } else if (operation === "pin") body.pinned = !run.pinned;
-      else if (operation === "archive") body.archived = !run.archived;
+      else if (operation === "archive") { openArchive("department",reload,{collection:"departmentRuns",id:run.id}); return; }
       await api(`/api/departments/runs/${encodeURIComponent(run.id)}`, { method: "PATCH", body });
     }
     await reload();
@@ -1232,7 +1245,7 @@ document.addEventListener("click", async (e) => {
     await reload();
   }
   if (a === "backup") {
-    const blob = new Blob([JSON.stringify(getStore(), null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(getRawStore(), null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -1277,5 +1290,5 @@ async function reload() {
 reload()
   .then(maybeBriefings)
   .catch((err) => {
-    $("ws-body").innerHTML = `<div class="card"><h1>无法连接秘书处</h1><p>请双击 start.bat。${esc(err.message)}</p></div>`;
+    $("ws-body").innerHTML = ui`<div class="card"><h1>无法连接秘书处</h1><p>请双击 start.bat。${esc(err.message)}</p></div>`;
   });

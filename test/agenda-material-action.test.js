@@ -10,7 +10,7 @@ assert.match(
 );
 assert.match(
   views,
-  /const editLabel = hasMaterials \? "编辑路径" : "添加材料"/,
+  /const editLabel = hasMaterials \? tr\("编辑路径"\) : tr\("添加材料"\)/,
   "Editing a path must remain separate from opening it."
 );
 assert.match(

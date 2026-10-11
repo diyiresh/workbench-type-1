@@ -6,7 +6,15 @@ Type 1 维护**一份本机台账**。Cursor、Codex、WorkBuddy 以及其他 Ag
 
 程序入口是 `server.js`：`node server.js`，或双击 `start.bat`。
 
-# 统筹工作台 v0.8
+## v0.10：归档、语言与使用说明
+
+- 每个板块右上方的 **管理与归档** 提供单项、批量归档、关联预览、原文查看和恢复；设置入口可以管理全部集合。归档保留原状态和正文，不计为完成。
+- 在办项目和任务归档后停止本工作台的后续领取、提醒和阶段推进；恢复后保持暂停，需选择 **继续所选**。原有复核暂停与 Start Writing 批准仍按原流程处理。已发出的外部调用不能保证强制中止；迟到成果保留于执行记录或项目历史，不解锁下一阶段。
+- **设置 → 语言** 可选择中文或 English，刷新保持。系统界面和说明切换语言，项目、任务、简报、报告及路径保持原文。
+- **设置 → 使用说明** 介绍十二个板块，并在本机展示完整逻辑图，支持折叠和放大。[直接打开说明](http://127.0.0.1:3780/#set/help)。文档原件：[中文逻辑图](docs/工作台全图-类型1.md)、[English logic map](docs/workbench-logic-type1.en.md)、[本次规范与验收](docs/SPEC-v0.10-archive-language-help.md)。
+- 归档作用于工作台台账；各 Agent 自己的会话、外部定时任务和原始材料仍由原工具管理。
+
+## 历史版本 v0.8
 
 完整使用与开发说明：[工作台操作与开发指南](docs/工作台操作与开发指南.md)（2026年10月4日核对，包含 Codex 总管一期及尚未接通的能力边界）。
 
@@ -37,7 +45,11 @@ Type 1 维护**一份本机台账**。Cursor、Codex、WorkBuddy 以及其他 Ag
 
 ## 打开
 
-需要本机已安装 Node.js。本仓库的运行代码只用 Node 内置模块，启动前不必 `npm install`。
+需要本机已安装 Node.js。首次获取项目先运行 `npm ci`，再运行 `npm run build:assets` 生成本地语言和图形资源，之后启动服务。`npm start` 会先重建资源；已有资源时也可以直接 `node server.js` 或双击启动脚本。界面运行时不依赖远程 CDN。
+
+开发验证：`npm test`（原有回归、归档 API/异步结果、翻译覆盖）、`npm run test:agents`（模拟 Agent 领取契约），以及 `npm run test:ui`（需要本机 Microsoft Edge，使用独立临时台账，不调用真实 Agent）。可选 `PLAYWRIGHT_MODULE` 指向现有 Playwright。新增依赖版本锁定于 package-lock.json，本地图形资源附带对应许可声明。
+
+更新已在运行的服务后，需要重启原服务使后台规则生效；`start.bat` 检测到已有服务时只打开页面。
 
 双击 `start.bat`（本机）或 `start-lan.bat`（手机同 Wi-Fi 访问），或 `node server.js`，浏览器打开 [http://127.0.0.1:3780](http://127.0.0.1:3780)。第一次启动会生成 `data/store.json`。命令行可看 `node cli.js brief` 和 `node cli.js tasks`。
 

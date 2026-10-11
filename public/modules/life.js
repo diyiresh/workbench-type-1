@@ -1,3 +1,4 @@
+import { t as tr, ui, systemFragment } from "../js/i18n.js";
 // 模块清单：生活战线
 import { esc, getStore, cardShell } from "../js/core.js";
 
@@ -18,7 +19,7 @@ export default {
     const { pct, note } = this.aggregate();
     return cardShell(
       m,
-      `<div class="k">life · 优先级 ${esc(m.importance ?? "-")}</div>
+      ui`<div class="k">life · 优先级 ${esc(m.importance ?? "-")}</div>
        <div class="h">${esc(m.title)}</div>
        <div class="bar"><i style="width:${pct}%"></i></div>
        <p>${esc(note)}</p>`

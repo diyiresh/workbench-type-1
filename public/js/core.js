@@ -3,11 +3,19 @@
 // 所有页面视图与模块清单从这里取料。零依赖，原生 ES Module。
 // ============================================================
 
+import { setLanguage, language, t as tr, ui, systemFragment } from "./i18n.js";
 let _store = null;
+let _rawStore = null;
 
 export function setStore(s) {
-  _store = s;
+  _rawStore = s;
+  setLanguage(s.meta?.language);
+  _store = { ...s };
+  for(const key of Object.keys(s))if(Array.isArray(s[key]))_store[key]=s[key].filter(item=>!item.archived);
+  _store.fronts = Object.fromEntries(Object.entries(s.fronts||{}).map(([key,items])=>[key,items.filter(item=>!item.archived)]));
+  _store.lifeSystem = Object.fromEntries(Object.entries(s.lifeSystem||{}).map(([key,items])=>[key,Array.isArray(items)?items.filter(item=>!item.archived):items]));
 }
+export function getRawStore() { return _rawStore; }
 export function getStore() {
   return _store;
 }
@@ -35,7 +43,7 @@ export const fmt = (iso) => {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return new Intl.DateTimeFormat(language(), {month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(d);
 };
 
 export const ymd = (d = new Date()) =>
@@ -73,13 +81,13 @@ export const OPS = [
 ];
 
 export function agent(id) {
-  return (getStore().agents || []).find((a) => a.id === id) || { name: id || "未分派", id };
+  return (getStore().agents || []).find((a) => a.id === id) || { name: id || tr("未分派"), id };
 }
 export function taskById(id) {
   return (getStore().tasks || []).find((t) => t.id === id);
 }
 export function doing() {
-  return (getStore().tasks || []).filter((t) => t.status === "doing" || t.status === "review");
+  return (getStore().tasks || []).filter((t) => !t.resumeRequired && (t.status === "doing" || t.status === "review"));
 }
 export function modulesSorted() {
   return [...(getStore().modules || [])].sort((a, b) => a.order - b.order);
@@ -100,14 +108,15 @@ export function staleHours(iso) {
 }
 export function taskStale(t) {
   const h = staleHours(t && t.updatedAt);
-  return (t.status === "doing" || t.status === "review") && h >= 24 ? Math.floor(h) : 0;
+  return !t.resumeRequired && (t.status === "doing" || t.status === "review") && h >= 24 ? Math.floor(h) : 0;
 }
 export function agentStale(a) {
+  if(a?.resumeRequired)return 0;
   const h = staleHours(a && a.lastSync);
   return h >= 48 ? Math.floor(h) : 0;
 }
 export function taskOverdue(t) {
-  if (!t || !t.due) return false;
+  if (!t || t.resumeRequired || !t.due) return false;
   if (t.status === "done" || t.status === "archive") return false;
   return t.due < ymd();
 }
@@ -116,7 +125,7 @@ export function taskOverdue(t) {
 // 任何模块/视图渲染抛错，只隔离这一块，不塌整页。
 
 export function errorCard(label, err) {
-  return `<article class="card err">
+  return ui`<article class="card err">
     <div class="k">模块故障 · 已隔离</div>
     <div class="h">${esc(label)}</div>
     <p>${esc(String((err && err.message) || err))}</p>
@@ -127,7 +136,7 @@ export function safe(fn, label) {
   try {
     return fn();
   } catch (err) {
-    console.error("[工作台]", label, err);
+    console.error(tr("[工作台]"), label, err);
     return errorCard(label, err);
   }
 }
@@ -150,17 +159,17 @@ export function progressCard(title, pct, note, chips) {
 export function taskBlock(t) {
   const stale = taskStale(t);
   return `<div class="msg">
-    <div class="row"><b>${esc(t.title)}</b><span class="chip">${STATUS[t.status] || t.status} · ${t.progress || 0}%</span></div>
+    <div class="row"><b>${esc(t.title)}</b><span class="chip">${t.resumeRequired?tr(tr("已暂停，需明确继续")):tr(STATUS[t.status] || t.status)} · ${t.progress || 0}%</span></div>
     <div class="bar"><i style="width:${t.progress || 0}%"></i></div>
     <p>${esc(t.nextAction || "")}</p>
     <div class="meta">
       <span class="chip">${esc(agent(t.ownerAgentId).name)}</span>
-      ${stale ? `<span class="chip warn">已 ${stale}h 无打卡</span>` : ""}
+      ${stale ? ui`<span class="chip warn">已 ${stale}h 无打卡</span>` : ""}
     </div>
   </div>`;
 }
 
 export function cmdStatusChip(m) {
   const ok = m.status === "ack" || m.status === "done";
-  return `<span class="chip ${ok ? "ok" : ""}">${CMD_STATUS[m.status] || m.status}</span>`;
+  return `<span class="chip ${ok ? "ok" : ""}">${tr(CMD_STATUS[m.status] || m.status)}</span>`;
 }
