@@ -12,6 +12,7 @@ import * as V from "./js/views.js";
 import { t as tr, ui, systemFragment } from "./js/i18n.js";
 import { openArchive } from "./js/archive-ui.js";
 import { helpView, renderLogic } from "./js/help.js";
+import { rememberChatPosition, restoreChatPosition } from "./js/chat-scroll.js";
 
 const PRIMARY = [
   { id: "home", icon: "⌂", name: "指挥舱" },
@@ -278,11 +279,9 @@ function workspace() {
   const oldChat = $("ws-body").querySelector('.project-messages');
   const reading = oldRoom && oldChat ? {
     runId: oldRoom.dataset.roomForm,
-    top: oldChat.scrollTop,
-    left: oldChat.scrollLeft,
+    position: rememberChatPosition(oldChat,oldRoom.dataset.roomForm),
     draft: oldRoom.querySelector('textarea')?.value || '',
     recipient: oldRoom.querySelector('[name=recipient]')?.value || 'all',
-    expanded: [...oldChat.querySelectorAll('.chat-long[open]')].map(el => el.dataset.messageId),
     focused: document.activeElement === oldRoom.querySelector('textarea'),
     selectionStart: oldRoom.querySelector('textarea')?.selectionStart,
     selectionEnd: oldRoom.querySelector('textarea')?.selectionEnd,
@@ -292,9 +291,6 @@ function workspace() {
   $("ws-body").innerHTML = body;
   const newRoom = $("ws-body").querySelector('[data-room-form]');
   if (reading && newRoom?.dataset.roomForm === reading.runId) {
-    const chat = $("ws-body").querySelector('.project-messages');
-    if (chat) for (const el of chat.querySelectorAll('.chat-long')) el.open = reading.expanded.includes(el.dataset.messageId);
-    if (chat) { chat.scrollTop = reading.top; chat.scrollLeft = reading.left; }
     const recipient = newRoom.querySelector('[name=recipient]');
     if (recipient) recipient.value = reading.recipient;
     const input = newRoom.querySelector('textarea');
@@ -307,6 +303,8 @@ function workspace() {
       input.scrollTop = reading.inputTop || 0;
     }
   }
+  const newChat=$("ws-body").querySelector('.project-messages');
+  if(newRoom&&newChat)restoreChatPosition(newChat,newRoom.dataset.roomForm,reading?.runId===newRoom.dataset.roomForm?reading.position:null);
   if(primary === "set" && secondary === "help")void renderLogic();
   bindDrag();
   bindAgenda();
@@ -722,8 +720,8 @@ setInterval(async () => {
     const runId = hash.split("/")[1];
     const result = await api(`/api/departments/runs/${encodeURIComponent(runId)}/messages`);
     const current = (getStore().projectMessages || []).filter((item) => item.runId === runId);
-    const jobsChanged = JSON.stringify(result.chatJobs || []) !== JSON.stringify((getStore().chatJobs || []).filter(j => j.runId === runId));
-    if (jobsChanged || JSON.stringify(result.messages) !== JSON.stringify(current.slice().sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt))))) await reload();
+    const jobsChanged = JSON.stringify((result.chatJobs || []).filter(job=>!job.archived)) !== JSON.stringify((getStore().chatJobs || []).filter(j => j.runId === runId));
+    if (jobsChanged || JSON.stringify((result.messages||[]).filter(message=>!message.archived)) !== JSON.stringify(current)) await reload();
   } catch (_) { /* 项目房间刷新失败时保留当前状态 */ }
 }, 5000);
 
@@ -1279,6 +1277,10 @@ $("modal").addEventListener("click", (e) => {
 window.addEventListener("hashchange", () => {
   parseHash();
   render();
+});
+window.addEventListener("pagehide",()=>{
+  const room=$("ws-body").querySelector('[data-room-form]'),chat=$("ws-body").querySelector('.project-messages');
+  if(room&&chat)rememberChatPosition(chat,room.dataset.roomForm);
 });
 
 async function reload() {
