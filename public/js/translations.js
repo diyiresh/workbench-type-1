@@ -1,5 +1,6 @@
 // Keys are developer-authored UI text. Business data is never a translation key.
 export const EN = {
+  'Enter 换行 · Alt+Enter 发送':'Enter for a new line · Alt+Enter to send',
   '私人秘书':'Personal assistant','经营简报':'Operations briefing','舰队简报':'Agent briefing','工作 / 学习 / 生活':'Work / Learning / Life','跨 Agent 简报':'Cross-agent briefing','失败：':'Failed: ',
   '已逾期':'Overdue',
   '项目已恢复并保持暂停':'Project restored and paused','请在管理与归档中选择继续。原有复核暂停和写作批准仍须按原流程处理。':'Choose Continue in Manage & archive. Review pauses and writing approval still follow their original workflow.',

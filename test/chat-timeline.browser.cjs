@@ -64,7 +64,34 @@ const viewport=page=>page.locator('.project-messages').evaluate(chat=>{
     const unchanged=page.waitForResponse(response=>response.url().endsWith('/messages'));
     await unchanged;await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     assert.equal(await page.evaluate(()=>window.timelineRepaints),0,'An unchanged poll must not repaint the room');
+
+    // Capture the real form's request without invoking a real Agent.
+    const sent=[];let finishSend;
+    await page.route(/\/api\/departments\/runs\/[^/]+\/messages$/,async route=>{
+      if(route.request().method()!=='POST')return route.continue();
+      sent.push(route.request().postDataJSON());
+      await new Promise(resolve=>{finishSend=resolve;});
+      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'keyboard-test-message'})});
+    });
+    const input=page.locator('[data-room-form] textarea');
+    await input.fill('First line');await input.press('Enter');await page.keyboard.insertText('Second line');
+    assert.equal(await input.inputValue(),'First line\nSecond line');assert.equal(sent.length,0,'Enter must only insert a line break');
+    await input.dispatchEvent('compositionstart');
+    await input.dispatchEvent('keydown',{key:'Enter',altKey:true,isComposing:true});
+    assert.equal(sent.length,0,'Selecting text through an IME must not send');
+    await input.dispatchEvent('compositionend');
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));
+    await input.dispatchEvent('keydown',{key:'Enter',altKey:true,keyCode:229});
+    assert.equal(sent.length,0,'Legacy IME key events must not send');
+    await page.locator('#cmd-body').fill('Separate instruction box');await page.locator('#cmd-body').press('Alt+Enter');
+    assert.equal(sent.length,0,'The project-chat shortcut must not submit other textareas');
+    await input.press('Alt+Enter');
+    await page.waitForFunction(()=>document.querySelector('[data-room-form] button[type=submit]').disabled,{},{timeout:3000});
+    assert.equal(sent.length,1);assert.equal(sent[0].text,'First line\nSecond line');assert.equal(sent[0].recipient,'all');assert.equal(sent[0].chat,true);
+    await input.press('Alt+Enter');await input.dispatchEvent('keydown',{key:'Enter',altKey:true,repeat:true});
+    assert.equal(sent.length,1,'Holding the shortcut or pressing again while sending must not duplicate a message');
+    finishSend();await page.waitForFunction(()=>document.querySelector('[data-room-form] textarea').value==='');
     assert.deepEqual(errors,[]);
-    console.log('Chat timeline: initial latest view, full-refresh restoration, historical anchor/expanded text, live arrivals, separate rooms, chronological order and unchanged polling passed.');
+    console.log('Chat timeline and composer: refresh restoration, live arrivals, unchanged polling, Enter newline, Alt+Enter send, IME guards and duplicate prevention passed.');
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>server.close());

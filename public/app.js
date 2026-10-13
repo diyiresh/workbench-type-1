@@ -890,6 +890,7 @@ async function sendProjectMessage(form) {
   const text = String(new FormData(form).get("text") || "").trim();
   if (!runId || !text) return;
   const button = form.querySelector("button[type=submit]");
+  if (button?.disabled) return;
   if (button) { button.disabled = true; button.textContent = tr("发送中…"); }
   try {
     const recipient = String(new FormData(form).get('recipient') || 'all');
@@ -1251,6 +1252,15 @@ document.addEventListener("click", async (e) => {
     link.click();
     URL.revokeObjectURL(url);
   }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (!e.target.matches('.room-composer textarea') || e.key !== 'Enter' || !e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  if (roomComposing || e.isComposing || e.keyCode === 229) return;
+  e.preventDefault();
+  const form = e.target.closest('form[data-room-form]');
+  const button = form?.querySelector('button[type=submit]');
+  if (form && button && !button.disabled && !e.repeat) form.requestSubmit(button);
 });
 
 document.addEventListener("submit", async (e) => {
