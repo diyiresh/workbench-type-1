@@ -12,6 +12,12 @@
 
 仅在相应阶段待启动时运行；执行人为 Codex 时不能再由 Codex 自审。后台失败保留目标并允许重试，服务重启将未完成调用标为中断。不调用付费 API。默认三成员分工为 Codex 主管与整合、WorkBuddy 执行、Cursor 独立复核；role: secretary 可进行整合。WorkBuddy 使用桌面定时任务每小时运行 scripts/workbuddy-queue.js 领取并报送结果，Cursor 使用已登录的 Agent CLI；启用项目自动执行后无需用户逐项目转发邀请或回填。须保持工作台及 WorkBuddy 登录运行，等待领取最多约一小时。Docker/Ollama、DeepSeek、豆包接入暂缓。材料由用户人工脱敏；正式写作仍需 Start Writing。
 
+## 成果文件与交付验收
+
+创建文件项目时明确传入 `delivery: { mode: "files", profile: "single" }`（一份 Word），或 `profile: "report-bundle"`（长篇、摘要、附件三份 Word）。正文即可用 `mode: "text"`。DOCX 由工作台转换执行稿，不要求成员在只读执行器中写文件。三份报告须使用 `<!-- WB-LONG-S -->` / `<!-- WB-LONG-E -->` 与 `<!-- WB-SUM-S -->` / `<!-- WB-SUM-E -->` 标记，附件置于摘要结束标记之后。
+
+本机 `GET /api/departments/runs/<runId>/delivery` 读取实际文件清单和核验快照；`POST` 同路径加 `/configure`、`/generate`、`/retry`、`/review`、`/open` 分别配置、生成、重试、复核和打开。文件复核须由既定独立复核人提交实际读取证据与 `reviewedSnapshot`；正文通过不能代替文件通过。文件路径、大小、哈希、源版本在唯一台账登记，改动或删除后核验失效。补交历史项目保留内容复核阶段，单独核对文件；归档或暂停后的迟到结果不得推进接力。详见 `docs/SPEC-file-delivery-gate.md`。
+
 ## 项目群聊（真实成员回复）
 
 项目房间发送消息时可选择 Codex、Cursor、WorkBuddy，或正文 @成员。默认由 Codex 回答。群聊回复独立保存在唯一台账 `chatJobs` 与 `projectMessages.replyTo`，不改变阶段、不解除自动接力暂停，也不替代正式复核或写作批准。

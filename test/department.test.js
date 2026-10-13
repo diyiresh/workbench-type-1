@@ -1,6 +1,7 @@
 "use strict";
 
 const assert = require("assert");
+const fs=require('fs'),path=require('path'),os=require('os');
 const { buildDefaultStore } = require("../lib/default-store");
 const {
   ensureDepartmentSystem, createDepartmentRun, startItem, submitItem, reviewExecutor, completeRework,
@@ -25,7 +26,9 @@ startItem(store, run.id, run.items[0].id);
 submitItem(store, run.id, run.items[0].id, { output: "方案：先产出，再逐项核验。" });
 assert.equal(run.items[1].status, "queued");
 startItem(store, run.id, run.items[1].id);
-submitItem(store, run.id, run.items[1].id, { output: "第一版主要产出", materials: ["D:\\成果\\第一版.md"] });
+const material=path.join(os.tmpdir(),'bench-material-'+require('crypto').randomUUID()+'.md');
+fs.writeFileSync(material,'第一版主要产出',{flag:'wx'});
+submitItem(store, run.id, run.items[1].id, { output: "第一版主要产出", materials: [material] });
 assert.equal(run.artifacts.length, 1);
 assert.equal(run.items[2].status, "queued");
 assert.throws(() => reviewExecutor(store, run.id, { reviewerAgentId: run.items[1].ownerAgentId, verdict: "pass", comment: "自审" }), /independent/);
@@ -43,5 +46,6 @@ startItem(store, run.id, run.items[3].id);
 submitItem(store, run.id, run.items[3].id, { output: "最终整合交付" });
 assert.equal(run.status, "completed");
 assert.equal(run.finalOutput, "最终整合交付");
+fs.unlinkSync(material);
 
 console.log("Virtual department workflow checks passed.");

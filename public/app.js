@@ -10,6 +10,7 @@ import {
 import { renderCard, renderDetail, manifestFor } from "./modules/index.js";
 import * as V from "./js/views.js";
 import { t as tr, ui, systemFragment } from "./js/i18n.js";
+import { bindDelivery } from './js/delivery-ui.js';
 import { openArchive } from "./js/archive-ui.js";
 import { helpView, renderLogic } from "./js/help.js";
 import { rememberChatPosition, restoreChatPosition } from "./js/chat-scroll.js";
@@ -859,6 +860,7 @@ function bindLearningPlan() {
 }
 
 function bindDepartment() {
+  bindDelivery(api, reload);
   document.querySelectorAll('[data-chat-retry]').forEach(button => { button.onclick = async () => {
     button.disabled = true;
     try { await api(`/api/departments/runs/${encodeURIComponent(button.dataset.runId)}/chat-jobs/${encodeURIComponent(button.dataset.chatRetry)}/retry`, {method:'POST',body:{}}); await reload(); }
@@ -878,7 +880,7 @@ function bindDepartment() {
     const goal = String(data.get("goal") || "").trim();
     if (!goal) return;
     const participantAgentIds = data.getAll("participantAgentIds").map((value) => String(value));
-    const run = await api("/api/departments/runs", { method: "POST", body: { goal, context: String(data.get("context") || "").trim(), participantAgentIds } });
+    const run = await api("/api/departments/runs", { method: "POST", body: { goal, context: String(data.get("context") || "").trim(), participantAgentIds, delivery: { mode: data.get("deliveryProfile") === "text" ? "text" : "files", profile: data.get("deliveryProfile") } } });
     clearDepartmentGoalDraft();
     await reload();
     go("department", run.id);
@@ -939,12 +941,17 @@ function openDepartmentManual(runId, itemId) {
   const item = run && (run.items || []).find((entry) => entry.id === itemId);
   if (!item) return;
   const isReview = item.role === "reviewer";
+  let reviewedSnapshot = null;
+  if (isReview && run.delivery?.contract?.mode === "files") {
+    api(`/api/departments/runs/${runId}/delivery`).then(result => { reviewedSnapshot = result.snapshot; }).catch(error => { alert(error.message); });
+  }
   const modal = $("modal");
   modal.hidden = false;
   modal.innerHTML = ui`<form class="sheet" id="department-manual-form">
     <div class="kicker">虚拟部门 · ${esc(item.label)}</div><h2>回填真实成果</h2>
     <p class="k">适用于您本人或尚未自动接入的 Cursor、Codex、WorkBuddy、ChatGPT。工作台只记录实际回填内容，不声称已经自动唤醒它们。</p>
     ${isReview ? ui`<label>复核结论</label><select name="verdict" class="full"><option value="pass">通过</option><option value="reject">退回返工</option></select>` : ""}
+    ${isReview && run.delivery?.contract?.mode === "files" ? ui`<label><input type="checkbox" name="fileChecked">我已实际核对本批文件及源版本</label>` : ""}
     <label>${isReview ? tr("复核意见") : tr("阶段成果")}</label><textarea name="output" class="full" style="min-height:220px" required>${esc(item.output || "")}</textarea>
     ${!isReview ? ui`<label>材料路径（每行一条，可选）</label><textarea name="materials" class="full">${esc((item.materials || []).join("\n"))}</textarea>` : ""}
     <div class="actions"><button type="button" class="ghost" data-act="close-modal">取消</button><button type="submit" class="solid">确认写入台账</button></div>
@@ -960,7 +967,7 @@ function openDepartmentManual(runId, itemId) {
     await api(`/api/departments/runs/${runId}/items/${itemId}/action`, {
       method: "POST",
       body: isReview
-        ? { action, verdict: data.get("verdict"), comment: output, reviewerAgentId: item.ownerAgentId }
+        ? { action, verdict: data.get("verdict"), comment: output, reviewerAgentId: item.ownerAgentId, reviewedSnapshot: data.get("fileChecked") ? reviewedSnapshot : null }
         : { action, output, materials: String(data.get("materials") || "").split(/\r?\n/).map((x) => x.trim()).filter(Boolean) },
     });
     modal.hidden = true;

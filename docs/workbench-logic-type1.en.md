@@ -147,3 +147,8 @@ flowchart LR
 Archiving preserves status, history and material paths. Restoring an executable record does not restart it. Explicit continuation retains a review pause that existed before archiving; its normal retry and writing-approval rules still apply. Disabling a member with active assignments requires reassignment or archiving those assignments first. External agent conversations and schedules remain managed in their original applications.
 
 The original Chinese map documents three implementation distinctions: explicitly choosing the three participants differs from legacy automatic member preferences; ordinary chat differs from the Start Writing authorization exception; retry baselines differ from lifetime rejection history. The current code is authoritative when older handover text differs.
+
+
+## File delivery and acceptance
+
+New projects explicitly choose text or file delivery. File projects follow: requirements → execution text → deterministic Word export → independent review of content and actual files → integration receipt → source-version and file-hash recheck → accepted delivery. The project shows real paths, sizes, versions and review results. Content approval, receipt of bridge JSON and completed stages do not replace file acceptance. Modified or deleted files and changed source text invalidate verification. Retries retain earlier versions and do not rerun writing. Historical stage conclusions and ordinary-chat permissions are retained.

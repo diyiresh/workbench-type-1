@@ -25,6 +25,7 @@ const { onlineCompatibleStatus } = require("./lib/model-status");
 const { ingestBrief, sourceSummaries } = require("./lib/brief-hub");
 const dropbox = require("./lib/dropbox");
 const { inactive, operationalStore, changeArchive } = require("./lib/archive");
+const delivery = require("./lib/delivery");
 const { ensureCollaboration, postMessage, addArtifact, messagesFor, artifactsFor } = require("./lib/collaboration");
 const {
   ensureDepartmentSystem, createDepartmentRun, getRun, getItem, startItem, submitItem,
@@ -39,6 +40,11 @@ const DATA = process.env.BENCH_DATA_DIR ? path.resolve(process.env.BENCH_DATA_DI
 const STORE = path.join(DATA, "store.json");
 const BACKUP = path.join(DATA, "backups");
 const externalRuntime = createRuntime({ readStore, writeStore, artifactRoot: path.join(DATA,"agent-results") });
+const deliveryManager = delivery.createManager({ readStore, writeStore, root: path.join(DATA, "deliveries"), reviewExecute: async (agentId, prompt, cwd, context) => {
+  if (agentId === "codex") return (await require("./lib/codex").generate(prompt)).text;
+  if (!["cursor", "workbuddy"].includes(agentId)) throw new Error("delivery_reviewer_adapter_unavailable");
+  return require("./lib/external-runtime").generate(agentId, prompt, cwd, context);
+} });
 const preparationFlow = require('./lib/preparation-flow').createPreparationFlow({ readStore, writeStore });
 const projectChat = require('./lib/project-chat').createChat({ readStore, writeStore });
 // 默认只绑本机；需要手机等局域网设备访问时，用 start-lan.bat 启动（HOST=0.0.0.0）
@@ -65,6 +71,9 @@ function readStore() {
   const collaborationBefore = Array.isArray(store.projectMessages) && Array.isArray(store.artifacts);
   store = ensureV2(store);
   ensureCollaboration(store);
+  const deliveryBefore = JSON.stringify((store.departmentRuns || []).map(r => [r.status, r.delivery, r.items?.map(i => i.status)]));
+  for (const run of store.departmentRuns || []) delivery.refresh(store, run);
+  if (deliveryBefore !== JSON.stringify((store.departmentRuns || []).map(r => [r.status, r.delivery, r.items?.map(i => i.status)]))) writeStore(store);
   if (agentDispatch.syncAssignments(store)) writeStore(store);
   if ((store.meta.version || "") !== before || JSON.stringify(store.lifeSystem || null) !== lifeBefore || !collaborationBefore) writeStore(store, { backup: true });
   return store;
@@ -490,12 +499,47 @@ async function handleApi(req, res, url) {
   if (departmentArtifacts && method === "POST") {
     const body = await readBody(req) || {};
     try {
-      getRun(store, departmentArtifacts[1]);
+      const run = getRun(store, departmentArtifacts[1]);
+      if (inactive(run)) throw new Error("project_paused_or_archived");
       const artifact = addArtifact(store, { ...body, runId: departmentArtifacts[1] });
       postMessage(store, { runId: departmentArtifacts[1], sender: artifact.createdBy, type: "artifact", relatedTaskId: artifact.taskId, text: `提交成果：${artifact.name}（v${artifact.version}）` });
       writeStore(store);
       return sendJson(res, 201, artifact);
     } catch (err) { return sendJson(res, 400, { error: String((err && err.message) || err) }); }
+  }
+
+  const deliveryRoute = p.match(/^\/api\/departments\/runs\/([^/]+)\/delivery(?:\/(configure|generate|review|retry|open))?$/);
+  if (deliveryRoute) {
+    if (!isLoopback(req)) return sendJson(res, 403, { error: "delivery_local_only" });
+    try {
+      let run = getRun(store, deliveryRoute[1]);
+      if (method === "GET" && !deliveryRoute[2]) {
+        let snapshot = null, snapshotError = '';
+        try { if (delivery.required(run) && run.delivery.artifactIds.length) snapshot = delivery.snapshot(store, run); } catch (error) { snapshotError = error.message; }
+        return sendJson(res, 200, { delivery: run.delivery || { state: "legacy_unverified" }, files: delivery.records(store, run), snapshot, snapshotError });
+      }
+      if (method !== "POST" || !deliveryRoute[2]) return notFound(res);
+      const body = await readBody(req) || {};
+      store = readStore(); run = getRun(store, deliveryRoute[1]);
+      if (inactive(run)) throw new Error("project_paused_or_archived");
+      if (deliveryRoute[2] === "configure") { delivery.configure(run, body); writeStore(store); return sendJson(res, 200, run.delivery); }
+      if (deliveryRoute[2] === "generate") return sendJson(res, 200, await deliveryManager.generate(run.id));
+      if (deliveryRoute[2] === "review") { delivery.reviewFiles(store, run, body); writeStore(store); return sendJson(res, 200, run.delivery); }
+      if (deliveryRoute[2] === "retry") {
+        if (!delivery.required(run) || !["failed", "invalidated"].includes(run.delivery.state)) throw new Error("delivery_retry_not_ready");
+        let valid = false; try { delivery.snapshot(store, run); valid = true; } catch (_) {}
+        run.delivery.state = valid ? "files_ready" : "pending"; run.delivery.error = "";
+        writeStore(store); return sendJson(res, 200, run.delivery);
+      }
+      if (deliveryRoute[2] === "open") {
+        delivery.snapshot(store, run);
+        const file = delivery.records(store, run).find(f => f.id === body.artifactId);
+        if (!file) throw new Error("delivery_file_not_registered");
+        if (body.folder) await openInExplorer(file.path, false);
+        else await require("./lib/local-opener").openFile(file.path);
+        return sendJson(res, 200, { ok: true });
+      }
+    } catch (error) { return sendJson(res, 409, { error: error.message }); }
   }
 
   const departmentItemAction = p.match(/^\/api\/departments\/runs\/([^/]+)\/items\/([^/]+)\/action$/);
@@ -533,7 +577,8 @@ async function handleApi(req, res, url) {
       if(item.status!=="doing")throw new Error("item_not_in_progress");
       generation=run.archiveGeneration||0;owner=item.ownerAgentId;
       writeStore(store);
-      const prompt=rolePrompt(run,item);let evidence;
+      const reviewedSnapshot = item.role === "reviewer" ? delivery.assertReady(store, run) : null;
+      const prompt=rolePrompt(run,item,store);let evidence;
       const text=await chat(store,{...prompt,vaultQuery:run.goal,onEvidence:value=>{evidence=value;},temperature:item.role==="reviewer"?0.1:0.35,maxTokens:1600,timeoutMs:180000});
       if(!String(text||"").trim())throw new Error("model_returned_empty_output");
       // Never write an asynchronous result using a pre-call ledger snapshot.
@@ -544,7 +589,7 @@ async function handleApi(req, res, url) {
         writeStore(store);return sendJson(res,200,{held:true,run});
       }
       if(evidence)item.evidence=evidence;
-      if(item.role==="reviewer")reviewExecutor(store,runId,{reviewerAgentId:owner,verdict:/VERDICT\s*:\s*PASS/i.test(text)&&!/VERDICT\s*:\s*REJECT/i.test(text)?"pass":"reject",comment:text});
+      if(item.role==="reviewer")reviewExecutor(store,runId,{reviewerAgentId:owner,verdict:/VERDICT\s*:\s*PASS/i.test(text)&&!/VERDICT\s*:\s*REJECT/i.test(text)&&(!reviewedSnapshot||text.includes("FILE_REVIEW: "+reviewedSnapshot.batchId+" PASS"))?"pass":"reject",comment:text,reviewedSnapshot});
       else submitItem(store,runId,itemId,{output:text});
       run.planningMode="model-assisted";
       postMessage(store,{runId,sender:owner,type:item.role==="reviewer"?"review":"artifact",relatedTaskId:item.id,text:String(text).slice(0,4000)});
@@ -1085,7 +1130,8 @@ async function main() {
     preparationFlow.recover();
     projectChat.recover();
     setInterval(() => { try { projectChat.tick(); } catch (err) { console.error('群聊调度错误：', err.message); } }, 2000);
-    setInterval(() => { try { codexManager.tick(); externalRuntime.tick(); preparationFlow.tick(); } catch (err) { console.error("成员调度错误：", err.message); } }, 5000);
+    deliveryManager.recover();
+    setInterval(() => { try { deliveryManager.tick(); codexManager.tick(); externalRuntime.tick(); preparationFlow.tick(); } catch (err) { console.error("成员调度错误：", err.message); } }, 5000);
     setInterval(() => void dispatchDueAgendaReminders(), 60 * 1000);
   });
 }
