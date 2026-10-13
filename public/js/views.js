@@ -83,47 +83,58 @@ function safeWebUrl(value) {
   }
 }
 
-function briefRunCard(run, source) {
+function briefRunCard(run, source, busy = false) {
   const href = safeWebUrl(run.sourceUrl || "");
   const origin = href
     ? ui`<a class="tiny brief-origin" href="${esc(href)}" target="_blank" rel="noreferrer">打开原始链接</a>`
     : run.sourcePath ? ui`<span class="chip" title="${esc(run.sourcePath)}">文件：${esc(run.sourcePath)}</span>` : "";
-  return `<details class="brief-run ${run.unread !== false ? "unread" : ""}" ${run.unread !== false ? "open" : ""}>
+  return `<details class="brief-run ${run.unread !== false ? "unread" : ""}" data-brief-id="${esc(run.id)}" aria-busy="${busy}" ${run.unread !== false ? "open" : ""}>
     <summary>
       <span><small>${esc((source && source.platform) || run.agentId || "Agent")} · ${fmt(run.completedAt || run.receivedAt)}</small><b>${esc(run.title)}</b></span>
       <span class="chip ${run.unread !== false ? "doing" : ""}">${run.unread !== false ? tr("未读") : tr("已读")}</span>
     </summary>
     <div class="brief-run-body">${esc(run.body)}</div>
-    <div class="brief-run-actions">${origin}${run.unread !== false ? ui`<button type="button" class="tiny" data-act="brief-read" data-id="${esc(run.id)}">标记已读</button>` : ""}</div>
+    <div class="brief-run-actions">${origin}${run.unread !== false ? ui`<button type="button" class="tiny" data-act="brief-read" data-id="${esc(run.id)}" ${busy ? "disabled" : ""}>标记已读</button>` : ""}<button type="button" class="tiny brief-favorite ${run.favorite === true ? "active" : ""}" data-act="brief-favorite" data-id="${esc(run.id)}" aria-pressed="${run.favorite === true}" ${busy ? "disabled" : ""}>${run.favorite === true ? tr("取消收藏") : tr("收藏")}</button></div>
   </details>`;
 }
 
-export function briefHubView(sourceId = "all") {
+export function briefHubView(sourceId = "all", filter = "all", busyIds = new Set()) {
   const s = getStore();
   const sources = (s.briefSources || []).filter((item) => item.enabled !== false);
   const allRuns = [...(s.briefRuns || [])].sort((a, b) => new Date(b.completedAt || b.receivedAt) - new Date(a.completedAt || a.receivedAt));
-  const runs = sourceId === "all" ? allRuns : allRuns.filter((item) => item.sourceId === sourceId);
-  const unread = allRuns.filter((item) => item.unread !== false).length;
-  const today = allRuns.filter((item) => {
+  const selectedFilter = ["all", "today", "unread", "favorite"].includes(filter) ? filter : "all";
+  const isToday = item => {
     const d = new Date(item.completedAt || item.receivedAt);
     return !Number.isNaN(d.getTime()) && ymd(d) === ymd();
-  }).length;
+  };
+  const predicates = { all: () => true, today: isToday, unread: item => item.unread !== false, favorite: item => item.favorite === true };
+  const runs = allRuns.filter(item => (sourceId === "all" || item.sourceId === sourceId) && predicates[selectedFilter](item));
+  const unread = allRuns.filter((item) => item.unread !== false).length;
+  const today = allRuns.filter(isToday).length;
+  const favorite = allRuns.filter(item => item.favorite === true).length;
+  const filterLabels = { all: tr("全部简报"), today: tr("今日到件"), unread: tr("未读简报"), favorite: tr("收藏的简报") };
+  const statsHtml = [
+    ["all", sources.length, tr("简报来源"), tr("可继续动态增加")],
+    ["today", today, filterLabels.today, tr("以完成时间统计")],
+    ["unread", unread, filterLabels.unread, tr("阅读后可单独标记")],
+    ["favorite", favorite, filterLabels.favorite, tr("收藏后可集中查看")],
+  ].map(([key, count, label, caption]) => `<button type="button" class="stat brief-stat ${sourceId === "all" && selectedFilter === key ? "active" : ""}" data-act="brief-filter" data-brief-filter="${key}" aria-pressed="${sourceId === "all" && selectedFilter === key}" aria-controls="brief-results"><b>${count}</b><span>${label}</span><small>${caption}</small></button>`).join("");
   const sourceCards = sources.map((source) => {
     const health = briefHealth(source, allRuns);
-    return ui`<article class="brief-source-card ${health.cls === "warn" ? "stale" : ""}">
-      <div class="row"><div class="eyebrow">${esc(source.platform)}</div><span class="chip ${health.cls}">${esc(health.label)}</span></div>
-      <h3>${esc(source.name)}</h3><p>${esc(source.scheduleLabel || tr("按外部 Agent 设置"))}</p>
-      <div class="brief-source-foot"><small>${health.latest ? ui`最近 ${fmt(health.latest.completedAt || health.latest.receivedAt)}` : tr("尚未收到")}</small><button type="button" class="tiny" data-sec="${esc(source.id)}">查看</button></div>
-    </article>`;
+    return ui`<button type="button" class="brief-source-card ${health.cls === "warn" ? "stale" : ""} ${sourceId === source.id ? "active" : ""}" data-act="brief-source" data-source-id="${esc(source.id)}" aria-pressed="${sourceId === source.id}" aria-controls="brief-results">
+      <span class="row"><span class="eyebrow">${esc(source.platform)}</span><span class="chip ${health.cls}">${esc(health.label)}</span></span>
+      <span class="brief-source-name">${esc(source.name)}</span><span class="brief-source-schedule">${esc(source.scheduleLabel || tr("按外部 Agent 设置"))}</span>
+      <span class="brief-source-foot"><small>${health.latest ? ui`最近 ${fmt(health.latest.completedAt || health.latest.receivedAt)}` : tr("尚未收到")}</small><span class="tiny">查看</span></span>
+    </button>`;
   }).join("");
   const selected = sources.find((item) => item.id === sourceId);
-  const attention = sources.filter((source) => briefHealth(source, allRuns).cls === "warn").length;
+  const empty = selectedFilter !== "all" ? ui`<div class="agenda-empty">没有符合当前筛选条件的简报。</div>` : ui`<div class="agenda-empty">尚未收到该来源的简报。可在设置页复制统一投递格式。</div>`;
   return ui`<section class="command-hero brief-hero"><div><div class="eyebrow">BRIEFING HUB · 单一收件箱</div><h2>各 Agent 各自工作，成果回到一处。</h2><p>保留 ChatGPT 与 WorkBuddy 的原始正文；工作台负责收件、去重、迟到提示和开屏汇总。</p></div><div class="hero-actions"><a class="solid" href="#set/all">查看投递说明</a></div></section>
-    <section class="overview-stats"><article><b>${sources.length}</b><span>简报来源</span><small>可继续动态增加</small></article><article><b>${today}</b><span>今日到件</span><small>以完成时间统计</small></article><article><b>${unread}</b><span>未读简报</span><small>阅读后可单独标记</small></article><article class="${attention ? "alert" : ""}"><b>${attention}</b><span>需要关注</span><small>${attention ? tr("已超过期望到达周期") : tr("当前没有迟到来源")}</small></article></section>
+    <section class="overview-stats brief-stats">${statsHtml}</section>
     <div class="section-head"><div><div class="eyebrow">SOURCES</div><h2>来源状态</h2></div><span>Agent 负责生成，工作台负责归集</span></div>
     <section class="brief-source-grid">${sourceCards}</section>
-    <div class="section-head"><div><div class="eyebrow">RUNS</div><h2>${selected ? esc(selected.name) : tr("全部简报")}</h2></div><span>${runs.length} 份</span></div>
-    <section class="brief-run-list">${runs.length ? runs.map((run) => briefRunCard(run, sources.find((source) => source.id === run.sourceId))).join("") : ui`<div class="agenda-empty">尚未收到该来源的简报。可在设置页复制统一投递格式。</div>`}</section>`;
+    <div class="section-head"><div><div class="eyebrow">RUNS</div><h2>${selected ? esc(selected.name) : filterLabels[selectedFilter]}</h2></div><span role="status">${runs.length} 份</span></div>
+    <section class="brief-run-list" id="brief-results">${runs.length ? runs.map((run) => briefRunCard(run, sources.find((source) => source.id === run.sourceId), busyIds.has(run.id))).join("") : empty}</section>`;
 }
 
 // ---------- 经营秘书 ----------

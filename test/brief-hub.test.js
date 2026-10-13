@@ -26,6 +26,9 @@ const first = ingestBrief(store, {
 }, deps);
 assert.strictEqual(first.duplicate, false);
 assert.strictEqual(store.briefRuns.length, 1);
+assert.strictEqual(first.item.favorite, false, "新简报默认未收藏");
+first.item.favorite = true;
+first.item.unread = false;
 
 const duplicate = ingestBrief(store, {
   sourceId: "chatgpt-daily-priority",
@@ -34,10 +37,14 @@ const duplicate = ingestBrief(store, {
 }, deps);
 assert.strictEqual(duplicate.duplicate, true);
 assert.strictEqual(store.briefRuns.length, 1);
+assert.strictEqual(duplicate.item.favorite, true, "重复投递保留收藏");
+assert.strictEqual(duplicate.item.unread, false, "重复投递保留已读");
 
 ingestBrief(store, { sourceId: "chatgpt-practical-ai", title: "AI 研究", body: "同一份研究内容" }, deps);
+store.briefRuns.find(run => run.sourceId === "chatgpt-practical-ai").favorite = true;
 const sameContent = ingestBrief(store, { sourceId: "chatgpt-practical-ai", title: "AI 研究", body: "同一份研究内容" }, deps);
 assert.strictEqual(sameContent.duplicate, true, "没有外部运行 ID 时应按内容指纹去重");
+assert.strictEqual(sameContent.item.favorite, true, "按内容指纹去重也保留收藏");
 assert.strictEqual(store.briefRuns.length, 2);
 
 const health = sourceHealth(store.briefSources[0], store.briefRuns, new Date("2026-09-29T16:00:00.000Z"));

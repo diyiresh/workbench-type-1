@@ -39,6 +39,8 @@ let agendaDate = ymd();
 let agendaMode = "day";
 // A viewing preference for this visit only; never persist it to the ledger or URL.
 let agendaFilter = "all";
+let briefFilter = "all";
+const briefPreferenceUpdates = new Set();
 let agendaReportDraft = null;
 let agendaEditId = null;
 let agendaEditDraft = null;
@@ -107,15 +109,32 @@ function parseHash() {
   const raw = (location.hash || "#home/all").replace("#", "");
   const [p, s] = raw.split("/");
   const nextPrimary = PRIMARY.some((x) => x.id === p) ? p : "home";
-  if (nextPrimary !== primary) agendaFilter = "all";
+  let nextSecondary = s || "all";
+  if (nextPrimary !== primary) {
+    agendaFilter = "all";
+    briefFilter = "all";
+    if (nextPrimary === "briefs") {
+      nextSecondary = "all";
+      if (s && s !== "all") history.replaceState(null, "", "#briefs/all");
+    }
+  } else if (nextPrimary === "briefs" && nextSecondary !== secondary) briefFilter = "all";
   primary = nextPrimary;
-  secondary = s || "all";
+  secondary = nextSecondary;
 }
-function go(p, s) {
+function go(p, s, nextBriefFilter = "all") {
+  const sameBriefPage = p === "briefs" && primary === "briefs";
   if (p !== primary) agendaFilter = "all";
+  if (p === "briefs") {
+    if (p !== primary) s = "all";
+    briefFilter = nextBriefFilter;
+  }
   primary = p;
   secondary = s || "all";
-  location.hash = `${primary}/${secondary}`;
+  const target = `${primary}/${secondary}`;
+  // Briefing filters render once so a queued hashchange cannot steal keyboard focus.
+  if (sameBriefPage) {
+    if (location.hash !== `#${target}`) history.pushState(null, "", `#${target}`);
+  } else location.hash = target;
   render();
 }
 
@@ -270,7 +289,7 @@ function workspace() {
     if (primary === "deck") return V.deckView();
     if (primary === "department") return V.departmentView(secondary, departmentGoalDraft);
     if (primary === "agenda") return V.agendaView(agendaDate, agendaMode, agendaReportDraft, agendaFilter);
-    if (primary === "briefs") return V.briefHubView(secondary);
+    if (primary === "briefs") return V.briefHubView(secondary, briefFilter, briefPreferenceUpdates);
     if (primary === "work") return secondary === "all" ? V.homeAllView() : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
     if (primary === "ops") return V.opsView(secondary === "all" ? "today" : secondary, tr((OPS.find((o) => o.id === secondary) || {}).name));
     if (primary === "crew") return secondary === "all" ? V.crewAllView() : V.agentDetailView(agent(secondary));
@@ -1051,6 +1070,24 @@ async function toggleAgenda(id) {
   await reload();
 }
 
+async function updateBriefPreference(button, favorite) {
+  const runId = button.dataset.id;
+  const run = (getStore().briefRuns || []).find(item => item.id === runId);
+  if (!run || briefPreferenceUpdates.has(runId)) return;
+  briefPreferenceUpdates.add(runId);
+  button.closest('.brief-run')?.setAttribute('aria-busy', 'true');
+  button.closest('.brief-run')?.querySelectorAll('button').forEach(item => { item.disabled = true; });
+  try {
+    await api(`/api/brief-runs/${encodeURIComponent(runId)}`, { method: "PATCH", body: favorite ? { favorite: run.favorite !== true } : { unread: false } });
+    briefPreferenceUpdates.delete(runId);
+    await reload();
+  } catch (error) {
+    briefPreferenceUpdates.delete(runId);
+    render();
+    window.alert(tr("简报状态保存失败：") + error.message);
+  }
+}
+
 async function reviewAgenda(id) {
   const item = (getStore().agendas || []).find((x) => x.id === id);
   if (!item) return;
@@ -1275,10 +1312,19 @@ document.addEventListener("click", async (e) => {
     await api(`/api/reports/${act.dataset.id}`, { method: "PATCH", body: { body } });
     await reload();
   }
-  if (a === "brief-read") {
-    await api(`/api/brief-runs/${act.dataset.id}`, { method: "PATCH", body: { unread: false } });
-    await reload();
+  if (a === "brief-filter") {
+    const filter = act.dataset.briefFilter;
+    if (["all", "today", "unread", "favorite"].includes(filter)) {
+      go("briefs", "all", filter);
+      $("ws-body").querySelector(`[data-brief-filter="${filter}"]`)?.focus({ preventScroll: true });
+    }
   }
+  if (a === "brief-source") {
+    go("briefs", act.dataset.sourceId);
+    $("ws-body").querySelector('.brief-source-card[aria-pressed="true"]')?.focus({ preventScroll: true });
+  }
+  if (a === "brief-read") await updateBriefPreference(act, false);
+  if (a === "brief-favorite") await updateBriefPreference(act, true);
   if (a === "backup") {
     const blob = new Blob([JSON.stringify(getRawStore(), null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);

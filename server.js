@@ -701,10 +701,13 @@ async function handleApi(req, res, url) {
   if (method === "GET" && p === "/api/brief-runs") {
     const sourceId = url.searchParams.get("sourceId") || "";
     const unread = url.searchParams.get("unread");
+    const favorite = url.searchParams.get("favorite");
     let runs = (store.briefRuns||[]).filter(run=>!run.archived);
     if (sourceId) runs = runs.filter((item) => item.sourceId === sourceId);
     if (unread === "true") runs = runs.filter((item) => item.unread !== false);
     if (unread === "false") runs = runs.filter((item) => item.unread === false);
+    if (favorite === "true") runs = runs.filter((item) => item.favorite === true);
+    if (favorite === "false") runs = runs.filter((item) => item.favorite !== true);
     return sendJson(res, 200, { sources: sourceSummaries(store), runs });
   }
 
@@ -722,11 +725,19 @@ async function handleApi(req, res, url) {
 
   const briefRunMatch = p.match(/^\/api\/brief-runs\/([^/]+)$/);
   if (briefRunMatch && method === "PATCH") {
-    const run = (store.briefRuns || []).find((item) => item.id === briefRunMatch[1]);
-    if (!run) return notFound(res);
     const body = await readBody(req) || {};
+    // Read after the request body: a parallel intake or archive must not be overwritten.
+    const current = readStore();
+    const run = (current.briefRuns || []).find((item) => item.id === briefRunMatch[1]);
+    if (!run) return notFound(res);
+    if (run.archived) return sendJson(res, 409, { error: "record_archived" });
+    for (const field of ["unread", "favorite"]) {
+      if (Object.hasOwn(body, field) && typeof body[field] !== "boolean") return sendJson(res, 400, { error: "invalid_brief_preferences" });
+    }
+    if (!Object.hasOwn(body, "unread") && !Object.hasOwn(body, "favorite")) return sendJson(res, 400, { error: "missing_brief_preferences" });
     if (typeof body.unread === "boolean") run.unread = body.unread;
-    writeStore(store);
+    if (typeof body.favorite === "boolean") run.favorite = body.favorite;
+    writeStore(current);
     return sendJson(res, 200, run);
   }
   if (briefRunMatch && method === "DELETE") {
