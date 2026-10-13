@@ -571,7 +571,7 @@ function groupedAgenda(entries) {
   return [...groups.entries()];
 }
 
-export function agendaView(date, mode = "day", reportDraft = null) {
+export function agendaView(date, mode = "day", reportDraft = null, filter = "all") {
   const s = getStore();
   const labels = { day: tr("日"), week: tr("周"), month: tr("月") };
   const reportLabels = { day: tr("日报"), week: tr("周报"), month: tr("月报") };
@@ -580,19 +580,31 @@ export function agendaView(date, mode = "day", reportDraft = null) {
     .slice().sort((a, b) => `${a.date}|${a.time || "99:99"}`.localeCompare(`${b.date}|${b.time || "99:99"}`));
   const done = entries.filter((item) => item.done).length;
   const important = entries.filter((item) => item.important).length;
+  const predicates = { all: () => true, done: item => item.done, pending: item => !item.done, important: item => item.important };
+  const selected = Object.hasOwn(predicates, filter) ? filter : "all";
+  const visibleEntries = entries.filter(predicates[selected]);
+  const filterLabels = { all: tr("已排日程"), done: tr("已完成"), pending: tr("待处理"), important: tr("重点事项") };
+  const statsHtml = [
+    ["all", entries.length, mode === "day" ? tr("含时间块与临时事项") : tr("当前查看范围")],
+    ["done", done, ui`完成率 ${percent(done, entries.length)}%`],
+    ["pending", entries.length - done, tr("给注意力留出余量")],
+    ["important", important, tr("提前 12 小时提醒")],
+  ].map(([key, count, caption]) => `<button type="button" class="stat agenda-stat ${selected === key ? "active" : ""}" data-act="agenda-filter" data-agenda-filter="${key}" aria-pressed="${selected === key}" aria-controls="agenda-results"><b>${count}</b><span>${filterLabels[key]}</span><small>${caption}</small></button>`).join("");
   const plan = (s.plans || []).find((p) => (p.slots || []).some((slot) => slot.date === date));
   const slot = plan && (plan.slots || []).find((item) => item.date === date);
   const switches = ["day", "week", "month"].map((item) => ui`<button type="button" class="${mode === item ? "active" : ""}" data-act="agenda-view" data-view="${item}">${labels[item]}视图</button>`).join("");
   const navigator = mode === "day" ? "" : ui`<div class="agenda-period-nav"><button type="button" class="tiny" data-act="agenda-nav" data-shift="-1">← 上一${labels[mode]}</button><b>${range.start} — ${range.end}</b><button type="button" class="tiny" data-act="agenda-nav" data-shift="1">下一${labels[mode]} →</button></div>`;
-  const entriesHtml = entries.length ? entries.map((item) => agendaItem(item)).join("") : systemFragment('<div class="agenda-empty">这个范围还没有已录入日程。</div>');
-  const groupedHtml = groupedAgenda(entries).map(([day, list]) => ui`<section class="agenda-day-group"><div class="section-head"><div><div class="eyebrow">${esc(dateText(day))}</div><h2>${list.length} 项已录入日程</h2></div><button type="button" class="tiny" data-act="agenda-open-day" data-date="${esc(day)}">进入日视图</button></div>${list.map((item) => agendaItem(item, { compact: false })).join("")}</section>`).join("") || systemFragment('<div class="agenda-empty">这个范围还没有已录入日程。</div>');
+  const emptyHtml = selected === "all" ? systemFragment('<div class="agenda-empty">这个范围还没有已录入日程。</div>') : systemFragment('<div class="agenda-empty">当前范围没有符合筛选条件的日程。</div>');
+  const entriesHtml = visibleEntries.length ? visibleEntries.map((item) => agendaItem(item)).join("") : emptyHtml;
+  const groupedHtml = groupedAgenda(visibleEntries).map(([day, list]) => ui`<section class="agenda-day-group"><div class="section-head"><div><div class="eyebrow">${esc(dateText(day))}</div><h2>${list.length} 项已录入日程</h2></div><button type="button" class="tiny" data-act="agenda-open-day" data-date="${esc(day)}">进入日视图</button></div>${list.map((item) => agendaItem(item, { compact: false })).join("")}</section>`).join("") || emptyHtml;
   const reportHtml = reportDraft ? ui`<section class="card agenda-report"><div class="section-head"><div><div class="eyebrow">AI DRAFT · 可编辑</div><h2>${esc(reportDraft.title)}</h2></div><button type="button" class="tiny" data-act="agenda-report-discard">放弃草稿</button></div><p class="agenda-report-notice ${reportDraft.modelApplied === false ? "is-warning" : ""}">${esc(reportDraft.notice || tr("请核对事实后再保存。"))}</p><textarea id="agenda-report-body" rows="16">${esc(reportDraft.body)}</textarea><div class="actions"><button type="button" class="solid" data-act="agenda-report-save">保存到报告库</button></div></section>` : "";
   const reportButton = ui`<section class="agenda-report-cta"><div><div class="eyebrow">PERIOD REPORT</div><b>基于本${labels[mode]}已录入事项与复盘生成${reportLabels[mode]}</b><p>仅将本周期事实发送给当前模型路由；不会自动对外发送或保存。</p></div><button type="button" class="solid" data-act="agenda-report-draft">生成${reportLabels[mode]}</button></section>`;
   return ui`<section class="agenda-hero"><div><div class="eyebrow">AGENDA · 本地单一台账</div><h2>${mode === "day" ? esc(dateText(date)) : ui`${labels[mode]}视图 · ${esc(range.start)} — ${esc(range.end)}`}</h2><p>日程只录一次；日、周、月只是从同一份本机台账查看不同范围。</p></div><div class="agenda-hero-controls"><div class="agenda-view-switch">${switches}</div><label class="date-picker">日期锚点<input id="agenda-date" type="date" value="${esc(date)}" /></label></div></section>
     ${navigator}
-    <section class="overview-stats agenda-stats"><article><b>${entries.length}</b><span>已排日程</span><small>${mode === "day" ? tr("含时间块与临时事项") : tr("当前查看范围")}</small></article><article><b>${done}</b><span>已完成</span><small>完成率 ${percent(done, entries.length)}%</small></article><article><b>${entries.length - done}</b><span>待处理</span><small>给注意力留出余量</small></article><article><b>${important}</b><span>重点事项</span><small>提前 12 小时提醒</small></article></section>
+    <section class="overview-stats agenda-stats">${statsHtml}</section>
+    <div class="agenda-filter-summary" role="status">当前筛选：<b>${filterLabels[selected]}</b><span>${visibleEntries.length} 项日程</span></div>
     ${mode === "day" && slot ? `<section class="plan-strip"><div><div class="eyebrow">WEEKLY INTENT</div><b>${esc(plan.title || tr("本周安排"))}</b></div><ul>${(slot.items || []).map((item) => `<li>${esc(item)}</li>`).join("")}</ul></section>` : ""}
-    ${mode === "day" ? ui`<section class="agenda-layout"><form id="agenda-form" class="card agenda-form"><div class="section-head"><div><div class="eyebrow">NEW TIME BLOCK</div><h2>添加行程</h2></div></div><label>时间<input name="time" type="time" value="09:00" /></label><label>事项<input name="title" required placeholder="例如：审阅季度汇报材料" /></label><div class="form-two"><label>分类<select name="category"><option value="工作">工作</option><option value="会议">会议</option><option value="学习">学习</option><option value="生活">生活</option></select></label><label>标签（逗号分隔）<input name="tags" placeholder="公文, 季度汇报" /></label></div><label>备注<textarea name="note" rows="3" placeholder="地点、材料或下一步（可选）"></textarea></label><label>材料存放路径（每行一条）<textarea name="materials" rows="3" placeholder="D:\\工作\\项目\\成果文件.docx&#10;D:\\工作\\项目\\材料文件夹"></textarea></label><label class="check-line"><input name="important" type="checkbox" /> 作为重点事项（开始前 12 小时微信提醒）</label><button class="solid" type="submit">加入时间轴</button></form><section class="agenda-timeline"><div class="section-head"><div><div class="eyebrow">TIME LINE</div><h2>当天安排</h2></div><button type="button" class="ghost" data-act="agenda-ai-draft">AI 生成建议</button></div>${entriesHtml}<div id="agenda-ai-output" class="ai-draft" hidden></div></section></section>` : `<section class="agenda-period-list">${groupedHtml}</section>`}
+    ${mode === "day" ? ui`<section class="agenda-layout"><form id="agenda-form" class="card agenda-form"><div class="section-head"><div><div class="eyebrow">NEW TIME BLOCK</div><h2>添加行程</h2></div></div><label>时间<input name="time" type="time" value="09:00" /></label><label>事项<input name="title" required placeholder="例如：审阅季度汇报材料" /></label><div class="form-two"><label>分类<select name="category"><option value="工作">工作</option><option value="会议">会议</option><option value="学习">学习</option><option value="生活">生活</option></select></label><label>标签（逗号分隔）<input name="tags" placeholder="公文, 季度汇报" /></label></div><label>备注<textarea name="note" rows="3" placeholder="地点、材料或下一步（可选）"></textarea></label><label>材料存放路径（每行一条）<textarea name="materials" rows="3" placeholder="D:\\工作\\项目\\成果文件.docx&#10;D:\\工作\\项目\\材料文件夹"></textarea></label><label class="check-line"><input name="important" type="checkbox" /> 作为重点事项（开始前 12 小时微信提醒）</label><button class="solid" type="submit">加入时间轴</button></form><section class="agenda-timeline" id="agenda-results"><div class="section-head"><div><div class="eyebrow">TIME LINE</div><h2>当天安排</h2></div><button type="button" class="ghost" data-act="agenda-ai-draft">AI 生成建议</button></div>${entriesHtml}<div id="agenda-ai-output" class="ai-draft" hidden></div></section></section>` : `<section class="agenda-period-list" id="agenda-results">${groupedHtml}</section>`}
     ${reportHtml}${reportButton}`;
 }
 

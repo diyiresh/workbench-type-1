@@ -37,6 +37,8 @@ let briefs = [];
 let briefIndex = 0;
 let agendaDate = ymd();
 let agendaMode = "day";
+// A viewing preference for this visit only; never persist it to the ledger or URL.
+let agendaFilter = "all";
 let agendaReportDraft = null;
 let agendaEditId = null;
 let agendaEditDraft = null;
@@ -104,10 +106,13 @@ const $ = (id) => document.getElementById(id);
 function parseHash() {
   const raw = (location.hash || "#home/all").replace("#", "");
   const [p, s] = raw.split("/");
-  primary = PRIMARY.some((x) => x.id === p) ? p : "home";
+  const nextPrimary = PRIMARY.some((x) => x.id === p) ? p : "home";
+  if (nextPrimary !== primary) agendaFilter = "all";
+  primary = nextPrimary;
   secondary = s || "all";
 }
 function go(p, s) {
+  if (p !== primary) agendaFilter = "all";
   primary = p;
   secondary = s || "all";
   location.hash = `${primary}/${secondary}`;
@@ -264,7 +269,7 @@ function workspace() {
     if (primary === "home") return secondary === "all" ? V.homeAllView() : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
     if (primary === "deck") return V.deckView();
     if (primary === "department") return V.departmentView(secondary, departmentGoalDraft);
-    if (primary === "agenda") return V.agendaView(agendaDate, agendaMode, agendaReportDraft);
+    if (primary === "agenda") return V.agendaView(agendaDate, agendaMode, agendaReportDraft, agendaFilter);
     if (primary === "briefs") return V.briefHubView(secondary);
     if (primary === "work") return secondary === "all" ? V.homeAllView() : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
     if (primary === "ops") return V.opsView(secondary === "all" ? "today" : secondary, tr((OPS.find((o) => o.id === secondary) || {}).name));
@@ -801,7 +806,7 @@ function bindAgenda() {
     };
   }
   const date = $("agenda-date");
-  if (date) date.onchange = () => { agendaDate = date.value || ymd(); agendaReportDraft = null; agendaEditId = null; agendaEditDraft = null; render(); };
+  if (date) date.onchange = () => { agendaDate = date.value || ymd(); agendaFilter = "all"; agendaReportDraft = null; agendaEditId = null; agendaEditDraft = null; render(); };
 }
 
 function editAgenda(id) {
@@ -816,6 +821,7 @@ function editAgenda(id) {
   };
   agendaDate = item.date;
   agendaMode = "day";
+  agendaFilter = "all";
   render();
   $("agenda-form")?.scrollIntoView({ block: "center", behavior: "smooth" });
   $("agenda-form")?.elements.namedItem("title")?.focus({ preventScroll: true });
@@ -998,9 +1004,30 @@ async function adoptLearningDraft() {
   await reload();
 }
 
+function setAgendaFilter(filter) {
+  if (!["all", "done", "pending", "important"].includes(filter)) return;
+  // A filter changes the list, not an appointment being entered or edited.
+  const form = $("agenda-form");
+  const draft = form ? new FormData(form) : null;
+  const reportBody = $("agenda-report-body");
+  if (reportBody && agendaReportDraft) agendaReportDraft.body = reportBody.value;
+  agendaFilter = filter;
+  render();
+  const newForm = $("agenda-form");
+  if (draft && newForm) {
+    for (const field of newForm.elements) {
+      if (!field.name) continue;
+      if (field.type === "checkbox") field.checked = draft.has(field.name);
+      else field.value = draft.get(field.name) ?? "";
+    }
+  }
+  $("ws-body").querySelector(`[data-agenda-filter="${filter}"]`)?.focus({ preventScroll: true });
+}
+
 function setAgendaView(mode) {
   if (!["day", "week", "month"].includes(mode)) return;
   agendaMode = mode;
+  agendaFilter = "all";
   agendaReportDraft = null;
   render();
 }
@@ -1012,6 +1039,7 @@ function shiftAgendaPeriod(shift) {
   else if (agendaMode === "week") date.setDate(date.getDate() + 7 * shift);
   else date.setDate(date.getDate() + shift);
   agendaDate = ymd(date);
+  agendaFilter = "all";
   agendaReportDraft = null;
   render();
 }
@@ -1168,6 +1196,7 @@ document.addEventListener("click", async (e) => {
   if (a === "agenda-edit") editAgenda(act.dataset.id);
   if (a === "agenda-ai-draft") await draftAgendaWithAi();
   if (a === "agenda-view") setAgendaView(act.dataset.view);
+  if (a === "agenda-filter") setAgendaFilter(act.dataset.agendaFilter);
   if (a === "agenda-nav") shiftAgendaPeriod(Number(act.dataset.shift || 0));
   if (a === "agenda-open-day") { agendaDate = act.dataset.date || agendaDate; setAgendaView("day"); }
   if (a === "agenda-open-material") await openAgendaMaterial(act.dataset.id, act.dataset.index);
