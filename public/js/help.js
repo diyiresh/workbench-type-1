@@ -19,6 +19,7 @@ export function helpView() {
   const en=language()==='en';
   return ui`<section class="help-view"><div class="card"><h2>工作台使用说明</h2><p>唯一台账：data/store.json。所有板块引用同一份事实，聊天、打卡、模型连接与正式验收各有不同作用。</p><p>每个页面右上方“管理与归档”支持单项及批量操作；设置页入口可管理所有集合。归档前查看关联预览，恢复后显式继续。原有复核暂停仍须按原流程重试。</p><p>仅管理本工作台的记录；各 Agent 软件中的会话、外部定时任务和原始材料由原工具管理。</p></div>
     <div class="help-sections">${SECTIONS.map(([name,zh,english])=>`<details class="card"><summary>${esc(tr(name))}</summary><p>${esc(en?english:zh)}</p>${name === '每日行程' ? ui`<p>补充待确认问题的回复后，点击“整合补充并更新摘要”，审阅后确认保存新版本。可以对照或恢复整合前草稿。已保存的回复通过“载入已保存笔记”继续整理；确认保存只写入当前文本，不自动重新归纳。</p>` : ''}</details>`).join('')}</div>
+    <section class="card"><h3>复盘笔记版本管理</h3><p>同一行程仅最高版本且状态有效的笔记参与建议。管理页标注当前与已被替代版本，可预览清单后移除旧版本。摘要保存区可勾选保存后移除旧版本，默认关闭；新笔记成功保存后才清理。已移除版本可在管理页恢复，不覆盖同名文件。</p></section>
     <section class="card"><h2>整个项目的工作台逻辑图</h2><p>图形与说明来源于项目 docs。展开图形可放大查看。</p><div id="logic-document" aria-live="polite">${tr('正在加载逻辑图…')}</div></section></section>`;
 }
 function inline(text) {

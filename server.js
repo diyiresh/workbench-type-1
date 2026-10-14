@@ -10,6 +10,7 @@ const { buildBriefings, crewDigest } = require("./lib/briefing");
 const { chat } = require("./lib/llm");
 const vault = require('./lib/vault');
 const agendaNotes = require('./lib/agenda-notes');
+const agendaNoteCleanup = require('./lib/agenda-note-cleanup');
 const codex = require("./lib/codex");
 const { createManager } = require("./lib/codex-jobs");
 const codexManager = createManager({ readStore, writeStore });
@@ -638,9 +639,10 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, report);
   }
 
-  const noteReview = p.match(/^\/api\/agendas\/([^/]+)\/review-note\/(draft|saved|refine|save)$/);
+  const noteReview = p.match(/^\/api\/agendas\/([^/]+)\/review-note\/(draft|saved|refine|save|cleanup)$/);
+  const noteRestore = p.match(/^\/api\/agenda-notes\/trash\/([^/]+)\/restore$/);
   const noteFile = p.match(/^\/api\/agenda-notes\/([^/]+)$/);
-  if (p === '/api/agenda-notes' || p === '/api/agenda-notes/config' || p === '/api/agenda-notes/suggest' || noteReview || noteFile) {
+  if (p === '/api/agenda-notes' || p === '/api/agenda-notes/config' || p === '/api/agenda-notes/suggest' || noteReview || noteFile || noteRestore) {
     if (!isLoopback(req)) return sendJson(res, 403, { error: 'agenda_notes_local_only' });
     try {
       const body = ['POST', 'PUT', 'PATCH'].includes(method) ? await readBody(req) || {} : {};
@@ -654,7 +656,15 @@ async function handleApi(req, res, url) {
       }
       if (p === '/api/agenda-notes' && method === 'GET') {
         const result = agendaNotes.list(fresh);
-        return sendJson(res, 200, { directory: result.directory, ignored: result.ignored, notes: result.notes.map(note => { const { body, ...metadata } = agendaNotes.publicNote(note); return metadata; }) });
+        let recovery;
+        try { recovery = agendaNoteCleanup.listTrash(fresh); } catch (error) { recovery = { batches: [], ignored: [{ error: error.message }] }; }
+        return sendJson(res, 200, { directory: result.directory, ignored: result.ignored, recovery, notes: result.notes.map(note => { const { body, ...metadata } = agendaNotes.publicNote(note); return metadata; }) });
+      }
+      if (noteRestore && method === 'POST') return sendJson(res, 200, agendaNoteCleanup.restore(fresh, decodeURIComponent(noteRestore[1]), body));
+      if (noteReview && noteReview[2] === 'cleanup') {
+        if (method === 'GET') return sendJson(res, 200, agendaNoteCleanup.plan(fresh, noteReview[1]));
+        if (method === 'POST') return sendJson(res, 200, agendaNoteCleanup.moveOlder(fresh, noteReview[1], body));
+        return sendJson(res, 405, { error: 'method_not_allowed' });
       }
       if (noteReview && method === 'GET' && noteReview[2] === 'saved') return sendJson(res, 200, agendaNotes.savedDraft(fresh, noteReview[1]));
       if (noteReview && method === 'POST' && noteReview[2] !== 'saved') {
@@ -666,10 +676,19 @@ async function handleApi(req, res, url) {
           agendaNotes.validateBaseNote(current, itemId, draft);
           return sendJson(res, 200, draft);
         }
+        const cleanupPlan = body.removeOlderVersions === true ? agendaNoteCleanup.validatePlan(fresh, itemId, { snapshot: body.cleanupSnapshot }) : null;
         const saved = agendaNotes.save(fresh, itemId, body);
         const item = agendaNotes.agenda(fresh, itemId);
         item.reviewNote = { file: saved.note.file, path: saved.note.path, version: saved.note.version, sourceHash: body.sourceHash, savedAt: nowIso() };
         writeStore(fresh);
+        if (cleanupPlan) {
+          try {
+            const preview = agendaNoteCleanup.plan(fresh, itemId), expectedOlder = saved.duplicate ? cleanupPlan.older : cleanupPlan.existing;
+            if (preview.latest?.file !== saved.note.file || preview.latest.sha256 !== saved.note.sha256 || JSON.stringify(preview.older) !== JSON.stringify(expectedOlder)) throw new Error('笔记保存后版本已变化，旧文件未移除，请重新查看版本清单。');
+            saved.cleanup = agendaNoteCleanup.moveOlder(fresh, itemId, preview);
+          }
+          catch (error) { saved.cleanup = { removedCount: 0, error: error.message }; }
+        }
         return sendJson(res, 200, saved);
       }
       if (p === '/api/agenda-notes/suggest' && method === 'POST') {

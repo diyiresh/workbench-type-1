@@ -20,6 +20,8 @@
 
 ## 行程复盘笔记（独立于 VaultRAG）
 
+`GET/POST /api/agendas/<id>/review-note/cleanup` 先预览后以快照确认可恢复移除，仅限同一行程低于最高版本的文件。摘要确认可显式传 `removeOlderVersions:true` 与 `cleanupSnapshot`，新版本写入并读回后才移除已确认旧文件；默认保留。文件移到独立目录内 `.trash/<batch>`，`GET /api/agenda-notes` 列恢复批次，`POST /api/agenda-notes/trash/<batch>/restore` 以批次快照恢复且不覆盖同名文件。移除目录仍排除 VaultRAG；不能直接删除最高版本或其他行程，保存结果与清理失败分别返回。
+
 用户在草稿中回答待确认问题后，以 `POST /api/agendas/<id>/review-note/refine` 整合当前草稿和原始复盘，仅返回可编辑预览，不落盘、不改变业务阶段。已保存问答可通过 `GET` 同路径 `/saved` 载入最新实际文件，绑定源与文件快照。确认 `/save` 才写入新版本；旧文件保留，变动或归档后的迟到整合无效。保存本身不重新调用模型。
 
 复盘摘要由用户预览、编辑并确认后保存到所选 Obsidian 仓库的 `工作台/行程复盘` 目录。新增／修改行程的“建议”直接读取该目录的有效笔记，保留日期、原文和文件哈希；历史或停用笔记及旧版本不参与建议。本目录必须加入 VaultRAG 的 `exclude_dirs`，新摘要与建议使用 `useVault:false`，不可隐式调用全库检索。实际笔记落盘与回填引用只由工作台接口完成；不要将未确认摘要直接写入仓库。接口与验收见 `docs/SPEC-agenda-review-notes.md`。

@@ -1,5 +1,6 @@
 import { esc } from './core.js';
 import { t as tr, ui } from './i18n.js';
+import { bindSaveCleanup, bindManagerCleanup, versionCaption } from './agenda-note-cleanup-ui.js';
 let suggestion = null, requestId = 0;
 const model = () => document.getElementById('modal');
 const errorText = error => { try { return JSON.parse(error.message).error || error.message; } catch { return error.message; } };
@@ -41,15 +42,16 @@ export function openReviewNote(item, api, reload) {
   const modal = model(); modal.hidden = false;
   modal.innerHTML = ui`<div class="sheet review-note-editor"><h2>行程复盘与笔记</h2><p>${esc(item.date)} · ${esc(item.title)}</p><label>原始复盘<textarea id="review-note-original" rows="6">${esc(item.review || '')}</textarea></label><p>保存复盘后生成可编辑摘要，确认后写入 Obsidian。</p>${item.done ? '' : ui`<p>请先完成行程，再生成复盘笔记。</p>`}<div class="actions"><button type="button" class="solid" data-note-draft ${item.done ? '' : 'disabled'}>保存复盘并生成摘要</button><button type="button" class="ghost" data-note-load>载入已保存笔记</button><button type="button" class="ghost" data-note-review-only>仅保存复盘</button><button type="button" class="ghost" data-note-close>关闭</button></div><p data-note-message role="status"></p><div data-note-preview hidden><label>摘要（可编辑）<textarea id="review-note-summary" rows="10"></textarea></label><p>在草稿中补充回复后，点击“整合补充并更新摘要”；确认保存只写入当前文本。重新生成会替换草稿。</p><label>关联关键词（机构、人物、主题）<input id="review-note-keywords" /></label><div class="actions"><button type="button" class="ghost" data-note-refine>整合补充并更新摘要</button><button type="button" class="solid" data-note-save>确认保存 Markdown 笔记</button></div><details data-note-before hidden><summary>对照整合前草稿</summary><pre class="report" data-note-before-text></pre><button type="button" class="ghost" data-note-undo>恢复整合前草稿</button></details></div></div>`;
   const panel = modal.firstElementChild;
+  const cleanup = bindSaveCleanup(panel, item.id, api);
   const original = panel.querySelector('#review-note-original'), message = panel.querySelector('[data-note-message]'), preview = panel.querySelector('[data-note-preview]');
   const summary = panel.querySelector('#review-note-summary'), tags = panel.querySelector('#review-note-keywords'), comparison = panel.querySelector('[data-note-before]');
   let draft = null, previous = null, busy = false;
   const attached = () => !modal.hidden && modal.firstElementChild === panel;
   const currentDraft = () => draft && original.value.trim() === draft.original.trim();
-  const controls = () => panel.querySelectorAll('button:not([data-note-close])').forEach(button => {
+  const controls = () => { cleanup.setBusy(busy); panel.querySelectorAll('button:not([data-note-close])').forEach(button => {
     button.disabled = busy || ((button.hasAttribute('data-note-draft') || button.hasAttribute('data-note-load')) && !item.done) || ((button.hasAttribute('data-note-save') || button.hasAttribute('data-note-refine')) && !currentDraft());
     if (button.hasAttribute('data-note-load')) button.hidden = !!draft;
-  });
+  }); };
   const paintDraft = value => {
     draft = value; summary.value = value.summary; tags.value = value.keywords.join(', '); preview.hidden = false;
   };
@@ -74,6 +76,7 @@ export function openReviewNote(item, api, reload) {
     if (!attached()) return;
     if (original.value.trim() !== result.original.trim() || summary.value !== priorSummary) { message.textContent = tr('生成期间内容已修改，已保留当前草稿，请重试。'); return; }
     previous = null; comparison.hidden = true; paintDraft(result);
+    await cleanup.load();
     message.textContent = tr('摘要待确认，尚未写入笔记。');
   });
   panel.querySelector('[data-note-load]').onclick = () => run(async () => {
@@ -82,6 +85,7 @@ export function openReviewNote(item, api, reload) {
     if (!attached()) return;
     if (snapshot !== original.value || original.value.trim() !== result.original.trim()) { message.textContent = tr('复盘已修改，请重新生成摘要。'); return; }
     previous = null; comparison.hidden = true; paintDraft(result);
+    await cleanup.load();
     message.textContent = tr('已载入最新笔记，可补充回复并整合；尚未保存新版本。');
   });
   panel.querySelector('[data-note-refine]').onclick = () => run(async () => {
@@ -104,12 +108,14 @@ export function openReviewNote(item, api, reload) {
   };
   panel.querySelector('[data-note-save]').onclick = () => run(async () => {
     if (!currentDraft()) return;
-    const snapshot = { ...draft, summary: summary.value, keywords: tags.value };
+    const snapshot = { ...draft, summary: summary.value, keywords: tags.value, ...cleanup.selection() };
     const saved = await api(`/api/agendas/${encodeURIComponent(item.id)}/review-note/save`, { method: 'POST', body: snapshot });
     if (!attached()) return;
     message.textContent = tr('Markdown 笔记已保存并读回：') + saved.note.path;
     if (summary.value === snapshot.summary && tags.value === snapshot.keywords && original.value.trim() === draft.original.trim()) { preview.hidden = true; draft = null; previous = null; comparison.hidden = true; }
     else { draft.baseNote = { file: saved.note.file, sha256: saved.note.sha256 }; message.textContent = tr('笔记已保存；保存期间的新修改仍保留在草稿中，尚未写入。'); }
+    cleanup.report(saved, message);
+    if (draft) await cleanup.load();
     await reload();
   });
   controls();
@@ -121,6 +127,7 @@ export async function openNotesManager(agendas, api, reload) {
   panel.querySelector('[data-note-close]').onclick = () => { modal.hidden = true; };
   try {
     const result = await api('/api/agenda-notes');
+    if (!panel.isConnected || modal.firstElementChild !== panel || modal.hidden) return panel;
     panel.querySelector('[data-note-message]').textContent = result.directory;
     const labels = { active: tr('有效'), historical: tr('历史参考'), disabled: tr('停用') };
     panel.querySelector('[data-note-list]').innerHTML = ui`<label>整理已完成的历史复盘<select data-note-agenda><option value="">选择行程</option>${agendas.filter(item => item.done && item.review).map(item => `<option value="${esc(item.id)}">${esc(item.date)} · ${esc(item.title)}</option>`).join('')}</select></label><button type="button" class="tiny" data-note-historical>生成摘要</button>${result.notes.length ? result.notes.map(note => `<article class="managed-note"><b>${esc(note.date)} · ${esc(note.title)}</b><small>${esc(note.file)} · v${note.version}</small><select data-note-status="${esc(note.file)}">${Object.entries(labels).map(([value, label]) => `<option value="${value}" ${value === note.status ? 'selected' : ''}>${label}</option>`).join('')}</select></article>`).join('') : ui`<p>尚未保存复盘笔记。</p>`}${result.ignored.length ? ui`<p>${result.ignored.length} 份笔记格式异常，已跳过。</p>` : ''}`;
@@ -131,10 +138,12 @@ export async function openNotesManager(agendas, api, reload) {
     panel.querySelectorAll('[data-note-status]').forEach(select => {
       select.onchange = async () => {
         const note = result.notes.find(note => note.file === select.dataset.noteStatus); select.disabled = true;
-        try { const updated = await api(`/api/agenda-notes/${encodeURIComponent(note.file)}`, { method: 'PATCH', body: { status: select.value, sha256: note.sha256 } }); Object.assign(note, updated); }
+        try { const updated = await api(`/api/agenda-notes/${encodeURIComponent(note.file)}`, { method: 'PATCH', body: { status: select.value, sha256: note.sha256 } }); Object.assign(note, updated); select.closest('article').querySelector('[data-note-version]').textContent = versionCaption(note); }
         catch (error) { select.value = note.status; panel.querySelector('[data-note-message]').textContent = errorText(error); }
         finally { select.disabled = false; }
       };
     });
+    bindManagerCleanup(panel, result, api, () => openNotesManager(agendas, api, reload));
   } catch (error) { panel.querySelector('[data-note-message]').textContent = errorText(error); }
+  return panel;
 }
