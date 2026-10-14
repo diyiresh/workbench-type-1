@@ -11,6 +11,7 @@ import { renderCard, renderDetail, manifestFor } from "./modules/index.js";
 import * as V from "./js/views.js";
 import { t as tr, ui, systemFragment } from "./js/i18n.js";
 import { bindDelivery } from './js/delivery-ui.js';
+import { bindNoteSuggestion, openReviewNote, openNotesManager, resetSuggestion } from './js/agenda-notes-ui.js';
 import { openArchive } from "./js/archive-ui.js";
 import { helpView, renderLogic } from "./js/help.js";
 import { rememberChatPosition, restoreChatPosition } from "./js/chat-scroll.js";
@@ -44,6 +45,7 @@ const briefPreferenceUpdates = new Set();
 let agendaReportDraft = null;
 let agendaEditId = null;
 let agendaEditDraft = null;
+let agendaFormDraft = null;
 let roomComposing = false;
 document.addEventListener('compositionstart', event => {
   if (event.target.matches('.room-composer textarea')) roomComposing = true;
@@ -333,6 +335,7 @@ function workspace() {
   if(primary === "set" && secondary === "help")void renderLogic();
   bindDrag();
   bindAgenda();
+  bindNoteSuggestion(api);
   bindLearningPlan();
   bindDepartment();
   syncComposer();
@@ -773,6 +776,12 @@ async function testLlm() {
 function bindAgenda() {
   const form = $("agenda-form");
   if (form) {
+    if (!agendaEditId && agendaFormDraft) {
+      for (const [name, value] of Object.entries(agendaFormDraft)) {
+        const field = form.elements.namedItem(name); if (!field) continue;
+        if (field.type === 'checkbox') field.checked = Boolean(value); else field.value = value;
+      }
+    }
     if (agendaEditId && agendaEditDraft) {
       for (const [name, value] of Object.entries(agendaEditDraft)) {
         const field = form.elements.namedItem(name);
@@ -790,10 +799,9 @@ function bindAgenda() {
       form.append(cancel);
     }
     form.oninput = () => {
-      if (!agendaEditId) return;
       const values = new FormData(form);
-      agendaEditDraft = Object.fromEntries(values);
-      agendaEditDraft.important = Boolean(values.get("important"));
+      const draft = Object.fromEntries(values); draft.important = Boolean(values.get('important'));
+      if (agendaEditId) agendaEditDraft = draft; else agendaFormDraft = draft;
     };
     form.onsubmit = async (e) => {
       e.preventDefault();
@@ -821,11 +829,13 @@ function bindAgenda() {
       });
       agendaEditId = null;
       agendaEditDraft = null;
+      agendaFormDraft = null;
+      resetSuggestion();
       await reload();
     };
   }
   const date = $("agenda-date");
-  if (date) date.onchange = () => { agendaDate = date.value || ymd(); agendaFilter = "all"; agendaReportDraft = null; agendaEditId = null; agendaEditDraft = null; render(); };
+  if (date) date.onchange = () => { agendaDate = date.value || ymd(); agendaFilter = "all"; agendaReportDraft = null; agendaEditId = null; agendaEditDraft = null; agendaFormDraft = null; resetSuggestion(); render(); };
 }
 
 function editAgenda(id) {
@@ -1091,10 +1101,7 @@ async function updateBriefPreference(button, favorite) {
 async function reviewAgenda(id) {
   const item = (getStore().agendas || []).find((x) => x.id === id);
   if (!item) return;
-  const review = window.prompt(tr("写一句复盘（留空取消）："), item.review || "");
-  if (review === null) return;
-  await api(`/api/agendas/${id}`, { method: "PATCH", body: { review: review.trim() } });
-  await reload();
+  openReviewNote(item, api, reload);
 }
 
 async function editAgendaMaterials(id) {
@@ -1229,6 +1236,7 @@ document.addEventListener("click", async (e) => {
   if (a === "agenda-toggle") await toggleAgenda(act.dataset.id);
   if (a === "agenda-materials") await editAgendaMaterials(act.dataset.id);
   if (a === "agenda-review") await reviewAgenda(act.dataset.id);
+  if (a === "agenda-notes") await openNotesManager(getStore().agendas || [], api, reload);
   if (a === "agenda-delete") await deleteAgenda(act.dataset.id);
   if (a === "agenda-edit") editAgenda(act.dataset.id);
   if (a === "agenda-ai-draft") await draftAgendaWithAi();

@@ -9,6 +9,7 @@ const { ensureV2, ymd } = require("./lib/migrate");
 const { buildBriefings, crewDigest } = require("./lib/briefing");
 const { chat } = require("./lib/llm");
 const vault = require('./lib/vault');
+const agendaNotes = require('./lib/agenda-notes');
 const codex = require("./lib/codex");
 const { createManager } = require("./lib/codex-jobs");
 const codexManager = createManager({ readStore, writeStore });
@@ -635,6 +636,53 @@ async function handleApi(req, res, url) {
     });
     writeStore(store);
     return sendJson(res, 200, report);
+  }
+
+  const noteReview = p.match(/^\/api\/agendas\/([^/]+)\/review-note\/(draft|save)$/);
+  const noteFile = p.match(/^\/api\/agenda-notes\/([^/]+)$/);
+  if (p === '/api/agenda-notes' || p === '/api/agenda-notes/config' || p === '/api/agenda-notes/suggest' || noteReview || noteFile) {
+    if (!isLoopback(req)) return sendJson(res, 403, { error: 'agenda_notes_local_only' });
+    try {
+      const body = ['POST', 'PUT', 'PATCH'].includes(method) ? await readBody(req) || {} : {};
+      const fresh = readStore();
+      if (p === '/api/agenda-notes/config' && method === 'GET') return sendJson(res, 200, agendaNotes.configured(fresh));
+      if (p === '/api/agenda-notes/config' && method === 'PUT') {
+        const cfg = agendaNotes.normalizeConfig(body);
+        agendaNotes.ensureDirectory({ remote: { agendaNotes: cfg } });
+        fresh.remote ||= {}; fresh.remote.agendaNotes = cfg; writeStore(fresh);
+        return sendJson(res, 200, agendaNotes.configured(fresh));
+      }
+      if (p === '/api/agenda-notes' && method === 'GET') {
+        const result = agendaNotes.list(fresh);
+        return sendJson(res, 200, { directory: result.directory, ignored: result.ignored, notes: result.notes.map(note => { const { body, ...metadata } = agendaNotes.publicNote(note); return metadata; }) });
+      }
+      if (noteReview && method === 'POST') {
+        const [, itemId, action] = noteReview;
+        if (action === 'draft') {
+          const draft = await agendaNotes.draft(fresh, itemId, chat);
+          const current = readStore(), item = agendaNotes.agenda(current, itemId);
+          if (agendaNotes.signature(item) !== draft.sourceHash || agendaNotes.hash(JSON.stringify(agendaNotes.config(current))) !== draft.configHash) return sendJson(res, 409, { error: '复盘已变化，请重新生成摘要。' });
+          return sendJson(res, 200, draft);
+        }
+        const saved = agendaNotes.save(fresh, itemId, body);
+        const item = agendaNotes.agenda(fresh, itemId);
+        item.reviewNote = { file: saved.note.file, path: saved.note.path, version: saved.note.version, sourceHash: body.sourceHash, savedAt: nowIso() };
+        writeStore(fresh);
+        return sendJson(res, 200, saved);
+      }
+      if (p === '/api/agenda-notes/suggest' && method === 'POST') {
+        const result = await agendaNotes.suggest(fresh, body, chat);
+        const current = readStore(), files = agendaNotes.list(current).notes;
+        if (agendaNotes.hash(JSON.stringify(agendaNotes.config(fresh))) !== agendaNotes.hash(JSON.stringify(agendaNotes.config(current)))) return sendJson(res, 409, { error: '笔记目录已变化，请重新获取建议。' });
+        for (const source of result.sources) {
+          const actual = files.find(note => note.file === source.file);
+          if (!actual || actual.sha256 !== source.sha256 || actual.status !== 'active' || files.some(note => note.agendaId === source.agendaId && note.version > source.version)) return sendJson(res, 409, { error: '笔记已变化，请重新获取建议。' });
+        }
+        return sendJson(res, 200, result);
+      }
+      if (noteFile && method === 'PATCH') return sendJson(res, 200, agendaNotes.setStatus(fresh, decodeURIComponent(noteFile[1]), body));
+      return sendJson(res, 405, { error: 'method_not_allowed' });
+    } catch (error) { return sendJson(res, error.status || 400, { error: error.message }); }
   }
 
   if (method === "POST" && p === "/api/agenda/reports/draft") {

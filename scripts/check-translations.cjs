@@ -1,6 +1,6 @@
 const fs=require('fs');
 const acorn=require('acorn');
-const files=['public/app.js','public/js/core.js','public/js/views.js','public/js/archive-ui.js','public/js/help.js','public/js/delivery-ui.js',...fs.readdirSync('public/modules').filter(f=>f.endsWith('.js')).map(f=>'public/modules/'+f)];
+const files=['public/app.js','public/js/core.js','public/js/views.js','public/js/archive-ui.js','public/js/help.js','public/js/delivery-ui.js','public/js/agenda-notes-ui.js',...fs.readdirSync('public/modules').filter(f=>f.endsWith('.js')).map(f=>'public/modules/'+f)];
 const entries=acorn.parse(fs.readFileSync('public/js/translations.js','utf8'),{ecmaVersion:'latest',sourceType:'module'}).body[0].declaration.declarations[0].init.properties;
 const translations=new Set(entries.map(p=>p.key.value));
 const needed=new Set();

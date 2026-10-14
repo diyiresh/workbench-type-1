@@ -18,6 +18,10 @@
 
 本机 `GET /api/departments/runs/<runId>/delivery` 读取实际文件清单和核验快照；`POST` 同路径加 `/configure`、`/generate`、`/retry`、`/review`、`/open` 分别配置、生成、重试、复核和打开。文件复核须由既定独立复核人提交实际读取证据与 `reviewedSnapshot`；正文通过不能代替文件通过。文件路径、大小、哈希、源版本在唯一台账登记，改动或删除后核验失效。补交历史项目保留内容复核阶段，单独核对文件；归档或暂停后的迟到结果不得推进接力。详见 `docs/SPEC-file-delivery-gate.md`。
 
+## 行程复盘笔记（独立于 VaultRAG）
+
+复盘摘要由用户预览、编辑并确认后保存到所选 Obsidian 仓库的 `工作台/行程复盘` 目录。新增／修改行程的“建议”直接读取该目录的有效笔记，保留日期、原文和文件哈希；历史或停用笔记及旧版本不参与建议。本目录必须加入 VaultRAG 的 `exclude_dirs`，新摘要与建议使用 `useVault:false`，不可隐式调用全库检索。实际笔记落盘与回填引用只由工作台接口完成；不要将未确认摘要直接写入仓库。接口与验收见 `docs/SPEC-agenda-review-notes.md`。
+
 ## 项目群聊（真实成员回复）
 
 项目房间发送消息时可选择 Codex、Cursor、WorkBuddy，或正文 @成员。默认由 Codex 回答。群聊回复独立保存在唯一台账 `chatJobs` 与 `projectMessages.replyTo`，不改变阶段、不解除自动接力暂停，也不替代正式复核或写作批准。
