@@ -638,7 +638,7 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, report);
   }
 
-  const noteReview = p.match(/^\/api\/agendas\/([^/]+)\/review-note\/(draft|save)$/);
+  const noteReview = p.match(/^\/api\/agendas\/([^/]+)\/review-note\/(draft|saved|refine|save)$/);
   const noteFile = p.match(/^\/api\/agenda-notes\/([^/]+)$/);
   if (p === '/api/agenda-notes' || p === '/api/agenda-notes/config' || p === '/api/agenda-notes/suggest' || noteReview || noteFile) {
     if (!isLoopback(req)) return sendJson(res, 403, { error: 'agenda_notes_local_only' });
@@ -656,12 +656,14 @@ async function handleApi(req, res, url) {
         const result = agendaNotes.list(fresh);
         return sendJson(res, 200, { directory: result.directory, ignored: result.ignored, notes: result.notes.map(note => { const { body, ...metadata } = agendaNotes.publicNote(note); return metadata; }) });
       }
-      if (noteReview && method === 'POST') {
+      if (noteReview && method === 'GET' && noteReview[2] === 'saved') return sendJson(res, 200, agendaNotes.savedDraft(fresh, noteReview[1]));
+      if (noteReview && method === 'POST' && noteReview[2] !== 'saved') {
         const [, itemId, action] = noteReview;
-        if (action === 'draft') {
-          const draft = await agendaNotes.draft(fresh, itemId, chat);
+        if (action === 'draft' || action === 'refine') {
+          const draft = action === 'refine' ? await agendaNotes.refine(fresh, itemId, body, chat) : await agendaNotes.draft(fresh, itemId, chat);
           const current = readStore(), item = agendaNotes.agenda(current, itemId);
           if (agendaNotes.signature(item) !== draft.sourceHash || agendaNotes.hash(JSON.stringify(agendaNotes.config(current))) !== draft.configHash) return sendJson(res, 409, { error: '复盘已变化，请重新生成摘要。' });
+          agendaNotes.validateBaseNote(current, itemId, draft);
           return sendJson(res, 200, draft);
         }
         const saved = agendaNotes.save(fresh, itemId, body);

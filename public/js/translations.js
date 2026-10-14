@@ -1,5 +1,17 @@
 // Keys are developer-authored UI text. Business data is never a translation key.
 export const EN = {
+  '补充待确认问题的回复后，点击“整合补充并更新摘要”，审阅后确认保存新版本。可以对照或恢复整合前草稿。已保存的回复通过“载入已保存笔记”继续整理；确认保存只写入当前文本，不自动重新归纳。':'After answering pending questions, click Integrate answers and update summary, review the result, then confirm saving a new version. Compare or restore the previous draft. Use Load saved note to continue editing saved answers. Confirming saves the current text without another model rewrite.',
+  '载入已保存笔记':'Load saved note',
+  '在草稿中补充回复后，点击“整合补充并更新摘要”；确认保存只写入当前文本。重新生成会替换草稿。':'After answering questions in the draft, click Integrate answers and update summary. Confirming saves the current text. Generating again replaces the draft.',
+  '整合补充并更新摘要':'Integrate answers and update summary',
+  '对照整合前草稿':'Compare previous draft',
+  '恢复整合前草稿':'Restore previous draft',
+  '生成期间内容已修改，已保留当前草稿，请重试。':'Content changed during generation. Your current draft was kept; please retry.',
+  '已载入最新笔记，可补充回复并整合；尚未保存新版本。':'Latest note loaded. Add answers and integrate them; no new version has been saved.',
+  '正在整合补充回复，原草稿已保留…':'Integrating your answers; the previous draft is retained…',
+  '补充已整合，请审阅更新后的摘要，再确认保存。':'Answers integrated. Review the updated summary before confirming the save.',
+  '已恢复整合前草稿，尚未保存。':'Previous draft restored; it has not been saved.',
+  '笔记已保存；保存期间的新修改仍保留在草稿中，尚未写入。':'Note saved. Edits made while saving remain in the draft and have not been written.',
   'Markdown 笔记已保存并读回：':'Markdown note saved and read back: ','仅保存复盘':'Save review only','份笔记格式异常，已跳过。':'notes have invalid formatting and were skipped.','保存复盘后生成可编辑摘要，确认后写入 Obsidian。':'Save the review, edit the summary and confirm to write it to Obsidian.','保存复盘并生成摘要':'Save review and draft summary','停用':'Disabled','关联关键词（机构、人物、主题）':'Keywords (organizations, people, topics)','历史参考':'Historical reference','历史记录供本次准备参考，请结合当前人员与事项判断。':'Use past records to prepare, considering the current people and circumstances.','原始复盘':'Original review','复盘已保存。':'Review saved.','复盘已修改，请重新生成摘要。':'Review changed. Generate a new summary.','复盘笔记':'Review notes','复盘经验建议':'Suggestions from reviews','尚未保存复盘笔记。':'No review notes saved yet.','摘要待确认，尚未写入笔记。':'Summary awaits confirmation and has not been saved as a note.','摘要（可编辑）':'Summary (editable)','整理已完成的历史复盘':'Summarize completed past reviews','有效':'Active','正在生成复盘摘要…':'Drafting review summary…','正在读取复盘笔记并生成建议…':'Reading review notes and preparing suggestions…','没有找到可用于这项行程的复盘建议。':'No supported review suggestions were found for this appointment.','生成摘要':'Draft summary','确认保存 Markdown 笔记':'Confirm and save Markdown note','行程复盘与笔记':'Appointment review and note','请先完成行程，再生成复盘笔记。':'Complete the appointment before creating a review note.','选择行程':'Choose appointment',
   '收藏的简报':'Saved briefings','收藏后可集中查看':'Save briefings to view them together','收藏':'Save','取消收藏':'Unsave','没有符合当前筛选条件的简报。':'No briefings match the current filter.','简报状态保存失败：':'Could not save briefing preferences: ',
   '当前筛选：':'Current filter:','项日程':'appointments','当前范围没有符合筛选条件的日程。':'No appointments match this filter in the current period.',
