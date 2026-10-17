@@ -14,7 +14,7 @@ export default {
       m,
       ui`<div class="k">crew · 优先级 ${esc(m.importance ?? "-")}</div>
        <div class="h">${esc(m.title)}</div>
-       <p>${esc((s.agents || []).length)} 个部门在册，待领指令 ${qn} 条。点「舰队」可联系各部门。</p>
+       <p>${esc((s.agents || []).length)} 个部门在册，待领指令 ${qn} 条。到 Agent 中心查看成员与指令。</p>
        ${
          staleAgents.length
            ? `<div class="meta">${staleAgents
@@ -26,7 +26,7 @@ export default {
   },
 
   detail(m) {
-    return ui`<div class="card"><div class="h">舰队总览在左栏「舰队」</div>
-      <p>这里是指挥舱的一块观察牌。要看某个部门、或给谁下达，去左栏舰队页，或直接用底部指令台。</p></div>`;
+    return ui`<div class="card"><div class="h">成员与通道在左栏「Agent 中心」</div>
+      <p>这里是指挥舱的一块观察牌。成员与通道状态在 Agent 中心，普通指令登记到收件箱。</p></div>`;
   },
 };

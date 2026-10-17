@@ -21,6 +21,6 @@ export default {
       const n = (s.reports || []).filter((r) => r.kind === o.id).length;
       return ui`<div class="msg"><div class="row"><b>${esc(o.name)}</b><span class="chip">已归档 ${n} 份</span></div></div>`;
     });
-    return ui`<div class="card"><div class="h">经营节奏</div><p>生成初稿，改成人话再归档。入口在左栏「经营」。</p></div>${counts.join("")}`;
+    return ui`<div class="card"><div class="h">工作报告</div><p>生成初稿，改成人话再归档。入口在左栏「工作报告」。</p></div>${counts.join("")}`;
   },
 };

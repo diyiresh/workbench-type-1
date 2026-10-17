@@ -86,6 +86,9 @@ export function agent(id) {
 export function taskById(id) {
   return (getStore().tasks || []).find((t) => t.id === id);
 }
+export function activeTasks() {
+  return (getStore().tasks || []).filter(t => !t.archived && !t.resumeRequired && t.status !== 'archive');
+}
 export function doing() {
   return (getStore().tasks || []).filter((t) => !t.resumeRequired && (t.status === "doing" || t.status === "review"));
 }

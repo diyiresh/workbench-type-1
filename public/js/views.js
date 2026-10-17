@@ -6,10 +6,11 @@ import { t as tr, ui, systemFragment } from "./i18n.js";
 
 import {
   esc, fmt, ymd, getStore, agent, taskById, doing, STATUS, CMD_STATUS,
-  progressCard, taskBlock, cmdStatusChip, agentStale, taskStale, taskOverdue, OPS,
+  activeTasks, progressCard, taskBlock, cmdStatusChip, agentStale, taskStale, taskOverdue, OPS,
 } from "./core.js";
 import { renderCard, renderDetail } from "../modules/index.js";
 import { deliveryView } from './delivery-ui.js';
+import { agentEvidence } from './centers.js';
 
 // ---------- 指挥舱 / 事业部 ----------
 
@@ -23,15 +24,15 @@ function percent(done, total) {
 
 export function homeAllView(filter = "all") {
   const s = getStore();
-  const tasks = (s.tasks || []).filter((t) => !t.resumeRequired && t.status !== "archive");
+  const tasks = activeTasks();
   const doingNow = tasks.filter((t) => t.status === "doing" || t.status === "review");
   const risks = tasks.filter((t) => t.status === "blocked" || taskOverdue(t) || taskStale(t));
   const agenda = agendaFor(ymd());
   const completed = agenda.filter((x) => x.done).length;
-  const members = (s.agents || []).filter(a => a.status === "active");
+  const members = (s.agents || []).filter(a => a.status === "active" && !a.resumeRequired);
   const groups = { doing: doingNow, today: agenda, risks, members };
   const selected = Object.hasOwn(groups, filter) ? filter : "all";
-  const labels = { all: tr("指挥舱模块"), doing: tr("正在推进"), today: tr("今日安排"), risks: tr("需关注"), members: tr("在场部门") };
+  const labels = { all: tr("指挥舱模块"), doing: tr("正在推进"), today: tr("今日安排"), risks: tr("需关注"), members: tr("台账启用成员") };
   const stats = [
     ['doing', doingNow.length, tr('跨项目待核验与执行')],
     ['today', agenda.length, ui`${completed} 项完成 · ${percent(completed, agenda.length)}%`],
@@ -75,7 +76,7 @@ export function moduleDetailView(m) {
     ${owner ? ui`<div class="filters" style="margin-top:12px">
       <button type="button" class="solid" data-cmd="${esc(owner)}">给责任部门「${esc(agent(owner).name)}」下达指令</button>
     </div>` : ""}
-    ${t ? ui`<div class="h">在办</div>${taskBlock(t)}` : ""}`;
+    ${t && m.type !== "project" ? ui`<div class="h">在办</div>${taskBlock(t)}` : ""}`;
 }
 
 // ---------- 跨 Agent 简报中心 ----------
@@ -176,7 +177,7 @@ export function opsView(kind, secondaryName) {
   const s = getStore();
   const reports = (s.reports || []).filter((r) => r.kind === kind);
   const cur = reports[0];
-  return ui`<div class="filters">
+  return ui`<p class="k"><a href="#agenda/all">每日行程</a> · <a href="#reports/all">工作报告</a></p><div class="filters">
       <button type="button" class="solid" data-act="gen" data-kind="${esc(kind)}">生成${esc(secondaryName || kind)}</button>
     </div>
     ${cur
@@ -209,7 +210,7 @@ export function crewAllView() {
   const digestTasks = (id) =>
     (s.tasks || []).filter((t) => t.ownerAgentId === id || (t.helperAgentIds || []).includes(id));
   const bcs = broadcastGroups().slice(0, 5);
-  return ui`<div class="filters"><button type="button" class="solid" data-act="sync">联系各部门，汇总进度</button></div>
+  return ui`<div class="filters"><button type="button" class="solid" data-act="sync">刷新台账状态</button></div><p class="k">刷新只读取现有记录，不联系成员、不修改同步时间、不恢复执行。</p>
     ${
       bcs.length
         ? ui`<div class="h">全员通告</div>${bcs
@@ -237,15 +238,15 @@ export function crewAllView() {
         const stale = agentStale(a);
         return ui`<article class="card">
           <div class="row"><div class="h">${esc(a.name)}</div><span class="chip ${a.status === "active" ? "ok" : ""}">${
-          a.status === "active" ? tr("在场") : tr("待命")
+          a.status === "active" ? tr("台账启用") : tr("台账待命")
         }</span></div>
           <p>${esc(a.role)} · ${esc(a.surface)}</p>
-          <p>${esc(a.strength)}</p>
+          <p>${esc(a.strength)}</p>${agentEvidence(a.id)}
           <div class="meta">
             <span class="chip">相关 ${mine.length}</span>
             <span class="chip">待领 ${qn}</span>
-            <span class="chip">同步 ${fmt(a.lastSync)}</span>
-            ${stale ? ui`<span class="chip warn">已 ${stale}h 未汇报</span>` : ""}
+            <span class="chip">历史同步记录 ${fmt(a.lastSync)}</span>
+            ${stale ? ui`<span class="chip warn">历史同步距今 ${stale}h</span>` : ""}
             <button type="button" class="tiny" data-cmd="${esc(a.id)}">指挥</button>
           </div>
         </article>`;
@@ -263,16 +264,16 @@ export function agentDetailView(a) {
   return ui`${progressCard(a.name, mine[0] ? mine[0].progress : 0, a.strength, a.role)}
     ${
       stale
-        ? ui`<div class="msg"><span class="chip warn">该部门已 ${stale}h 未汇报——该催了。用底部指令台提醒。</span></div>`
+        ? ui`<div class="msg"><span class="chip warn">历史同步距今 ${stale}h；执行通道状态单独核实。</span></div>`
         : ""
     }
     <div class="h">在办</div>${mine.map(taskBlock).join("") || systemFragment("<p>暂无</p>")}
-    <div class="h">指令追踪</div>
+    ${agentEvidence(a.id)}<p class="k">普通指令只登记到收件箱；正式项目任务通过执行通道领取。</p><div class="h">指令追踪</div>
     ${
       msgs.slice(0, 12).map((m) => ui`<div class="msg">
         <div class="who">董事长 → ${esc(a.name)} · ${fmt(m.createdAt)}${m.broadcast ? tr(" · 全员通告") : ""}</div>
         <div>${esc(m.body)}</div>
-        <div class="meta">${cmdStatusChip(m)}${
+        <div class="meta">${!m.departmentItemId && m.status === "queued" ? ui`<span class="chip">已登记／等待成员读取</span>` : cmdStatusChip(m)}${
           m.status !== "queued" && m.ackAt ? ui`<span class="chip">收悉于 ${fmt(m.ackAt)}</span>` : ""
         }${m.doneAt ? ui`<span class="chip ok">完成于 ${fmt(m.doneAt)}</span>` : ""}</div>
       </div>`).join("") || systemFragment("<p>还没下过指令。</p>")
@@ -375,13 +376,13 @@ export function departmentView(runId = "all", draft = {}) {
 
 export function deckView() {
   const s = getStore();
-  const tasks = (s.tasks || []).filter((t) => !t.resumeRequired && t.status !== "archive");
+  const tasks = activeTasks();
   const inWork = tasks.filter((t) => t.status === "doing" || t.status === "review").length;
   const dueToday = tasks.filter((t) => t.due === ymd() && t.status !== "done").length;
   const blocked = tasks.filter((t) => t.status === "blocked");
   const stale = tasks.filter((t) => taskStale(t));
   const overdue = tasks.filter((t) => taskOverdue(t));
-  const riskyCount = blocked.length + overdue.length + stale.length;
+  const riskyCount = tasks.filter(t => t.status === 'blocked' || taskOverdue(t) || taskStale(t)).length;
 
   const stat = (n, label, cls) =>
     `<div class="stat ${cls || ""}"><b>${n}</b><span>${esc(label)}</span></div>`;
@@ -661,11 +662,11 @@ export function memoryView(secondary) {
       .map((s2) => `<div class="msg"><b>${esc(s2.name)}</b><p>${esc(s2.summary)}</p></div>`)
       .join("");
   }
-  const overview = ui`<div class="card"><div class="h">知识总览（AI 产出与教训的沉淀）</div>
+  const overview = ui`<div class="card"><div class="h">现有资产记录</div>
     <div class="meta">
       <span class="chip">记忆 ${(s.memories || []).length}</span>
       <span class="chip">教训 ${(s.lessons || []).length}</span>
-      <span class="chip">技能 ${(s.skills || []).length}</span>
+      <span class="chip">技能说明 ${(s.skills || []).length}</span>
       <span class="chip">提示词 ${(s.prompts || []).length}</span>
       <span class="chip">报告 ${(s.reports || []).length}</span>
     </div>
@@ -737,11 +738,7 @@ export function setView() {
     <label><input type="checkbox" id="vault-enabled" ${vault.enabled ? 'checked' : ''} /> 生成前使用资料库</label>
     <div class="actions"><button type="button" class="solid" data-act="save-vault">保存连接</button><button type="button" class="ghost" data-act="sync-vault">立即同步</button><button type="button" class="ghost" data-act="refresh-vault">刷新状态</button></div>
     <p id="vault-status" class="engine-status">正在读取资料库状态…</p>
-    <label>资料检索</label><input id="vault-query" placeholder="输入问题或关键词" />
-    <div class="actions"><button type="button" class="solid" data-act="search-vault">检索依据</button></div>
-    <div id="vault-results"></div>
-    <label>查看未覆盖文件</label><select id="vault-file-status"><option value="unsupported">格式暂不支持</option><option value="needs_ocr">需要 OCR</option><option value="failed">解析失败</option><option value="empty">无可检索文本</option><option value="capped">内容被截断</option><option value="excluded">按规则排除</option></select>
-    <button type="button" class="ghost" data-act="vault-files">查看明细</button><div id="vault-files"></div>
+    <p><a class="tiny" href="#assets/knowledge">${tr("打开知识来源与检索")}</a></p>
   </div>
   <div class="card">
     <div class="h">重点工作微信提醒</div>

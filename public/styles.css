@@ -129,3 +129,7 @@ table.deck{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 :root[data-theme="guofeng"] .rail-btn { border-radius: 8px; }
 :root[data-theme="guofeng"] :is(.rail-btn.active,.ch.active) { box-shadow: inset 3px 0 var(--pink); }
 :root[data-theme="guofeng"] :is(button,input,select,textarea):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* Canonical section links share the existing sidebar control styling. */
+#channels a.ch { text-decoration:none; display:block; }
+.agent-evidence { border-top:1px solid var(--line); margin-top:10px; padding-top:8px; overflow-wrap:anywhere; }

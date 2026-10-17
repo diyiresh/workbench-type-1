@@ -28,7 +28,7 @@ export default {
 
   detail(m) {
     const t = m.taskId ? taskById(m.taskId) : null;
-    const related = t ? [t] : doing();
+    const related = t ? [t] : [];
     return `${progressCard(m.title, t ? t.progress : 0, t ? t.notes || t.nextAction : tr("这是指挥舱里的一块看板。"), m.type)}
       ${related.map(taskBlock).join("")}`;
   },

@@ -17,7 +17,7 @@ flowchart TB
   files --> ledger
 ```
 
-All twelve pages read the same ledger. A saved message, a checkpoint, a connection test and accepted business output have different meanings.
+All ten sections read the same ledger: Home, Projects, Agents, Schedule, Briefings, Work reports, Assets, Learning, Life and Settings. Risks and decisions are under Home; business projects and collaborative tasks are separate views under Projects. Legacy links redirect without migrating records. A saved message, a checkpoint, a connection test and accepted business output have different meanings.
 
 ## 2. Department workflow
 
@@ -152,3 +152,20 @@ The original Chinese map documents three implementation distinctions: explicitly
 ## File delivery and acceptance
 
 New projects explicitly choose text or file delivery. File projects follow: requirements → execution text → deterministic Word export → independent review of content and actual files → integration receipt → source-version and file-hash recheck → accepted delivery. The project shows real paths, sizes, versions and review results. Content approval, receipt of bridge JSON and completed stages do not replace file acceptance. Modified or deleted files and changed source text invalidate verification. Retries retain earlier versions and do not rerun writing. Historical stage conclusions and ordinary-chat permissions are retained.
+
+## Navigation and extension boundaries (2026-10-18)
+
+```mermaid
+flowchart TB
+  home["Home: priorities, risks and decisions"] --> projects["Projects"]
+  projects --> business["Business projects: modules and tasks"]
+  projects --> runs["Collaborative tasks: departmentRuns"]
+  runs --> agents["Agents: registration, channel evidence and receipts"]
+  assets["Assets"] --> experience["Experience and lessons"]
+  experience -.-> skills["Skill drafting, confirmation, publishing and usage: reserved"]
+  assets --> vault["Existing VaultRAG retrieval"]
+  assets --> reviews["Independent review notes: excluded from VaultRAG"]
+  agents -.-> adapters["EvoFlow and Multica: reserved"]
+```
+
+Refresh reads the ledger and never fabricates check-in timestamps or resumes execution. Enabled registration is not live availability. Queue heartbeats and historical attempts are distinct evidence. WorkBuddy remains paused until explicitly resumed. GET /api/extensions exposes read-only metadata; reserved adapters do not connect to external systems. See docs/扩展接口约定.md for versioned contracts.

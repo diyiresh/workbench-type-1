@@ -89,6 +89,6 @@ const server=createServer();
     await page.setViewportSize({width:390,height:844});
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     assert.deepEqual(errors,[]);
-    console.log('Browser: all twelve sections, archive/restore/explicit continuation, preserved business content, persistent language, local diagrams, four themes, Chinese Ink & Jade persistence/dialogs and narrow layout passed.');
+    console.log('Browser: legacy section routes, archive/restore/explicit continuation, preserved business content, persistent language, local diagrams, four themes, Chinese Ink & Jade persistence/dialogs and narrow layout passed.');
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>server.close());

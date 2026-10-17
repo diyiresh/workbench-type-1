@@ -16,20 +16,8 @@ import { openArchive } from "./js/archive-ui.js";
 import { helpView, renderLogic } from "./js/help.js";
 import { rememberChatPosition, restoreChatPosition } from "./js/chat-scroll.js";
 
-const PRIMARY = [
-  { id: "home", icon: "⌂", name: "指挥舱" },
-  { id: "deck", icon: "决", name: "决策台" },
-  { id: "department", icon: "部", name: "虚拟部门" },
-  { id: "agenda", icon: "日", name: "每日行程" },
-  { id: "briefs", icon: "简", name: "简报中心" },
-  { id: "ops", icon: "营", name: "经营" },
-  { id: "crew", icon: "舰", name: "舰队" },
-  { id: "work", icon: "业", name: "事业部" },
-  { id: "learn", icon: "学", name: "学习" },
-  { id: "life", icon: "生", name: "生活" },
-  { id: "memory", icon: "忆", name: "记忆" },
-  { id: "set", icon: "⚙", name: "设置" },
-];
+import { NAVIGATION as PRIMARY, resolveRoute, sectionFor, moduleTarget } from './js/navigation.mjs';
+import { businessProjectsView, assetsView, setCapabilities } from './js/centers.js';
 
 let primary = "home";
 let secondary = "all";
@@ -109,10 +97,11 @@ const $ = (id) => document.getElementById(id);
 // ---------- 路由 ----------
 
 function parseHash() {
-  const raw = (location.hash || "#home/all").replace("#", "");
-  const [p, s] = raw.split("/");
-  const nextPrimary = PRIMARY.some((x) => x.id === p) ? p : "home";
-  let nextSecondary = s || "all";
+  const route = resolveRoute(location.hash || '#home/all', getStore()?.modules || []);
+  const nextPrimary = route.primary;
+  const s = route.secondary;
+  let nextSecondary = s;
+  if (location.hash !== route.hash) history.replaceState(null, '', route.hash);
   if (nextPrimary !== primary || nextSecondary !== secondary) overviewFilter = "all";
   if (nextPrimary !== primary) {
     agendaFilter = "all";
@@ -133,9 +122,10 @@ function go(p, s, nextBriefFilter = "all") {
     if (p !== primary) s = "all";
     briefFilter = nextBriefFilter;
   }
-  primary = p;
-  secondary = s || "all";
-  const target = `${primary}/${secondary}`;
+  const route = resolveRoute(p + '/' + encodeURIComponent(s || 'all'), getStore()?.modules || []);
+  primary = route.primary;
+  secondary = route.secondary;
+  const target = route.hash.slice(1);
   // Briefing filters render once so a queued hashchange cannot steal keyboard focus.
   if (sameBriefPage) {
     if (location.hash !== `#${target}`) history.pushState(null, "", `#${target}`);
@@ -179,9 +169,9 @@ function rail() {
   const unreadBriefs = (getStore().briefRuns || []).filter((m) => m.unread !== false).length;
   $("rail").innerHTML =
     PRIMARY.map((p) => {
-      const count = p.id === "crew" ? unread : p.id === "briefs" ? unreadBriefs : 0;
+      const count = p.id === "agents" ? unread : p.id === "briefs" ? unreadBriefs : 0;
       const badge = count ? `<span class="badge">${count}</span>` : "";
-      return `<button type="button" class="rail-btn ${p.id === primary ? "active" : ""}" title="${esc(tr(p.name))}" data-primary="${p.id}"><span class="rail-label">${esc(tr(p.name))}</span>${badge}</button>`;
+      return `<button type="button" class="rail-btn ${p.id === sectionFor(primary) ? "active" : ""}" title="${esc(tr(p.name))}" data-primary="${p.id}"><span class="rail-label">${esc(tr(p.name))}</span>${badge}</button>`;
     }).join("") + `<div class="rail-gap"></div>`;
 }
 
@@ -194,21 +184,23 @@ function channels() {
   const hit = (t) => !q || String(t).toLowerCase().includes(q);
   let html = "";
   if (primary === "home") {
-    html += ui`<div class="sec">指挥舱</div>${channelBtn("all", tr("全部模块"))}`;
+    html += ui`<div class="sec">首页</div>${channelBtn("all", tr("全部模块"))}<a class="ch" href="#home/decisions">${tr("风险与决策")}</a>`;
     html += ui`<div class="sec">模块（可拖到工作区改序）</div>`;
     html += modulesSorted()
       .filter((m) => hit(m.title))
       .map((m) => channelBtn(m.id, m.title, String(m.importance || "")))
       .join("");
   } else if (primary === "deck") {
-    html += ui`<div class="sec">决策台</div>${channelBtn("all", tr("总控 / 风险 / 决策表"))}`;
-  } else if (primary === "department") {
+    html += ui`<div class="sec">首页</div><a class="ch" href="#home/all">总览</a>${channelBtn("all", tr("风险与决策"))}`;
+  } else if (primary === "department" || primary === "work") {
     const runs = (getStore().departmentRuns || []).filter((run) => hit(run.title + run.goal)).slice().sort((a,b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)));
-    html += ui`<div class="sec">虚拟部门</div>${channelBtn("new", tr("＋ 新建项目 · New project"))}${channelBtn("all", tr("项目工作区"))}`;
+    html += ui`<div class="sec">项目中心</div><a class="ch ${primary === 'work' && secondary === 'all' ? 'active' : ''}" href="#projects/business">业务项目</a><a class="ch ${primary === 'department' && secondary === 'all' ? 'active' : ''}" href="#projects/all">协作任务</a><a class="ch ${secondary === 'new' ? 'active' : ''}" href="#projects/new">新建协作任务</a>`;
+    html += ui`<div class="sec">业务项目</div>`;
+    html += modulesSorted().filter(m => m.type === 'project' && hit(m.title)).map(m => `<a class="ch ${primary === 'work' && secondary === m.id ? 'active' : ''}" href="${resolveRoute('work/' + encodeURIComponent(m.id)).hash}">${esc(m.title)}</a>`).join('');
     const groups = [["置顶", runs.filter(r => r.pinned && !r.archived)], ["进行中", runs.filter(r => !r.pinned && !r.archived && r.status !== "completed")], ["已完成", runs.filter(r => !r.pinned && !r.archived && r.status === "completed")], ["已归档", runs.filter(r => r.archived)]];
     for (const [label, items] of groups) {
       if (!items.length) continue;
-      html += `<div class="sec">${tr(label)}</div>` + items.map(run => `<div class="project-nav-row">${channelBtn(run.id, run.title)}${V.projectMenu(run)}</div>`).join("");
+      html += `<div class="sec">${tr(label)}</div>` + items.map(run => `<div class="project-nav-row"><a class="ch ${primary === "department" && secondary === run.id ? "active" : ""}" href="${resolveRoute("department/" + encodeURIComponent(run.id)).hash}">${esc(run.title)}</a>${V.projectMenu(run)}</div>`).join("");
     }
   } else if (primary === "agenda") {
     html += ui`<div class="sec">每日行程</div>${channelBtn("all", tr("时间轴 / 周计划"))}`;
@@ -221,10 +213,10 @@ function channels() {
         return channelBtn(source.id, source.name, n ? ui`未读 ${n}` : source.platform);
       }).join("");
   } else if (primary === "ops") {
-    html += ui`<div class="sec">经营秘书</div>`;
-    html += OPS.filter((o) => hit(o.name)).map((o) => channelBtn(o.id, tr(o.name))).join("");
+    html += ui`<div class="sec">工作报告</div>`;
+    html += OPS.filter((o) => o.id !== "today" && hit(o.name)).map((o) => channelBtn(o.id, tr(o.name))).join("");
   } else if (primary === "crew") {
-    html += ui`<div class="sec">直属部门</div>${channelBtn("all", tr("全部舰队"))}`;
+    html += ui`<div class="sec">Agent 中心</div>${channelBtn("all", tr("全部成员"))}`;
     html += (getStore().agents || [])
       .filter((a) => hit(a.name + a.role))
       .map((a) => {
@@ -232,10 +224,6 @@ function channels() {
         return channelBtn(a.id, a.name, n ? ui`待领 ${n}` : a.role);
       })
       .join("");
-  } else if (primary === "work") {
-    const projs = modulesSorted().filter((m) => m.type === "project");
-    html += ui`<div class="sec">事业部</div>${channelBtn("all", tr("全部事业"))}`;
-    html += projs.filter((m) => hit(m.title)).map((m) => channelBtn(m.id, m.title)).join("");
   } else if (primary === "learn") {
     const plans = ((getStore().lifeSystem || {}).learningPlans || []).filter((x) => x.status === "active");
     html += ui`<div class="sec">学习战线</div>${channelBtn("all", tr("繁星与银河"), plans.length ? ui`${plans.length} 个计划` : "")}`;
@@ -243,13 +231,13 @@ function channels() {
     const todayRuns = ((getStore().lifeSystem || {}).habitRuns || []).filter((x) => x.date === ymd());
     html += ui`<div class="sec">生活战线</div>${channelBtn("all", tr("繁星与银河"), todayRuns.length ? ui`${todayRuns.length} 项今日习惯` : "")}`;
   } else if (primary === "memory") {
-    html += ui`<div class="sec">知识库</div>${channelBtn("all", tr("总览"))}${channelBtn("lessons", tr("教训"))}${channelBtn("skills", tr("技能"))}${channelBtn("prompts", tr("提示词"))}`;
+    html += ui`<div class="sec">资产中心</div>${channelBtn("all", tr("总览"))}${channelBtn("lessons", tr("经验与教训"))}${channelBtn("skills", tr("技能沉淀"))}${channelBtn("prompts", tr("提示词"))}${channelBtn("knowledge", tr("知识来源"))}${channelBtn("extensions", tr("扩展能力"))}`;
   } else {
     html += ui`<div class="sec">设置</div>${channelBtn("all", tr("简报与偏好"))}${channelBtn("help", tr("使用说明与逻辑图"))}`;
   }
   $("channels").innerHTML = html;
   $("ws-name").textContent = tr("BEN · 一人公司");
-  $("ws-role").textContent = tr((PRIMARY.find((p) => p.id === primary) || {}).name) + " · " + tr("私人秘书");
+  $("ws-role").textContent = tr((PRIMARY.find((p) => p.id === sectionFor(primary)) || {}).name) + " · " + tr("私人秘书");
 }
 
 function currentModule() {
@@ -259,32 +247,31 @@ function currentModule() {
 function workspace() {
   const m = currentModule();
   const titleMap = {
-    home: secondary === "all" ? tr("指挥舱") : (m || {}).title || "",
-    deck: tr("决策台"),
-    department: secondary === "all" ? tr("虚拟部门") : ((getStore().departmentRuns || []).find((run) => run.id === secondary) || {}).title || tr("虚拟部门"),
+    home: secondary === "all" ? tr("首页") : (m || {}).title || "",
+    deck: tr("风险与决策"),
+    department: ["all","new"].includes(secondary) ? tr("项目中心") : ((getStore().departmentRuns || []).find((run) => run.id === secondary) || {}).title || tr("项目中心"),
     agenda: tr("每日行程"),
     briefs: secondary === "all" ? tr("简报中心") : ((getStore().briefSources || []).find((x) => x.id === secondary) || {}).name || tr("简报中心"),
-    ops: tr((OPS.find((o) => o.id === secondary) || { name: "经营" }).name),
-    crew: secondary === "all" ? tr("舰队") : agent(secondary).name,
-    work: secondary === "all" ? tr("事业部") : (m || {}).title || "",
+    ops: tr((OPS.find((o) => o.id === secondary) || { name: "工作报告" }).name),
+    crew: secondary === "all" ? tr("Agent 中心") : agent(secondary).name,
+    work: secondary === "all" ? tr("项目中心") : (m || {}).title || "",
     learn: tr("学习战线"),
     life: tr("生活战线"),
-    memory: tr("知识库"),
+    memory: tr("资产中心"),
     set: tr("设置"),
   };
   const ledeMap = {
-    home: tr("模块化首页。新项目上线就加一块；重要性变了就拖顺序。"),
+    home: tr("今日重点、跨模块入口与待决策事项。"),
     deck: tr("总控指标 + 风险雷达 + 全项目决策表。会议记录在这里拆成待办。"),
     department: tr("只说一次目标，由主管、执行人、独立复核人与整合秘书接力完成。"),
     agenda: tr("把真正占用今天的时间排出来，再让 AI 给出可编辑的建议。"),
     briefs: tr("ChatGPT、WorkBuddy 与其他 Agent 继续各自生成；这里统一收件、去重和阅读。"),
-    ops: tr("行程与经营文件。生成初稿，改成人话再归档。"),
-    crew: tr("各部门进度与指令追踪。全员通告在这页顶部。"),
-    deck: tr("董事长一屏决策：谁在干、干到哪、哪里有风险。"),
-    work: tr("每一个事业部相当于公司里新接的一条业务线。"),
+    ops: tr("周期报告统一保存在这里，行程安排进入每日行程。"),
+    crew: tr("查看成员职责、台账指令和执行证据；登记状态不代表实时在线。"),
+    work: tr("业务项目与协作任务共用入口，各自保留原记录。"),
     learn: tr("繁星引用临时学习行程；银河保存经您采纳的学习计划。"),
     life: tr("繁星保留生活行程；银河自动载入当天到期习惯。"),
-    memory: tr("知识总览 + 教训 + 技能 + 提示词。AI 的产出要变成资产。"),
+    memory: tr("从经验到技能，保留来源、确认和版本；知识检索沿用现有资料库。"),
     set: tr("简报自动化、指令规则与导出。"),
   };
   $("ws-head").innerHTML = `<div><h1>${esc(["home","department","briefs","crew","work"].includes(primary) && secondary!=="all" ? titleMap[primary] : tr(titleMap[primary] || ""))}</h1><p>${esc(ledeMap[primary] || "")}</p></div><button type="button" class="ghost" data-act="manage-records">${tr(tr("管理与归档"))}</button>`;
@@ -295,12 +282,12 @@ function workspace() {
     if (primary === "department") return V.departmentView(secondary, departmentGoalDraft);
     if (primary === "agenda") return V.agendaView(agendaDate, agendaMode, agendaReportDraft, agendaFilter);
     if (primary === "briefs") return V.briefHubView(secondary, briefFilter, briefPreferenceUpdates);
-    if (primary === "work") return secondary === "all" ? V.homeAllView(overviewFilter) : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
-    if (primary === "ops") return V.opsView(secondary === "all" ? "today" : secondary, tr((OPS.find((o) => o.id === secondary) || {}).name));
+    if (primary === "work") return secondary === "all" ? businessProjectsView() : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
+    if (primary === "ops") return V.opsView(secondary === "all" ? "weekly" : secondary, tr((OPS.find((o) => o.id === (secondary === "all" ? "weekly" : secondary)) || {}).name));
     if (primary === "crew") return secondary === "all" ? V.crewAllView() : V.agentDetailView(agent(secondary));
     if (primary === "learn") return V.frontView("learn", secondary, learningPlanDraft, learningFormDraft);
     if (primary === "life") return V.frontView("life", secondary);
-    if (primary === "memory") return V.memoryView(secondary);
+    if (primary === "memory") return assetsView(secondary, V.memoryView);
     if (primary === "set") return secondary === "help" ? helpView() : V.setView();
     return V.homeAllView();
   }, tr("页面视图"));
@@ -342,7 +329,20 @@ function workspace() {
   bindLearningPlan();
   bindDepartment();
   syncComposer();
+  if (primary === 'crew' || primary === 'memory') void refreshCapabilities();
+  if (primary === 'memory' && secondary === 'knowledge') void refreshVaultStatus();
   if (primary === "set") { void refreshOllamaStatus(); void refreshReminderStatus(); void refreshCodexStatus(); void refreshVaultStatus(); }
+}
+
+let capabilityRequest = null;
+let capabilityCheckedAt = 0;
+async function refreshCapabilities(force = false) {
+  if (capabilityRequest || (!force && Date.now() - capabilityCheckedAt < 30000)) return;
+  capabilityCheckedAt = Date.now();
+  capabilityRequest = api('/api/extensions').then(setCapabilities).catch(error => setCapabilities({ error:error.message }));
+  await capabilityRequest;
+  capabilityRequest = null;
+  if (primary === 'crew' || (primary === 'memory' && secondary === 'extensions')) render();
 }
 
 async function refreshVaultStatus() {
@@ -351,8 +351,8 @@ async function refreshVaultStatus() {
   try {
     const s = await api('/api/vault/status');
     const labels = { indexed:tr('可检索'), excluded:tr('排除'), empty:tr('无文本'), failed:tr('失败'), unsupported:tr('不支持'), needs_ocr:tr('需OCR'), capped:tr('截断'), non_document:tr('非文档'), blocked:tr('阻止访问') };
-    el.textContent = ui`登记 ${s.files || 0} 个文件 · ${s.documents || 0} 篇文档 · ${s.chunks || 0} 个文本块 · 同步 ${s.sync.status}。` + Object.entries(s.statuses || {}).map(([k,v]) => `${labels[k] || k} ${v}`).join(' · ') + (s.sync.error ? '。' + s.sync.error : '');
-  } catch (err) { el.textContent = '资料库未接通：' + err.message; }
+    el.textContent = ui`登记 ${s.files || 0} 个文件 · ${s.documents || 0} 篇文档 · ${s.chunks || 0} 个文本块 · 同步 ${s.sync?.status || tr('未知')}。` + Object.entries(s.statuses || {}).map(([k,v]) => `${labels[k] || k} ${v}`).join(' · ') + (s.sync?.error ? '。' + s.sync?.error : '');
+  } catch (err) { el.textContent = tr('资料库未接通：') + err.message; }
 }
 async function saveVault() {
   await api('/api/vault/config', { method:'PUT', body:{ enabled:$('vault-enabled').checked, baseUrl:$('vault-base').value.trim(), keyFile:$('vault-key-file').value.trim() } });
@@ -393,7 +393,7 @@ function render() {
   $("cmd-body").placeholder=tr("董事长指令台：选对象（选「全员」即通告），输入指令。下达前会先确认。点项目卡片上的「指挥」可直达。");
   $("cmd-to").setAttribute("aria-label",tr("下达对象"));
   $("rail").setAttribute("aria-label",tr("一级目录"));
-  $("sidebar").querySelector(".add-mod").textContent=tr("+ 新模块 / 新事业部");
+  $("sidebar").querySelector(".add-mod").textContent=tr("+ 新模块 / 业务项目");
   rail();
   channels();
   workspace();
@@ -746,9 +746,10 @@ setInterval(async () => {
 // 项目房间 M1 采用短轮询：只在正在查看具体工作链时刷新，避免打扰其他页面。
 setInterval(async () => {
   const hash = location.hash || "";
-  if (!hash.startsWith("#department/") || hash === "#department/all") return;
+  const route = resolveRoute(hash);
+  if (route.primary !== 'department' || ['all','new'].includes(route.secondary)) return;
   try {
-    const runId = hash.split("/")[1];
+    const runId = route.secondary;
     const result = await api(`/api/departments/runs/${encodeURIComponent(runId)}/messages`);
     const current = (getStore().projectMessages || []).filter((item) => item.runId === runId);
     const jobsChanged = JSON.stringify((result.chatJobs || []).filter(job=>!job.archived)) !== JSON.stringify((getStore().chatJobs || []).filter(j => j.runId === runId));
@@ -1212,7 +1213,10 @@ document.addEventListener("click", async (e) => {
   const s = e.target.closest("[data-sec]");
   if (s) return go(primary, s.dataset.sec);
   const modCard = e.target.closest("[data-mod]");
-  if (modCard && (primary === "home" || primary === "work")) return go(primary, modCard.dataset.mod);
+  if (modCard && (primary === "home" || primary === "work")) {
+    const module = getStore().modules.find(m => m.id === modCard.dataset.mod);
+    if (module) { const target = moduleTarget(module); return go(target.primary, target.secondary); }
+  }
   const act = e.target.closest("[data-act]");
   if (!act) return;
   const a = act.dataset.act;
@@ -1223,6 +1227,7 @@ document.addEventListener("click", async (e) => {
     document.querySelector(`[data-act="overview-filter"][data-overview-filter="${filter}"]`)?.focus({preventScroll:true});
     return;
   }
+  if (a === 'refresh-extensions') return refreshCapabilities(true);
   if (a === "close-modal") $("modal").hidden = true;
   if (a === "add-module") openAddModule();
   if (a === "open-decompose") openDecompose();
@@ -1319,7 +1324,7 @@ document.addEventListener("click", async (e) => {
   }
   if (a === "sync") {
     await api("/api/crew/sync", { method: "POST", body: {} });
-    await reload();
+    await refreshCapabilities(true);
   }
   if (a === "gen") {
     await api("/api/reports/generate", { method: "POST", body: { kind: act.dataset.kind } });

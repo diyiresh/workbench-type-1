@@ -54,7 +54,7 @@ const {createServer,readStore}=require('../server'),server=createServer();
     assert.equal(await page.locator('#overview-results').getAttribute('data-overview-view'),'risks');
     await page.getByRole('button',{name:'显示全部模块',exact:true}).click();assert.equal(await page.locator('#overview-results [draggable]').count(),2);
     assert.equal(await page.locator('.overview-stat[aria-pressed="true"]').count(),0);
-    await page.locator('#overview-results [data-mod="one"]').click();await page.locator('[data-sec="all"]').click();
+    await page.locator('#overview-results [data-mod="one"]').click();await page.locator('#rail [data-primary="home"]').click();
     assert.equal(await page.locator('#overview-results').getAttribute('data-overview-view'),'all');
     await select('doing',['doing','review','stale']);await page.reload();await page.locator('#overview-results').waitFor();assert.equal(await page.locator('#overview-results').getAttribute('data-overview-view'),'all');
     await select('risks',['stale','blocked','overdue','multi']);

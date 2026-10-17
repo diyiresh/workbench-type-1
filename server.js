@@ -9,6 +9,7 @@ const { ensureV2, ymd } = require("./lib/migrate");
 const { buildBriefings, crewDigest } = require("./lib/briefing");
 const { chat } = require("./lib/llm");
 const vault = require('./lib/vault');
+const extensions = require('./lib/extensions');
 const agendaNotes = require('./lib/agenda-notes');
 const agendaNoteCleanup = require('./lib/agenda-note-cleanup');
 const codex = require("./lib/codex");
@@ -112,6 +113,7 @@ const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".js": "application/javascript; charset=utf-8",
+  ".mjs": "application/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
@@ -828,18 +830,12 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, { dismissedOn: store.meta.briefingDismissedOn });
   }
 
+  if (method === 'GET' && p === '/api/extensions') {
+    return sendJson(res, 200, extensions.snapshot(store, { dataDir:DATA, automation:process.env.BENCH_DATA_DIR ? null : extensions.workbuddyAutomation() }));
+  }
   if (method === "POST" && p === "/api/crew/sync") {
-    const at = nowIso();
-    for (const a of store.agents || []) a.lastSync = at;
-    store.events.unshift({
-      id: id("ev"),
-      type: "sync",
-      text: "董事长要求各部门汇报。已按最近打卡汇总舰队动态。",
-      agentId: "cursor",
-      createdAt: at,
-    });
-    writeStore(store);
-    return sendJson(res, 200, { at, crew: crewDigest(store) });
+    // Compatibility endpoint: refreshing ledger views never impersonates agent check-ins.
+    return sendJson(res, 200, { at:nowIso(), mode:'ledger-only', crew:crewDigest(store) });
   }
 
   if (method === "GET" && p === "/api/inbox") {
