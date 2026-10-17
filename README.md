@@ -2,7 +2,7 @@
 
 当前导航已收敛为：首页、项目中心、Agent 中心、每日行程、简报中心、工作报告、资产中心、学习、生活、设置。原决策台归入首页；事业部和虚拟部门归入项目中心，保留各自记录。旧链接继续有效，数据不迁移。
 
-Agent 状态区分台账登记与执行证据，刷新不伪写同步时间。资产中心展示现有经验、技能说明、知识检索与独立复盘入口；技能自动提炼和 EvoFlow/Multica 接入仅预留。见 [职责整理规范](docs/SPEC-navigation-responsibilities.md) 与 [扩展接口约定](docs/扩展接口约定.md)。
+Agent 状态区分台账登记与执行证据，刷新不伪写同步时间。资产中心新增技能工作室：从选定经验创建可编辑 Markdown 草稿，用户确认发布后保存实际文件；支持版本比较、回退草稿、固定输入测试与回执。第一版测试使用现有 Codex ChatGPT CLI，不改全局技能配置，WorkBuddy 保持暂停。知识检索与独立复盘继续沿用原边界，EvoFlow/Multica 外部接入仍预留。见 [技能工作室规范](docs/SPEC-skill-studio.md)、[三项目对比与后续方案](docs/PLAN-paperclip-led-workbench.md)、[职责整理规范](docs/SPEC-navigation-responsibilities.md) 与 [扩展接口约定](docs/扩展接口约定.md)。
 
 
 这是个人本机 Agent 工作台的**第一型 / 基线**。GitHub 仓库名为 `workbench-type-1`。正在运行的程序仍叫「统筹工作台」；本机目录和地址 `http://127.0.0.1:3780` 不因仓库名而改变。

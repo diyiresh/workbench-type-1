@@ -4,6 +4,12 @@
 
 默认根地址：`http://127.0.0.1:3780`
 
+## 技能工作室（第一迭代）
+
+资产中心的技能工作室将用户选定的经验/教训/项目消息生成规则模板草稿，人工编辑并确认发布后才写入实际 Markdown 版本。`GET /api/skill-library`、`GET /api/skill-library/<id>` 查询；本机 POST 的 draft/publish/restore/state/cases/run/evaluate 操作须遵守预期修订与幂等键，详情见 `docs/SPEC-skill-studio.md`。不能通过旧 `/api/skills` 说明卡冒充已发布版本，也不能绕过用户确认发布。
+
+测试只支持现有 Codex ChatGPT CLI，绑定实际文件哈希、版本、固定输入和可选任务引用；不推进项目阶段，不调用 VaultRAG，不自动重试或批准业务成果。接收确认不等于实际采用。WorkBuddy 保留且保持暂停，未接通的成员不得回落到其他通道。不要修改全局 Agent 技能目录；技能数据仍在本机唯一台账，文件位于数据目录 skill-library，均不可上传。
+
 ## Codex 总管（真实本机接入）
 
 `GET /api/codex/status` 检测已安装 CLI 和 ChatGPT 登录；不返回登录凭据。

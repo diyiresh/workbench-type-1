@@ -327,7 +327,8 @@ function roomMessage(message) {
   const types = { goal: tr('目标'), task_assignment: tr('任务派发'), ack: tr('已领取'), progress: tr('进展'), suggestion: tr('建议'), question: tr('待确认'), blocker: tr('阻塞'), artifact: tr('成果'), review: tr('复核'), decision: tr('总管建议'), system: '系统提示' };
   const text = String(message.text || '');
   const long = text.length > 700 || text.split('\n').length > 12;
-  const content = long ? ui`<details class="chat-long" data-message-id="${esc(message.id)}"><summary><span class="chat-preview">${esc(text.split("\n").slice(0, 5).join("\n").slice(0, 240))}…</span><span class="chat-expand">展开全文</span><span class="chat-collapse">收起全文</span></summary><div class="chat-text">${esc(text)}</div></details>` : `<div class="chat-text">${esc(text)}</div>`;
+  let content = long ? ui`<details class="chat-long" data-message-id="${esc(message.id)}"><summary><span class="chat-preview">${esc(text.split("\n").slice(0, 5).join("\n").slice(0, 240))}…</span><span class="chat-expand">展开全文</span><span class="chat-collapse">收起全文</span></summary><div class="chat-text">${esc(text)}</div></details>` : `<div class="chat-text">${esc(text)}</div>`;
+  if (['artifact','review'].includes(message.type)) content += `<button type="button" class="tiny" data-skill-from="projectMessages" data-skill-id="${esc(message.id)}">${tr('创建技能草稿')}</button>`;
   return `<article class="chat-message chat-${profile.side} chat-${profile.tone}" data-sender="${esc(message.sender)}" data-message-id="${esc(message.id)}"><span class="chat-avatar" aria-hidden="true">${esc(profile.avatar)}</span><div class="chat-content"><div class="chat-meta"><b>${esc(profile.name)}</b><time datetime="${esc(message.createdAt)}">${esc(fmt(message.createdAt))}</time></div><div class="msg chat-bubble"><div class="chat-labels"><span>${esc(types[message.type] || message.type)}</span>${message.relatedTaskId ? systemFragment('<span>已关联阶段</span>') : ''}${message.replyTo ? systemFragment('<span>讨论回复</span>') : ''}</div>${content}</div></div></article>`;
 }
 
@@ -654,7 +655,7 @@ export function memoryView(secondary) {
   }
   if (secondary === "lessons") {
     return (s.lessons || [])
-      .map((l) => `<div class="msg"><b>${esc(l.rule)}</b><div class="who">${esc(l.from)}</div></div>`)
+      .map((l) => `<div class="msg"><b>${esc(l.rule)}</b><div class="who">${esc(l.from)}</div><button type="button" class="tiny" data-skill-from="lessons" data-skill-id="${esc(l.id)}">${tr('创建技能草稿')}</button></div>`)
       .join("");
   }
   if (secondary === "skills") {
@@ -673,7 +674,7 @@ export function memoryView(secondary) {
     <p class="k">能力资产思想：AI 每干完一件事，留下一条可复用的沉淀，而不是聊天记录蒸发。</p></div>`;
   return overview + (s.memories || [])
     .map(
-      (m) => `<div class="msg"><div class="k">${(m.tags || []).join(" · ")}</div><b>${esc(m.title)}</b><p>${esc(m.body)}</p></div>`
+      (m) => `<div class="msg"><div class="k">${(m.tags || []).join(" · ")}</div><b>${esc(m.title)}</b><p>${esc(m.body)}</p><button type="button" class="tiny" data-skill-from="memories" data-skill-id="${esc(m.id)}">${tr('创建技能草稿')}</button></div>`
     )
     .join("");
 }

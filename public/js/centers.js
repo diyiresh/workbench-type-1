@@ -1,6 +1,7 @@
 import { esc, fmt, getStore } from './core.js';
 import { t as tr, ui } from './i18n.js';
 import { renderCard } from '../modules/index.js';
+import { skillStudioView } from './skill-studio-ui.js';
 
 let capabilities = null;
 export function setCapabilities(value) { capabilities = value; }
@@ -45,7 +46,7 @@ export function assetsView(secondary, legacyView) {
   if (secondary === 'extensions') return extensionsView();
   if (secondary === 'skills') {
     const skills = getStore().skills || [];
-    return ui`<section class="card"><h2>技能沉淀</h2><p>经验记录 → 技能草稿 → 你确认 → 发布版本 → Agent 使用记录</p><p>当前只有技能说明记录，尚未绑定实际技能文件；自动提炼、发布和使用回执接口已预留。</p><a class="tiny" href="#assets/lessons">查看经验与教训</a></section>
+    return skillStudioView() + ui`<section class="card"><h2>已有技能说明</h2><p>以下是旧版说明记录，不代表已发布技能文件。</p><a class="tiny" href="#assets/lessons">查看经验与教训</a></section>
       ${skills.map(s => `<article class="msg" data-skill-record="${esc(s.id)}"><b>${esc(s.name)}</b><p>${esc(s.summary)}</p><span class="chip">${tr('技能说明，未绑定文件')}</span></article>`).join('')}`;
   }
   const prefix = secondary === 'lessons' ? ui`<section class="card"><h2>经验与教训</h2><p>先保留来源和适用场景，再确认哪些经验值得提炼成技能；已有教训不会自动成为所有 Agent 的永久规则。</p><a class="tiny" href="#assets/skills">查看技能沉淀流程</a></section>` : '';

@@ -18,6 +18,8 @@ import { rememberChatPosition, restoreChatPosition } from "./js/chat-scroll.js";
 
 import { NAVIGATION as PRIMARY, resolveRoute, sectionFor, moduleTarget } from './js/navigation.mjs';
 import { businessProjectsView, assetsView, setCapabilities } from './js/centers.js';
+import { mountSkillStudio, bindSkillSources } from './js/skill-studio-ui.js';
+bindSkillSources();
 
 let primary = "home";
 let secondary = "all";
@@ -328,6 +330,7 @@ function workspace() {
   bindNoteSuggestion(api);
   bindLearningPlan();
   bindDepartment();
+  mountSkillStudio();
   syncComposer();
   if (primary === 'crew' || primary === 'memory') void refreshCapabilities();
   if (primary === 'memory' && secondary === 'knowledge') void refreshVaultStatus();

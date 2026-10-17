@@ -10,6 +10,7 @@ const { buildBriefings, crewDigest } = require("./lib/briefing");
 const { chat } = require("./lib/llm");
 const vault = require('./lib/vault');
 const extensions = require('./lib/extensions');
+const skillStudio = require('./lib/skill-studio');
 const agendaNotes = require('./lib/agenda-notes');
 const agendaNoteCleanup = require('./lib/agenda-note-cleanup');
 const codex = require("./lib/codex");
@@ -41,6 +42,8 @@ const WORKSPACE_ROOT = path.resolve(ROOT, "..", "..");
 const PUBLIC = path.join(ROOT, "public");
 const DATA = process.env.BENCH_DATA_DIR ? path.resolve(process.env.BENCH_DATA_DIR) : path.join(ROOT,"data");
 const STORE = path.join(DATA, "store.json");
+const SKILL_ROOT = path.join(DATA, 'skill-library');
+const skillManager = skillStudio.createManager({ readStore, writeStore, root:SKILL_ROOT });
 const BACKUP = path.join(DATA, "backups");
 const externalRuntime = createRuntime({ readStore, writeStore, artifactRoot: path.join(DATA,"agent-results") });
 const deliveryManager = delivery.createManager({ readStore, writeStore, root: path.join(DATA, "deliveries"), reviewExecute: async (agentId, prompt, cwd, context) => {
@@ -287,6 +290,26 @@ async function handleApi(req, res, url) {
   const method = req.method;
   const p = url.pathname;
   let store = readStore();
+
+  if (p === '/api/skill-library' || p.startsWith('/api/skill-library/')) {
+    try {
+      if (method === 'GET' && p === '/api/skill-library') return sendJson(res,200,{skills:(store.skillLibrary || []).map(s => ({id:s.id,state:s.state,name:s.draft.name,description:s.draft.description,revision:s.revision,currentVersionId:s.currentVersionId,versions:s.versions.length,archived:!!s.archived}))});
+      if (method === 'GET' && p === '/api/skill-library/sources') return sendJson(res,200,{sources:skillStudio.sources(store)});
+      const match = p.match(/^\/api\/skill-library\/([^/]+)(?:\/(draft|publish|restore|state|cases|run|evaluate))?$/);
+      if (method === 'GET' && match && !match[2]) return sendJson(res,200,skillStudio.detail(store,SKILL_ROOT,match[1]));
+      if (method !== 'POST') return sendJson(res,405,{error:'skill_method_not_allowed'});
+      if (!isLoopback(req)) return sendJson(res,403,{error:'skill_local_only'});
+      const body = await readBody(req) || {}; store = readStore();
+      let result;
+      if (p === '/api/skill-library') result = skillStudio.create(store,body);
+      else if (match?.[2] === 'run') return sendJson(res,202,skillManager.start({...body,skillId:match[1]}));
+      else if (match?.[2] === 'evaluate') return sendJson(res,200,skillManager.evaluate(match[1],body));
+      else if (match?.[2]) result = skillStudio.mutate(store,SKILL_ROOT,match[1],match[2],body);
+      else return sendJson(res,404,{error:'skill_route_not_found'});
+      if (!result.duplicate) writeStore(store);
+      return sendJson(res,200,result);
+    } catch (error) { return sendJson(res,409,{error:error.message}); }
+  }
 
   if (method === "GET" && p === "/api/codex/status") return sendJson(res, 200, await codex.status());
   if (method === "GET" && p === "/api/codex/jobs") return sendJson(res, 200, { jobs: store.codexJobs || [] });
@@ -1186,6 +1209,7 @@ async function main() {
   await require('./lib/network').configureNetwork();
   ensureDirs();
   codexManager.recover();
+  skillManager.recover();
   const store = readStore();
   if (importLegacyDailyPlanReminder(store)) writeStore(store);
   const server = createServer();

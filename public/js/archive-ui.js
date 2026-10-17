@@ -2,7 +2,8 @@ import { api, esc, getRawStore } from './core.js';
 import { t as tr, ui } from './i18n.js';
 
 const LABELS = {modules:'模块',tasks:'任务',departmentRuns:'项目',agendas:'日程',plans:'周计划',briefRuns:'简报',briefSources:'简报来源',reports:'报告',inbox:'指令',agents:'成员',memories:'记忆',lessons:'教训',skills:'技能',prompts:'提示词',specs:'规范',events:'事件记录',codexJobs:'Codex 执行记录',externalJobs:'外部执行记录',chatJobs:'群聊执行记录',projectMessages:'项目消息',artifacts:'成果',frontLearn:'学习战线',frontLife:'生活战线',habitTemplates:'习惯',habitRuns:'习惯记录',learningPlans:'学习计划'};
-const BOARDS = {home:['modules'],work:['modules','tasks'],deck:['tasks','specs'],department:['departmentRuns'],agenda:['agendas','plans'],briefs:['briefRuns','briefSources'],ops:['reports'],crew:['inbox','agents','events'],learn:['learningPlans','frontLearn','agendas'],life:['habitTemplates','habitRuns','frontLife','agendas'],memory:['memories','lessons','skills','prompts'],set:Object.keys(LABELS)};
+LABELS.skillLibrary = '技能';
+const BOARDS = {home:['modules'],work:['modules','tasks'],deck:['tasks','specs'],department:['departmentRuns'],agenda:['agendas','plans'],briefs:['briefRuns','briefSources'],ops:['reports'],crew:['inbox','agents','events'],learn:['learningPlans','frontLearn','agendas'],life:['habitTemplates','habitRuns','frontLife','agendas'],memory:['memories','lessons','skills','skillLibrary','prompts'],set:Object.keys(LABELS)};
 let board='home', mode='current', query='', limit=80, reloadStore;
 let pending=null;
 function list(collection) {
@@ -13,7 +14,7 @@ function list(collection) {
   return store[collection]||[];
 }
 function title(record) {
-  return record.title||record.name||record.rule||record.body||record.text||record.date||record.id;
+  return record.title||record.name||record.draft?.name||record.rule||record.body||record.text||record.date||record.id;
 }
 function rows() {
   return BOARDS[board].flatMap(collection=>list(collection).filter(record=>{
