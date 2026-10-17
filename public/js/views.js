@@ -21,13 +21,38 @@ function percent(done, total) {
   return total ? Math.round((done / total) * 100) : 0;
 }
 
-export function homeAllView() {
+export function homeAllView(filter = "all") {
   const s = getStore();
   const tasks = (s.tasks || []).filter((t) => !t.resumeRequired && t.status !== "archive");
   const doingNow = tasks.filter((t) => t.status === "doing" || t.status === "review");
   const risks = tasks.filter((t) => t.status === "blocked" || taskOverdue(t) || taskStale(t));
   const agenda = agendaFor(ymd());
   const completed = agenda.filter((x) => x.done).length;
+  const members = (s.agents || []).filter(a => a.status === "active");
+  const groups = { doing: doingNow, today: agenda, risks, members };
+  const selected = Object.hasOwn(groups, filter) ? filter : "all";
+  const labels = { all: tr("指挥舱模块"), doing: tr("正在推进"), today: tr("今日安排"), risks: tr("需关注"), members: tr("在场部门") };
+  const stats = [
+    ['doing', doingNow.length, tr('跨项目待核验与执行')],
+    ['today', agenda.length, ui`${completed} 项完成 · ${percent(completed, agenda.length)}%`],
+    ['risks', risks.length, risks.length ? tr('逾期、受阻或未打卡') : tr('当前没有风险灯')],
+    ['members', members.length, tr('可从底部指令台直接下达')],
+  ].map(([key, count, caption]) => `<button type="button" class="stat overview-stat ${key === 'risks' && count ? 'alert' : ''} ${selected === key ? 'active' : ''}" data-act="overview-filter" data-overview-filter="${key}" aria-pressed="${selected === key}" aria-controls="overview-results"><b>${count}</b><span>${labels[key]}</span><small>${caption}</small></button>`).join('');
+  let results = (s.modules || []).map(m => renderCard(m)).join('');
+  if (selected !== 'all') {
+    results = groups[selected].map(item => {
+      let content;
+      if (selected === 'today') {
+        content = `<div class="msg"><div class="row"><b>${esc(item.time || tr('时间待定'))} · ${esc(item.title)}</b><span class="chip">${item.done ? tr('已完成') : tr('待处理')}</span></div>${item.note ? `<p>${esc(item.note)}</p>` : ''}${item.resumeRequired ? ui`<p>已暂停，需明确继续</p>` : ''}</div>`;
+      } else if (selected === 'members') {
+        content = `<div class="msg"><div class="row"><b>${esc(item.name)}</b><button type="button" class="tiny" data-cmd="${esc(item.id)}">${tr('指挥')}</button></div><p>${esc(item.role || '')}</p></div>`;
+      } else {
+        const reasons = selected === 'risks' ? [item.status === 'blocked' ? tr('任务受阻') : '', taskOverdue(item) ? tr('任务逾期') : '', taskStale(item) ? ui`已 ${taskStale(item)}h 无打卡` : ''].filter(Boolean) : [];
+        content = taskBlock(item) + (reasons.length ? `<p class="overview-risk-reasons">${reasons.map(esc).join(' · ')}</p>` : '');
+      }
+      return `<article role="listitem" data-overview-id="${esc(item.id)}">${content}</article>`;
+    }).join('') || ui`<p class="agenda-empty">没有符合当前筛选条件的记录。</p>`;
+  }
   return ui`<section class="command-hero">
       <div>
         <div class="eyebrow">PERSONAL COMMAND OS · ${esc(tr(s.meta && s.meta.role || "董事长"))}</div>
@@ -36,14 +61,10 @@ export function homeAllView() {
       </div>
       <div class="hero-actions"><button type="button" class="solid" data-primary="agenda">打开每日行程</button><button type="button" class="ghost" data-primary="deck">查看风险雷达</button></div>
     </section>
-    <section class="overview-stats" aria-label="今日概况">
-      <article><b>${doingNow.length}</b><span>正在推进</span><small>跨项目待核验与执行</small></article>
-      <article><b>${agenda.length}</b><span>今日安排</span><small>${completed} 项完成 · ${percent(completed, agenda.length)}%</small></article>
-      <article class="${risks.length ? "alert" : ""}"><b>${risks.length}</b><span>需关注</span><small>${risks.length ? tr("逾期、受阻或未打卡") : tr("当前没有风险灯")}</small></article>
-      <article><b>${(s.agents || []).filter((a) => a.status === "active").length}</b><span>在场部门</span><small>可从底部指令台直接下达</small></article>
-    </section>
-    <div class="section-head"><div><div class="eyebrow">PRIORITY BOARD</div><h2>指挥舱模块</h2></div><span>拖动卡片可调整关注顺序</span></div>
-    <div class="mods">${s.modules.map((m) => renderCard(m)).join("")}</div>`;
+    <section class="overview-stats" aria-label="今日概况">${stats}</section>
+    <div class="section-head"><div><div class="eyebrow">PRIORITY BOARD</div><h2>${labels[selected]}</h2>${selected !== 'all' ? `<p role="status">${tr('当前筛选：')} ${labels[selected]} · ${groups[selected].length} ${tr('条记录')}</p>` : ''}</div><button type="button" class="ghost" data-act="overview-filter" data-overview-filter="all">显示全部模块</button></div>
+    ${selected === 'all' ? ui`<p class="overview-filter-hint">拖动卡片可调整关注顺序</p>` : selected === 'members' ? ui`<p class="overview-filter-hint">按台账状态展示，不代表实时在线。</p>` : ''}
+    <section id="overview-results" class="${selected === 'all' ? 'mods' : 'overview-result-list'}" data-overview-view="${selected}" ${selected === 'all' ? '' : 'role="list"'}>${results}</section>`;
 }
 
 export function moduleDetailView(m) {

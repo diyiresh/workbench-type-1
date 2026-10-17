@@ -1,5 +1,8 @@
 // Keys are developer-authored UI text. Business data is never a translation key.
 export const EN = {
+  '显示全部模块':'Show all modules','时间待定':'Time not set','任务受阻':'Task blocked','任务逾期':'Task overdue',
+  '没有符合当前筛选条件的记录。':'No records match this filter.',
+  '按台账状态展示，不代表实时在线。':'Members are shown by their ledger status; this does not indicate a live connection.',
   '中国风 · 青墨':'Chinese Ink & Jade',
   '中国风 · 青墨：宣纸底色、松绿导航、青玉按钮与朱砂点缀。':'Chinese Ink & Jade: rice-paper surfaces, pine-green navigation, jade buttons and cinnabar accents.',
   '复盘笔记版本管理':'Review note versions',

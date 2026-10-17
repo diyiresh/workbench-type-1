@@ -41,6 +41,7 @@ let agendaMode = "day";
 // A viewing preference for this visit only; never persist it to the ledger or URL.
 let agendaFilter = "all";
 let briefFilter = "all";
+let overviewFilter = "all";
 const briefPreferenceUpdates = new Set();
 let agendaReportDraft = null;
 let agendaEditId = null;
@@ -112,6 +113,7 @@ function parseHash() {
   const [p, s] = raw.split("/");
   const nextPrimary = PRIMARY.some((x) => x.id === p) ? p : "home";
   let nextSecondary = s || "all";
+  if (nextPrimary !== primary || nextSecondary !== secondary) overviewFilter = "all";
   if (nextPrimary !== primary) {
     agendaFilter = "all";
     briefFilter = "all";
@@ -124,6 +126,7 @@ function parseHash() {
   secondary = nextSecondary;
 }
 function go(p, s, nextBriefFilter = "all") {
+  overviewFilter = "all";
   const sameBriefPage = p === "briefs" && primary === "briefs";
   if (p !== primary) agendaFilter = "all";
   if (p === "briefs") {
@@ -287,12 +290,12 @@ function workspace() {
   $("ws-head").innerHTML = `<div><h1>${esc(["home","department","briefs","crew","work"].includes(primary) && secondary!=="all" ? titleMap[primary] : tr(titleMap[primary] || ""))}</h1><p>${esc(ledeMap[primary] || "")}</p></div><button type="button" class="ghost" data-act="manage-records">${tr(tr("管理与归档"))}</button>`;
 
   const body = safe(() => {
-    if (primary === "home") return secondary === "all" ? V.homeAllView() : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
+    if (primary === "home") return secondary === "all" ? V.homeAllView(overviewFilter) : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
     if (primary === "deck") return V.deckView();
     if (primary === "department") return V.departmentView(secondary, departmentGoalDraft);
     if (primary === "agenda") return V.agendaView(agendaDate, agendaMode, agendaReportDraft, agendaFilter);
     if (primary === "briefs") return V.briefHubView(secondary, briefFilter, briefPreferenceUpdates);
-    if (primary === "work") return secondary === "all" ? V.homeAllView() : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
+    if (primary === "work") return secondary === "all" ? V.homeAllView(overviewFilter) : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
     if (primary === "ops") return V.opsView(secondary === "all" ? "today" : secondary, tr((OPS.find((o) => o.id === secondary) || {}).name));
     if (primary === "crew") return secondary === "all" ? V.crewAllView() : V.agentDetailView(agent(secondary));
     if (primary === "learn") return V.frontView("learn", secondary, learningPlanDraft, learningFormDraft);
@@ -1213,6 +1216,13 @@ document.addEventListener("click", async (e) => {
   const act = e.target.closest("[data-act]");
   if (!act) return;
   const a = act.dataset.act;
+  if (a === 'overview-filter' && ['home','work'].includes(primary) && secondary === 'all') {
+    const filter = act.dataset.overviewFilter;
+    if (!['all','doing','today','risks','members'].includes(filter)) return;
+    overviewFilter = filter; render();
+    document.querySelector(`[data-act="overview-filter"][data-overview-filter="${filter}"]`)?.focus({preventScroll:true});
+    return;
+  }
   if (a === "close-modal") $("modal").hidden = true;
   if (a === "add-module") openAddModule();
   if (a === "open-decompose") openDecompose();
