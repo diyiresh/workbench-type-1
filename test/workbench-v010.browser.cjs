@@ -41,6 +41,7 @@ const server=createServer();
     for(const board of ['deck','department','agenda','briefs','ops/weekly','crew','work','learn','life','memory','set']){
       await page.goto(base+'/#'+board);await page.locator('[data-act="manage-records"]').waitFor();
       assert(!(await page.locator('#ws-body').textContent()).includes('Module error'));
+      if(board==='home')assert.equal(await page.locator('#channels .ch:not(.active)').first().evaluate(node=>getComputedStyle(node).color),'rgb(255, 250, 240)');
     }
     await page.goto(base+'/#learn');await page.getByText('学习原文',{exact:false}).first().waitFor();
     await page.goto(base+'/#ops/weekly');assert.equal(await page.locator('#report-body').inputValue(),'报告正文：设置与归档');
@@ -52,18 +53,42 @@ const server=createServer();
     await page.getByRole('button',{name:'放大查看',exact:true}).first().click();await page.locator('dialog[open]').waitFor();await page.locator('dialog button').click();
     await page.waitForFunction(()=>document.querySelectorAll('#logic-document svg').length>=9,{},{timeout:45000});
     await page.goto(base+'/#set');await page.locator('#language-select').selectOption('en');await page.getByRole('button',{name:'应用语言',exact:true}).click();await page.waitForFunction(()=>document.documentElement.lang==='en');
-    for(const theme of ['violet','warm','night']){
+    for(const theme of ['violet','warm','night','guofeng']){
       await page.locator('#theme-select').selectOption(theme);await page.getByRole('button',{name:'Apply theme',exact:true}).click();
+      await page.waitForFunction(value=>document.documentElement.dataset.theme===value,theme);
       await page.goto(base+'/#set/help');await page.waitForFunction(()=>document.querySelectorAll('#logic-document svg').length>=8,{},{timeout:45000});
       assert((await page.locator('#logic-document').textContent()).includes('Single ledger'));
       await page.goto(base+'/#set');
     }
+    await page.reload();await page.locator('#theme-select').waitFor();
+    assert.equal(await page.locator('#theme-select').inputValue(),'guofeng');
+    assert.equal(await page.locator('#theme-select option[selected]').count(),1);
+    assert.equal(readStore().meta.theme,'guofeng');
+    assert.match(await page.locator('#ws-head h1').evaluate(node=>getComputedStyle(node).fontFamily),/SimSun/);
+    const themeShots=path.join(__dirname,'..','data','theme-validation');fs.mkdirSync(themeShots,{recursive:true});
+    for(const board of ['home','deck','department','agenda','briefs','ops/weekly','crew','work','learn','life','memory','set']){
+      await page.goto(base+'/#'+board);await page.locator('[data-act="manage-records"]').waitFor();
+      assert.equal(await page.locator('html').getAttribute('data-theme'),'guofeng');
+      assert(!(await page.locator('#ws-body').textContent()).includes('Module error'));
+      if(['home','agenda','briefs','set'].includes(board))await page.screenshot({path:path.join(themeShots,'guofeng-'+board+'-en.png')});
+    }
+    await page.getByRole('button',{name:'Manage & archive',exact:true}).click();await page.locator('.archive-sheet').waitFor();
+    assert.equal(await page.locator('.archive-sheet').evaluate(node=>getComputedStyle(node).backgroundColor),'rgb(255, 250, 240)');
+    await page.locator('[data-archive-close]').click();
+    assert.equal(readStore().tasks[0].title,'业务原文：设置');
+    assert.equal(readStore().reports[0].body,'报告正文：设置与归档');
     await page.setViewportSize({width:760,height:900});await page.goto(base+'/#set/help');await page.locator('#logic-document svg').first().waitFor();
     const screenshots=path.join(__dirname,'..','data','v010-validation');fs.mkdirSync(screenshots,{recursive:true});
     await page.screenshot({path:path.join(screenshots,'help-en-narrow.png'),fullPage:false});
     await page.setViewportSize({width:1440,height:1000});await page.goto(base+'/#set');await page.locator('#language-select').waitFor();
-    await page.screenshot({path:path.join(screenshots,'settings-en-night.png'),fullPage:false});
+    await page.screenshot({path:path.join(screenshots,'settings-en-guofeng.png'),fullPage:false});
+    await page.locator('#language-select').selectOption('zh-CN');await page.getByRole('button',{name:'Apply language',exact:true}).click();
+    await page.getByRole('option',{name:'中国风 · 青墨',exact:true}).waitFor({state:'attached'});
+    await page.goto(base+'/#home');await page.locator('.command-hero').waitFor();
+    await page.screenshot({path:path.join(themeShots,'guofeng-home-zh.png')});
+    await page.setViewportSize({width:390,height:844});
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     assert.deepEqual(errors,[]);
-    console.log('Browser: all twelve sections, archive/restore/explicit continuation, preserved Chinese business content, persistent language, local diagrams/zoom, three themes and narrow layout passed.');
+    console.log('Browser: all twelve sections, archive/restore/explicit continuation, preserved business content, persistent language, local diagrams, four themes, Chinese Ink & Jade persistence/dialogs and narrow layout passed.');
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>server.close());

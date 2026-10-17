@@ -667,10 +667,12 @@ export function setView() {
     <div class="eyebrow">APPEARANCE</div><div class="h">工作台主题</div>
     <p>主题只改变外观，不改变台账和功能。紫色指挥舱保留为默认选择。</p>
     <label>当前主题</label><select id="theme-select" class="full">
-      <option value="violet" ${(s.meta && s.meta.theme) !== "warm" && (s.meta && s.meta.theme) !== "night" ? "selected" : ""}>紫色指挥舱</option>
+      <option value="violet" ${!["warm","night","guofeng"].includes(s.meta && s.meta.theme) ? "selected" : ""}>紫色指挥舱</option>
       <option value="warm" ${(s.meta && s.meta.theme) === "warm" ? "selected" : ""}>暖白总控台</option>
       <option value="night" ${(s.meta && s.meta.theme) === "night" ? "selected" : ""}>深色专注</option>
+      <option value="guofeng" ${(s.meta && s.meta.theme) === "guofeng" ? "selected" : ""}>中国风 · 青墨</option>
     </select><div class="actions" style="margin-top:10px"><button type="button" class="solid" data-act="save-theme">应用主题</button></div>
+    <p>中国风 · 青墨：宣纸底色、松绿导航、青玉按钮与朱砂点缀。</p>
   </div>
   <div class="card">
     <div class="h">开屏简报与跨 Agent 收件</div>

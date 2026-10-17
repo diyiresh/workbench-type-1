@@ -1,5 +1,7 @@
 // Keys are developer-authored UI text. Business data is never a translation key.
 export const EN = {
+  '中国风 · 青墨':'Chinese Ink & Jade',
+  '中国风 · 青墨：宣纸底色、松绿导航、青玉按钮与朱砂点缀。':'Chinese Ink & Jade: rice-paper surfaces, pine-green navigation, jade buttons and cinnabar accents.',
   '复盘笔记版本管理':'Review note versions',
   '同一行程仅最高版本且状态有效的笔记参与建议。管理页标注当前与已被替代版本，可预览清单后移除旧版本。摘要保存区可勾选保存后移除旧版本，默认关闭；新笔记成功保存后才清理。已移除版本可在管理页恢复，不覆盖同名文件。':'For each appointment, only its highest version is used when active. Review notes labels current and superseded versions. Preview the file list before removing older versions. Optional cleanup after saving is off by default and runs only after the new note is saved. Removed versions can be restored without overwriting existing files.',
   '刷新版本清单':'Refresh version list',

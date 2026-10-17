@@ -30,6 +30,7 @@ const themes = [
   ["violet", rule(/^:root \{[^}]+\}/m)],
   ["warm", rule(/:root\[data-theme="warm"\] \{[^}]+\}/m)],
   ["night", rule(/:root\[data-theme="night"\] \{[^}]+\}/m)],
+  ["guofeng", rule(/:root\[data-theme="guofeng"\] \{[^}]+\}/m)],
 ];
 
 for (const [name, block] of themes) {
@@ -37,4 +38,10 @@ for (const [name, block] of themes) {
   assert(ratio >= 4.5, `${name} sidebar text contrast is ${ratio.toFixed(2)}:1; expected at least 4.5:1`);
 }
 
-console.log("Theme sidebar contrast checks passed.");
+const ink = themes.find(([name]) => name === 'guofeng')[1];
+for (const [foreground, background] of [['ink','paper'],['muted','paper'],['muted','canvas'],['side-muted','side'],['accent-deep','side-sel'],['ok','paper'],['warn','warn-bg'],['danger','paper']]) {
+  const ratio = contrast(color(ink, foreground), color(ink, background));
+  assert(ratio >= 4.5, `guofeng ${foreground}/${background} contrast is ${ratio.toFixed(2)}:1`);
+}
+for (const background of ['accent','accent-deep','pink','hero-a','hero-b']) assert(contrast('#ffffff',color(ink,background)) >= 4.5, `guofeng white text on ${background} must be readable`);
+console.log("Four theme sidebar checks and Chinese Ink & Jade text, buttons and status contrast passed.");
