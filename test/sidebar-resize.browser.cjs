@@ -1,0 +1,85 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {chromium}=require('playwright');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'bench-sidebar-resize-'));
+process.env.BENCH_DATA_DIR=root;
+const state=require('../lib/default-store').buildDefaultStore();
+state.departmentRuns=[];state.modules=[];state.remote.vault={enabled:false};
+const run=require('../lib/department').createDepartmentRun(state,{goal:'隔离调宽验收',participantAgentIds:['codex','workbuddy','cursor'],requiresWritingApproval:false,delivery:{mode:'text'}});
+run.items.forEach(item=>{item.status='done';});run.status='completed';run.automationPaused=true;
+for(let n=0;n<24;n++)state.departmentRuns.push({...structuredClone(run),id:'menu-fixture-'+n,title:'完整的项目原文标题 '+n+' '+ 'long-name-'.repeat(30)});
+fs.writeFileSync(path.join(root,'store.json'),JSON.stringify(state));
+const {createServer,readStore}=require('../server'),server=createServer();
+function contrast(foreground,background){
+  const luminance=rgb=>rgb.match(/[\d.]+/g).slice(0,3).map(Number).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
+  const values=[luminance(foreground),luminance(background)].sort((a,b)=>b-a);return(values[0]+.05)/(values[1]+.05);
+}
+(async()=>{
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+server.address().port;
+ const browser=await chromium.launch({channel:'msedge',headless:true});
+ try{
+  const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[],writes=[],remote=[];
+  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()!=='GET')writes.push(r.url());if(!r.url().startsWith(base))remote.push(r.url());});
+  await page.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));
+  await page.goto(base+'/#projects/run:'+run.id);
+  const handle=page.locator('#sidebar-resizer'),sidebar=page.locator('#sidebar'),icon=page.locator('[data-sidebar-toggle]');
+  const width=()=>sidebar.evaluate(e=>e.getBoundingClientRect().width);
+  const stored=()=>page.evaluate(()=>localStorage.getItem('bench-secondary-sidebar-width-v1'));
+  await handle.waitFor();assert.equal(await width(),258);
+  const original=readStore(),composer=page.locator('.room-composer textarea');
+  await composer.fill('调宽不丢草稿\nOriginal draft');await composer.evaluate(e=>{window.originalComposer=e;});
+  await page.locator('#search').fill('隔离');await page.locator('#search').evaluate(e=>{window.originalSearch=e;});
+  const drag=async delta=>{const box=await handle.boundingBox();await page.mouse.move(box.x+box.width/2,200);await page.mouse.down();await page.mouse.move(box.x+box.width/2+delta,200,{steps:8});};
+  await drag(112);assert.equal(await width(),370);assert.equal(await stored(),null);await page.mouse.up();assert.equal(await stored(),'370');
+  assert(await composer.evaluate(e=>e===window.originalComposer));assert.equal(await composer.inputValue(),'调宽不丢草稿\nOriginal draft');
+  assert(await page.locator('#search').evaluate(e=>e===window.originalSearch));assert.equal(await page.locator('#search').inputValue(),'隔离');
+  await icon.click();assert(await handle.isHidden());await icon.click();assert.equal(await width(),370);
+  await page.reload();await handle.waitFor();assert.equal(await width(),370);
+  await page.locator('[data-primary="home"]').click();await page.locator('#ws-head h1').waitFor();assert.equal(await width(),370);
+  await handle.press('Home');assert.equal(await width(),200);await handle.press('End');assert.equal(await width(),420);
+  await handle.press('ArrowLeft');assert.equal(await width(),412);await handle.press('Shift+ArrowRight');assert.equal(await width(),420);
+  await handle.press('Enter');assert.equal(await width(),258);assert.equal(await stored(),null);
+  await drag(-2000);await page.mouse.up();assert.equal(await width(),200);await drag(2000);await page.mouse.up();assert.equal(await width(),420);
+  await handle.dblclick();assert.equal(await width(),258);assert.equal(await stored(),null);
+  await handle.press('End');await page.setViewportSize({width:800,height:900});await page.waitForFunction(()=>document.querySelector('#sidebar').offsetWidth===340);
+  assert.equal(await stored(),'420');assert((await page.locator('#workspace').boundingBox()).width>=360);
+  await page.setViewportSize({width:1440,height:1000});await page.waitForFunction(()=>document.querySelector('#sidebar').offsetWidth===420);
+  await handle.press('Enter');
+  await handle.evaluate(e=>e.addEventListener('pointerdown',event=>{window.resizePointer=event.pointerId;}));
+  await drag(65);await handle.evaluate(e=>e.dispatchEvent(new PointerEvent('pointercancel',{pointerId:window.resizePointer})));await page.mouse.up();assert.equal(await width(),258);assert.equal(await stored(),null);
+  await drag(65);await handle.press('Escape');await page.mouse.up();assert.equal(await width(),258);
+  await drag(65);await handle.evaluate(e=>e.releasePointerCapture(window.resizePointer));await page.mouse.up();assert.equal(await width(),258);
+  await drag(65);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.mouse.up();assert.equal(await width(),258);
+  await drag(65);await page.evaluate(()=>document.querySelector('[data-sidebar-toggle]').click());await page.mouse.up();assert(await handle.isHidden());assert(!(await page.locator('html').getAttribute('class')||'').includes('sidebar-resizing'));await icon.click();assert.equal(await width(),258);
+  await page.setViewportSize({width:390,height:900});await icon.click();assert(await sidebar.isVisible());assert(await handle.isHidden());await icon.click();await page.setViewportSize({width:1440,height:1000});assert.equal(await width(),258);
+  await page.goto(base+'/#projects/run:'+run.id);await page.locator('.project-menu').first().waitFor();
+  const menu=page.locator('#sidebar .project-menu').last(),summary=menu.locator('summary'),panel=menu.locator('[data-project-menu-panel]');
+  for(const language of ['zh-CN','en'])for(const theme of ['violet','warm','night','guofeng']){
+   await page.request.patch(base+'/api/meta',{data:{language,theme}});await page.reload();await handle.waitFor();
+   assert.equal(await handle.getAttribute('aria-label'),language==='en'?'Resize sidebar':'调整侧栏宽度');
+   await handle.press('Home');await summary.scrollIntoViewIfNeeded();await summary.click();await panel.waitFor();
+   assert.deepEqual(await panel.locator('button').allTextContents(),language==='en'?['Pinned','Rename','Archive','Delete']:['置顶','重命名','归档','删除']);
+   const box=await panel.boundingBox();assert(box.x>=0&&box.y>=0&&box.x+box.width<=1440&&box.y+box.height<=1000);
+   const colours=await panel.evaluate(e=>({background:getComputedStyle(e).backgroundColor,foreground:getComputedStyle(e.querySelector('button')).color}));
+   assert(contrast(colours.foreground,colours.background)>=4.5,JSON.stringify({theme,colours}));
+   await panel.locator('button').first().hover();const hover=await panel.locator('button').first().evaluate(e=>({foreground:getComputedStyle(e).color,background:getComputedStyle(e).backgroundColor}));assert(contrast(hover.foreground,hover.background)>=4.5);
+   await page.screenshot({path:path.join(root,language+'-'+theme+'-menu.png')});
+   await page.keyboard.press('Escape');assert(await panel.isHidden());assert(await summary.evaluate(e=>e===document.activeElement));
+   await summary.press('Enter');await panel.waitFor();await page.locator('#ws-head h1').click();assert(await panel.isHidden());
+   await summary.click();await panel.waitFor();
+   const scroll=await sidebar.locator('#channels').evaluate(e=>{const info={before:e.scrollTop,height:e.clientHeight,total:e.scrollHeight};e.scrollTop=e.scrollTop>0?0:e.scrollHeight;return info;});
+   assert(scroll.total>scroll.height,JSON.stringify(scroll));await panel.waitFor({state:'hidden'});
+   await page.setViewportSize({width:390,height:900});await icon.click();await summary.scrollIntoViewIfNeeded();await summary.click();await panel.waitFor();
+   const narrowBox=await panel.boundingBox();assert(narrowBox.x>=0&&narrowBox.x+narrowBox.width<=390&&narrowBox.y+narrowBox.height<=900);
+   await page.keyboard.press('Escape');assert(await sidebar.isVisible());await page.keyboard.press('Escape');assert(await sidebar.isHidden());
+   await page.setViewportSize({width:1440,height:1000});await handle.waitFor();
+  }
+  const noStorage=await browser.newPage({viewport:{width:1440,height:1000}});noStorage.on('pageerror',e=>errors.push(e.message));await noStorage.addInitScript(()=>{Object.defineProperty(window,'localStorage',{get(){throw new DOMException('Storage unavailable','SecurityError');}});});
+  await noStorage.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));await noStorage.goto(base);await noStorage.locator('#sidebar-resizer').waitFor();await noStorage.locator('#sidebar-resizer').press('ArrowRight');assert.equal(await noStorage.locator('#sidebar').evaluate(e=>e.offsetWidth),266);await noStorage.close();
+  const invalid=await browser.newPage({viewport:{width:1440,height:1000}});await invalid.addInitScript(()=>localStorage.setItem('bench-secondary-sidebar-width-v1','99999'));await invalid.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));await invalid.goto(base);await invalid.locator('#sidebar-resizer').waitFor();assert.equal(await invalid.locator('#sidebar').evaluate(e=>e.offsetWidth),258);await invalid.close();
+  assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);assert.deepEqual(remote,[]);
+  const after=readStore();for(const key of Object.keys(original).filter(key=>!['meta','events'].includes(key)))assert.deepEqual(after[key],original[key],key);
+  console.log('Sidebar resize and menus: drag/keyboard/reset, bounds, preference, drafts, cancellation, resize/collapse/mobile, unavailable storage, menu contrast/placement/Escape, four themes, EN/CN, zero UI writes and unchanged business state passed. Screenshots: '+root);
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>server.close());

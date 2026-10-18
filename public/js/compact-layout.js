@@ -1,5 +1,7 @@
 import { esc } from './core.js';
 import { t as tr } from './i18n.js';
+import { bindSidebarResize, syncSidebarResize } from './sidebar-resize.js';
+import { bindProjectMenus, syncProjectMenus } from './project-menu.js';
 
 const SIDEBAR_KEY = 'bench-secondary-sidebar-v1';
 const mobile = window.matchMedia('(max-width:720px)');
@@ -56,6 +58,8 @@ function applySidebar() {
   document.getElementById('sidebar-backdrop').hidden = !modal;
   workspace.inert = modal;
   rail.inert = modal;
+  syncProjectMenus();
+  syncSidebarResize();
   if (toggle) {
     const label = tr(open ? '收起侧栏' : '展开侧栏');
     toggle.setAttribute('aria-expanded', String(open));
@@ -77,6 +81,8 @@ function closeMobile({ restoreFocus = true } = {}) {
 
 // Sidebar changes never render the workspace or write to the business ledger.
 export function bindCompactLayout() {
+  bindSidebarResize();
+  bindProjectMenus();
   document.addEventListener('click', event => {
     if (event.target.closest('[data-sidebar-toggle]')) {
       if (mobile.matches) mobileOpen = !mobileOpen;

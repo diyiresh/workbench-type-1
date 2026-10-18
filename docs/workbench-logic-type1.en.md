@@ -195,4 +195,6 @@ WorkBuddy's intentional scheduler pause remains unchanged. Skill injection uses 
 
 ## Compact layout (2026-10-18)
 
+Drag the secondary sidebar’s right edge to resize it. Its width survives refresh; double-click or focus the edge and press Enter to reset. Arrow keys also adjust the width. Available window space limits the width, while mobile screens retain the drawer. Project menus use matching theme colours and float within the viewport to avoid clipping in long lists. See SPEC-sidebar-resize-menu.md.
+
 Chinese primary labels now use four characters, with natural English equivalents. Existing routes and business text remain intact. A single icon at the top of the secondary sidebar collapses it; the same icon moves to the main navigation to restore it. The workspace header has no sidebar control. Toggling preserves unsaved form inputs. Desktop preference is browser-local; narrow screens use a closable drawer. Stage instructions and revision comments each show four lines initially, with independent Show details / Hide details controls for longer text. Full text, status, actions and stage outputs remain available. See SPEC-compact-layout.md.

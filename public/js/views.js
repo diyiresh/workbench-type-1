@@ -315,7 +315,7 @@ function departmentItemCard(run, item) {
 
 export function projectMenu(run) {
   const button = (operation, text) => `<button type="button" data-act="project-manage" data-run-id="${esc(run.id)}" data-operation="${operation}">${text}</button>`;
-  return ui`<details class="project-menu"><summary aria-label="项目操作">…</summary><div>${button("pin", run.pinned ? tr("取消置顶") : tr("置顶"))}${button("rename", tr("重命名"))}${button("archive", run.archived ? tr("取消归档") : tr("归档"))}${button("delete", tr("删除"))}</div></details>`;
+  return ui`<details class="project-menu"><summary aria-label="项目操作">…</summary><div popover="manual" data-project-menu-panel>${button("pin", run.pinned ? tr("取消置顶") : tr("置顶"))}${button("rename", tr("重命名"))}${button("archive", run.archived ? tr("取消归档") : tr("归档"))}${button("delete", tr("删除"))}</div></details>`;
 }
 
 function roomMessage(message) {

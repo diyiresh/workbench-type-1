@@ -6,6 +6,7 @@ const translations=new Set(entries.map(p=>p.key.value));
 files.push('public/js/skill-studio-ui.js');
 files.push('public/js/execution-ui.js');
 files.push('public/js/compact-layout.js');
+files.push('public/js/sidebar-resize.js');
 const needed=new Set();
 const han=/[\u3400-\u9fff]/;
 function add(value){if(han.test(value) && !/^[A-Z]:\\/.test(value))needed.add(value);}

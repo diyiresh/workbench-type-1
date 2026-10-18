@@ -1,5 +1,9 @@
 // Keys are developer-authored UI text. Business data is never a translation key.
 export const EN = {
+  "拖动二级侧栏右边界调整宽度，刷新后保留；双击边界或聚焦后按 Enter 恢复默认。聚焦后也可按左右箭头调整，Shift 加快；窄屏抽屉不启用调宽。": "Drag the sidebar’s right edge to resize it; the width survives refresh. Double-click the edge or focus it and press Enter to reset. Arrow keys adjust the width, with Shift for larger steps. The narrow-screen drawer does not resize.",
+  "项目旁的“…”提供置顶、重命名、归档和删除；菜单文字与背景随主题配套显示。": "The project’s “…” menu offers pin, rename, archive and delete. Its text and background follow the selected theme.",
+  "调整侧栏宽度": "Resize sidebar",
+  "拖动调整侧栏宽度，双击或按 Enter 恢复默认": "Drag to resize the sidebar; double-click or press Enter to reset",
   "导航与内容收起": "Navigation and compact content",
   "中文导航统一为四字；原有页面链接保持可用。": "Chinese navigation names use four characters. Existing page links remain valid.",
   "二级侧栏顶部的图标可收起侧栏，收起后在一级导航顶部展开。宽屏记住本浏览器选择，窄屏用抽屉展示；开关保留当前未提交草稿。": "Collapse the sidebar using the icon at its top; restore it from the top of the main navigation. Desktop remembers this browser’s preference; narrow screens use a drawer. Toggling preserves unsaved inputs.",
