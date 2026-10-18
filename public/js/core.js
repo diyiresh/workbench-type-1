@@ -20,14 +20,23 @@ export function getStore() {
   return _store;
 }
 
+const executionRequests = new Map();
 export async function api(path, opts = {}) {
+  let requestKey;
+  if(opts.method==='POST'&&/\/(?:automation|auto-run|model-execute|chat-jobs\/[^/]+\/retry)$|^\/api\/codex\/jobs$/.test(path)&&!opts.body?.idempotencyKey){
+    requestKey=path+JSON.stringify(opts.body||{});
+    if(!executionRequests.has(requestKey))executionRequests.set(requestKey,crypto.randomUUID());
+    opts={...opts,body:{...opts.body,idempotencyKey:executionRequests.get(requestKey)}};
+  }
   const res = await fetch(path, {
     headers: { "Content-Type": "application/json" },
     ...opts,
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
   if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  const result=await res.json();
+  if(requestKey)executionRequests.delete(requestKey);
+  return result;
 }
 
 // ---------- 基础工具 ----------

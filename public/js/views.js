@@ -11,6 +11,7 @@ import {
 import { renderCard, renderDetail } from "../modules/index.js";
 import { deliveryView } from './delivery-ui.js';
 import { agentEvidence } from './centers.js';
+import { executionPanel, conversionButton } from './execution-ui.js';
 
 // ---------- 指挥舱 / 事业部 ----------
 
@@ -275,7 +276,7 @@ export function agentDetailView(a) {
         <div>${esc(m.body)}</div>
         <div class="meta">${!m.departmentItemId && m.status === "queued" ? ui`<span class="chip">已登记／等待成员读取</span>` : cmdStatusChip(m)}${
           m.status !== "queued" && m.ackAt ? ui`<span class="chip">收悉于 ${fmt(m.ackAt)}</span>` : ""
-        }${m.doneAt ? ui`<span class="chip ok">完成于 ${fmt(m.doneAt)}</span>` : ""}</div>
+        }${m.doneAt ? ui`<span class="chip ok">完成于 ${fmt(m.doneAt)}</span>` : ""}${conversionButton(m)}</div>
       </div>`).join("") || systemFragment("<p>还没下过指令。</p>")
     }
     <p class="k">指令状态由对方按 AGENTS.md 推进：queued → ack → doing → done。</p>
@@ -369,6 +370,7 @@ export function departmentView(runId = "all", draft = {}) {
     ${selected.context ? ui`<div class="msg"><div class="who">背景与约束</div>${esc(selected.context)}</div>` : ""}
     <div class="section-head"><div><div class="eyebrow">WORKFLOW</div><h2>四角色接力</h2></div><span>执行人与复核人强制分离</span></div>
     <section class="department-flow">${selected.items.map((item) => departmentItemCard(selected, item)).join("")}</section>
+    ${executionPanel(selected)}
     ${deliveryView(selected, s)}
     ${selected.finalOutput ? ui`<section class="card department-final"><div class="eyebrow">INTEGRATION</div><div class="h">最终整合说明</div><pre class="report">${esc(selected.finalOutput)}</pre></section>` : ""}`;
 }

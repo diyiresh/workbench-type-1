@@ -11,6 +11,8 @@ const { chat } = require("./lib/llm");
 const vault = require('./lib/vault');
 const extensions = require('./lib/extensions');
 const skillStudio = require('./lib/skill-studio');
+const governance = require('./lib/execution-governance');
+const executionCommands = require('./lib/execution-commands');
 const agendaNotes = require('./lib/agenda-notes');
 const agendaNoteCleanup = require('./lib/agenda-note-cleanup');
 const codex = require("./lib/codex");
@@ -43,11 +45,12 @@ const PUBLIC = path.join(ROOT, "public");
 const DATA = process.env.BENCH_DATA_DIR ? path.resolve(process.env.BENCH_DATA_DIR) : path.join(ROOT,"data");
 const STORE = path.join(DATA, "store.json");
 const SKILL_ROOT = path.join(DATA, 'skill-library');
+governance.configure({skillRoot:SKILL_ROOT,channelState:()=>process.env.BENCH_DATA_DIR ? {state:'test-isolated'} : extensions.workbuddyAutomation()});
 const skillManager = skillStudio.createManager({ readStore, writeStore, root:SKILL_ROOT });
 const BACKUP = path.join(DATA, "backups");
 const externalRuntime = createRuntime({ readStore, writeStore, artifactRoot: path.join(DATA,"agent-results") });
 const deliveryManager = delivery.createManager({ readStore, writeStore, root: path.join(DATA, "deliveries"), reviewExecute: async (agentId, prompt, cwd, context) => {
-  if (agentId === "codex") return (await require("./lib/codex").generate(prompt)).text;
+  if (agentId === "codex") return (await require("./lib/codex").generate(prompt,{onStart:context.onStart,onBeforeStart:context.onBeforeStart})).text;
   if (!["cursor", "workbuddy"].includes(agentId)) throw new Error("delivery_reviewer_adapter_unavailable");
   return require("./lib/external-runtime").generate(agentId, prompt, cwd, context);
 } });
@@ -86,6 +89,7 @@ function readStore() {
 }
 
 function writeStore(store, { backup = true } = {}) {
+  if(fs.existsSync(STORE))governance.observeControls(store,JSON.parse(fs.readFileSync(STORE,'utf8')));
   agentDispatch.syncAssignments(store);
   store.meta = store.meta || {};
   store.meta.updatedAt = nowIso();
@@ -315,10 +319,76 @@ async function handleApi(req, res, url) {
   if (method === "GET" && p === "/api/codex/jobs") return sendJson(res, 200, { jobs: store.codexJobs || [] });
   if (method === "POST" && p === "/api/codex/jobs") {
     const body = await readBody(req) || {};
-    try { return sendJson(res, 202, { job: codexManager.start({ runId: body.runId, role: body.role, test: body.test === true }) }); }
+    try { return sendJson(res, 202, { job: codexManager.start({ runId: body.runId, role: body.role, test: body.test === true,idempotencyKey:body.idempotencyKey }) }); }
     catch (err) { return sendJson(res, 409, { error: err.message }); }
   }
   const lockedRun = p.match(/^\/api\/departments\/runs\/([^/]+)\//);
+  const executionRoute=p.match(/^\/api\/departments\/runs\/([^/]+)\/execution(?:\/(control|skills|reconcile|retry|result|started))?$/);
+  if(executionRoute){
+    try{
+      let fresh=readStore(),run=getRun(fresh,executionRoute[1]);
+      if(method==='GET'&&!executionRoute[2])return sendJson(res,200,{run:{id:run.id,automationPaused:!!run.automationPaused,resumeRequired:!!run.resumeRequired,archived:!!run.archived,controlGeneration:run.controlGeneration||0,externalAutomation:!!run.externalAutomation,items:run.items},attempts:(fresh.executionAttempts||[]).filter(a=>a.runId===run.id),legacyJobs:[...(fresh.codexJobs||[]),...(fresh.externalJobs||[])].filter(j=>j.runId===run.id&&!j.attemptId),skills:(fresh.skillLibrary||[]).filter(s=>!inactive(s)&&s.state==='published').map(s=>({id:s.id,name:s.draft.name,versions:s.versions,currentVersionId:s.currentVersionId})),channels:extensions.snapshot(fresh,{dataDir:DATA,automation:process.env.BENCH_DATA_DIR?null:extensions.workbuddyAutomation()}).agents,limits:{concurrentPerAgent:1,attemptsPerInput:3,reviewRounds:3,usage:'unknown'}});
+      if(method!=='POST'||!isLoopback(req))return sendJson(res,403,{error:'execution_local_only'});
+      const body=await readBody(req)||{};fresh=readStore();run=getRun(fresh,run.id);
+      const scope=run.id+'/'+executionRoute[2],old=executionCommands.receipt(fresh,scope,body);if(old)return sendJson(res,200,old);
+      let result;
+      if(executionRoute[2]==='control'){
+        if(inactive(run))throw governance.error('project_paused_or_archived');
+        if(body.expectedGeneration!==(run.controlGeneration||0)||!['pause','resume'].includes(body.action))throw governance.error('input_changed');
+        run.automationPaused=body.action==='pause';governance.touch(run);result={paused:run.automationPaused};
+      }else if(executionRoute[2]==='skills'){
+        result={bindings:governance.bindSkills(fresh,run,getItem(run,body.stepId),body)};
+      }else if(executionRoute[2]==='reconcile'){
+        const a=governance.get(fresh,body.attemptId);if(a.runId!==run.id)throw governance.error('result_identity_mismatch');
+        governance.reconcile(fresh,a,body);
+        if(a.transport==='desktop-scheduled'&&/^[a-zA-Z0-9-]+$/.test(a.jobId)){const file=path.join(DATA,'workbuddy-queue',a.jobId+'.request.json');if(fs.existsSync(file)&&!fs.lstatSync(file).isSymbolicLink()){const request=JSON.parse(fs.readFileSync(file,'utf8'));if(request.attemptId===a.id){request.status='cancelled';request.reconciledAt=nowIso();fs.writeFileSync(file,JSON.stringify(request,null,2));}}}
+        result={attemptId:a.id,state:a.state};
+      }else if(executionRoute[2]==='started'){
+        const a=governance.get(fresh,body.attemptId);if(a.runId!==run.id)throw governance.error('result_identity_mismatch');governance.memberStarted(fresh,a,body);result={attemptId:a.id,state:a.state,evidence:a.startedEvidence};
+      }else if(executionRoute[2]==='result'){
+        const a=governance.get(fresh,body.attemptId);if(a.runId!==run.id)throw governance.error('result_identity_mismatch');
+        let output=a.output||'',identityVerified=!!a.output;
+        if(!output&&/^[a-zA-Z0-9-]+$/.test(a.jobId)){
+          const file=path.join(DATA,'workbuddy-queue',a.jobId+'.result.json');
+          if(fs.existsSync(file)&&!fs.lstatSync(file).isSymbolicLink()&&fs.statSync(file).size<=2000000){const data=JSON.parse(fs.readFileSync(file,'utf8'));output=String(data.output||'');identityVerified=data.jobId===a.jobId&&data.attemptId===a.id&&data.claimId===a.claimId&&data.agentId===a.agentId;}
+        }
+        return sendJson(res,200,{output,identityVerified,resultHash:a.resultHash||null,adopted:'unknown'});
+      }else if(executionRoute[2]==='retry'){
+        const a=governance.get(fresh,body.attemptId);if(a.runId!==run.id||a.purpose!=='stage')throw governance.error('result_identity_mismatch');
+        const step=getItem(run,a.stepId);governance.assertRun(fresh,run,step.ownerAgentId);
+        if(!['failed','interrupted','cancelled'].includes(a.state))throw governance.error('reconcile_required');
+        if(body.confirmed!==true||body.resultHash!==(a.resultHash||null))throw governance.error('input_changed');
+        if(a.transport==='model-route')throw governance.error('use_model_execute');
+        if(step.activeAttemptId!==a.id)throw governance.error('input_changed');if(!['queued','rework'].includes(step.status))throw governance.error('step_not_ready');
+        for(const list of [fresh.codexJobs||[],fresh.externalJobs||[]])for(const j of list)if(j.attemptId===a.id)j.status='dismissed';
+        writeStore(fresh);
+        if(a.transport==='manual-member'){const assignment=agentDispatch.claim(fresh,{runId:run.id,agentId:step.ownerAgentId,idempotencyKey:body.idempotencyKey});if(!assignment)throw governance.error('step_not_ready');result={attemptId:assignment.attemptId,claimId:assignment.claimId};executionCommands.remember(fresh,scope,body,result);writeStore(fresh);return sendJson(res,200,result);}
+        const job=step.ownerAgentId==='codex'?codexManager.start({runId:run.id,role:step.role,idempotencyKey:body.idempotencyKey}):externalRuntime.start(run.id,step.id,{idempotencyKey:body.idempotencyKey});
+        if(!job)throw governance.error('step_not_ready');fresh=readStore();result={jobId:job.id,attemptId:job.attemptId};
+      }else return sendJson(res,404,{error:'execution_route_missing'});
+      executionCommands.remember(fresh,scope,body,result);writeStore(fresh);return sendJson(res,200,result);
+    }catch(e){return sendJson(res,409,{error:e.code||e.message});}
+  }
+  const conversion=p.match(/^\/api\/inbox\/([^/]+)\/convert(?:\/(preview))?$/);
+  if(conversion&&method==='POST'){
+    if(!isLoopback(req))return sendJson(res,403,{error:'execution_local_only'});
+    try{const body=await readBody(req)||{},fresh=readStore();const result=conversion[2]?executionCommands.preview(fresh,conversion[1],body):executionCommands.convert(fresh,conversion[1],body);if(!conversion[2])writeStore(fresh);return sendJson(res,200,result);}catch(e){return sendJson(res,409,{error:e.code||e.message});}
+  }
+  if(method==='POST'&&p==='/api/workbuddy/claim'){
+    if(!isLoopback(req))return sendJson(res,403,{error:'execution_local_only'});
+    try{
+      const body=await readBody(req)||{},fresh=readStore();governance.assertAgent(fresh,'workbuddy');
+      const old=executionCommands.receipt(fresh,'workbuddy-claim',body);
+      if(old){if(old.assignment){const a=governance.get(fresh,old.assignment.attemptId);if(a.state==='returned')return sendJson(res,200,{status:'completed',assignment:null,attemptId:a.id});if(!['claimed','running'].includes(a.state))throw governance.error('reconcile_required');governance.check(fresh,a);}return sendJson(res,200,old);}
+      const queue=require('./lib/workbuddy-queue');
+      const result=queue.claim(path.join(DATA,'workbuddy-queue'),{eligible:r=>queue.eligibleRequest(fresh,r),onClaim:r=>{
+        const a=governance.get(fresh,r.attemptId);if(a.jobId!==r.jobId||a.agentId!=='workbuddy')throw governance.error('result_identity_mismatch');
+        if(a.purpose==='stage')agentDispatch.claim(fresh,{agentId:'workbuddy',runId:a.runId,attemptId:a.id,idempotencyKey:body.idempotencyKey});else governance.claim(fresh,a,{claimKey:body.idempotencyKey,workerId:body.workerId||'workbuddy-desktop'});
+        const j=[...(fresh.externalJobs||[]),...(fresh.chatJobs||[])].find(j=>j.id===a.jobId);if(j)j.status='doing';writeStore(fresh);return {attemptId:a.id,claimId:a.claimId,inputHash:a.inputHash};
+      }});
+      executionCommands.remember(fresh,'workbuddy-claim',body,result);writeStore(fresh);return sendJson(res,200,result);
+    }catch(e){return sendJson(res,409,{error:e.code||e.message});}
+  }
   if (method === "POST" && lockedRun && codexManager.busy(lockedRun[1])) return sendJson(res, 409, { error: "Codex 正在处理此项目，请等待完成。" });
 
   if (method === "GET" && p === "/api/state") return sendJson(res, 200, store);
@@ -412,15 +482,19 @@ async function handleApi(req, res, url) {
     const body=await readBody(req)||{},fresh=readStore();
     try {
       const run=getRun(fresh,automationMatch[1]);
+      const receipt=body.idempotencyKey&&executionCommands.receipt(fresh,run.id+'/automation',body);if(receipt)return sendJson(res,200,receipt);
+      if(body.retry&&!body.idempotencyKey)throw governance.error('idempotency_key_required');
       if(inactive(run))return sendJson(res,409,{error:"project_paused_or_archived"});
       if(body.workbuddyTransport) {
         if(!["desktop-ui","desktop-scheduled","cli"].includes(body.workbuddyTransport))throw new Error("unsupported_workbuddy_transport");
         run.workbuddyTransport=body.workbuddyTransport;
       }
+      if(body.enabled!==false&&run.automationPaused&&!body.retry)throw governance.error('project_paused');
       run.externalAutomation=body.enabled!==false;
       if(body.retry && run.externalAutomation) retryAutomation(fresh,run.id);
+      const result={enabled:run.externalAutomation};if(body.idempotencyKey)executionCommands.remember(fresh,run.id+'/automation',body,result);
       writeStore(fresh); codexManager.tick(); externalRuntime.tick(); preparationFlow.tick();
-      return sendJson(res,200,{enabled:run.externalAutomation});
+      return sendJson(res,200,result);
     }catch(err){return sendJson(res,400,{error:err.message});}
   }
   if (departmentRunMatch && method === "GET") {
@@ -429,6 +503,8 @@ async function handleApi(req, res, url) {
   }
   if (departmentRunMatch && method === "DELETE") {
     if (!isLoopback(req)) return sendJson(res, 403, { error: "department_delete_local_only" });
+    store=readStore();
+    if((store.executionAttempts||[]).some(a=>a.runId===departmentRunMatch[1]&&(governance.ACTIVE.has(a.state)||a.state==='held'))||[...store.codexJobs||[],...store.externalJobs||[],...store.chatJobs||[]].some(j=>j.runId===departmentRunMatch[1]&&['doing','waiting'].includes(j.status)))return sendJson(res,409,{error:'reconcile_required'});
     const index = (store.departmentRuns || []).findIndex((item) => item.id === departmentRunMatch[1]);
     if (index < 0) return notFound(res);
     const [removed] = store.departmentRuns.splice(index, 1);
@@ -441,6 +517,7 @@ async function handleApi(req, res, url) {
   if (departmentRunMatch && method === "PATCH") {
     if (!isLoopback(req)) return sendJson(res, 403, { error: "department_manage_local_only" });
     const body = await readBody(req) || {};
+    store=readStore();
     try {
       const run = getRun(store, departmentRunMatch[1]);
       if (body.roleOwners && typeof body.roleOwners === "object") {
@@ -480,6 +557,7 @@ async function handleApi(req, res, url) {
   }
   if (departmentMessages && method === "POST") {
     const body = await readBody(req) || {};
+    store=readStore();
     try {
       if(inactive(getRun(store, departmentMessages[1])))return sendJson(res,409,{error:"project_paused_or_archived"});
       const message = postMessage(store, { ...body, runId: departmentMessages[1] });
@@ -508,13 +586,20 @@ async function handleApi(req, res, url) {
 
   const chatRetry = p.match(/^\/api\/departments\/runs\/([^/]+)\/chat-jobs\/([^/]+)\/retry$/);
   if (chatRetry && method === 'POST') {
+    const body=await readBody(req)||{};store=readStore();
     try {
-      const run = getRun(store, chatRetry[1]);
-      const job = (store.chatJobs || []).find(j => j.runId === run.id && j.id === chatRetry[2]);
-      if (!job || job.status !== 'failed' || inactive(run) || inactive(job)) throw new Error('仅能重试未归档项目的失败回复');
-      store.chatJobs.push({ ...job, id: id('chat'), status: 'queued', createdAt: nowIso(), startedAt: null, completedAt: null, error: '', replyId: null });
-      writeStore(store); projectChat.tick(); return sendJson(res, 202, { ok: true });
-    } catch (err) { return sendJson(res, 400, { error: err.message }); }
+      if(!body.idempotencyKey)throw governance.error('idempotency_key_required');
+      const run=getRun(store,chatRetry[1]),job=(store.chatJobs||[]).find(j=>j.runId===run.id&&j.id===chatRetry[2]);
+      const previous=body.idempotencyKey&&(store.chatJobs||[]).find(j=>j.retryKey===body.idempotencyKey&&j.retryOf===job?.id);
+      if(previous)return sendJson(res,202,{ok:true,jobId:previous.id});
+      if(!job||!['failed','dismissed'].includes(job.status)||inactive(run)||inactive(job))throw governance.error('step_not_ready');
+      governance.assertAgent(store,job.agentId);
+      const a=job.attemptId&&(store.executionAttempts||[]).find(a=>a.id===job.attemptId);
+      if(a&&['uncertain','held','running','claimed'].includes(a.state))throw governance.error('reconcile_required');
+      if((store.chatJobs||[]).filter(j=>j.messageId===job.messageId&&j.agentId===job.agentId).length>=3)throw governance.error('execution_budget_exhausted');
+      const newJob={...job,id:id('chat'),attemptId:null,retryOf:job.id,retryKey:body.idempotencyKey||null,status:'queued',createdAt:nowIso(),startedAt:null,completedAt:null,error:'',replyId:null};
+      store.chatJobs.push(newJob);writeStore(store);projectChat.tick();return sendJson(res,202,{ok:true,jobId:newJob.id});
+    } catch(err){return sendJson(res,409,{error:err.code||err.message});}
   }
   const departmentArtifacts = p.match(/^\/api\/departments\/runs\/([^/]+)\/artifacts$/);
   if (departmentArtifacts && method === "GET") {
@@ -525,6 +610,7 @@ async function handleApi(req, res, url) {
   }
   if (departmentArtifacts && method === "POST") {
     const body = await readBody(req) || {};
+    store=readStore();
     try {
       const run = getRun(store, departmentArtifacts[1]);
       if (inactive(run)) throw new Error("project_paused_or_archived");
@@ -572,10 +658,13 @@ async function handleApi(req, res, url) {
   const departmentItemAction = p.match(/^\/api\/departments\/runs\/([^/]+)\/items\/([^/]+)\/action$/);
   if (departmentItemAction && method === "POST") {
     const body = await readBody(req) || {};
+    store=readStore();
     try {
       const runId = departmentItemAction[1];
       const itemId = departmentItemAction[2];
       let result;
+      const claimedItem=getItem(getRun(store,runId),itemId),a=(store.executionAttempts||[]).find(a=>a.id===claimedItem.activeAttemptId);
+      if(body.action!=='start'&&a&&governance.ACTIVE.has(a.state)&&a.transport==='manual-member'&&(body.attemptId!==a.id||body.claimId!==a.claimId))throw governance.error('result_identity_mismatch');
       if (body.action === "start") result = startItem(store, runId, itemId);
       else if (body.action === "submit") result = submitItem(store, runId, itemId, body);
       else if (body.action === "rework") result = completeRework(store, runId, itemId, body);
@@ -595,44 +684,47 @@ async function handleApi(req, res, url) {
 
   const departmentModelExecute = p.match(/^\/api\/departments\/runs\/([^/]+)\/items\/([^/]+)\/model-execute$/);
   if (departmentModelExecute && method === "POST") {
-    const runId=departmentModelExecute[1],itemId=departmentModelExecute[2];
-    let generation,owner;
+    const body=await readBody(req)||{},runId=departmentModelExecute[1],itemId=departmentModelExecute[2];
+    let attemptId,owner;
     try {
-      let run=getRun(store,runId),item=getItem(run,itemId);
-      if(inactive(run))return sendJson(res,409,{error:"project_paused_or_archived"});
-      if (["queued","rework"].includes(item.status))startItem(store,runId,itemId);
-      if(item.status!=="doing")throw new Error("item_not_in_progress");
-      generation=run.archiveGeneration||0;owner=item.ownerAgentId;
-      writeStore(store);
-      const reviewedSnapshot = item.role === "reviewer" ? delivery.assertReady(store, run) : null;
-      const prompt=rolePrompt(run,item,store);let evidence;
-      const text=await chat(store,{...prompt,vaultQuery:run.goal,onEvidence:value=>{evidence=value;},temperature:item.role==="reviewer"?0.1:0.35,maxTokens:1600,timeoutMs:180000});
-      if(!String(text||"").trim())throw new Error("model_returned_empty_output");
-      // Never write an asynchronous result using a pre-call ledger snapshot.
+      store=readStore();let run=getRun(store,runId),item=getItem(run,itemId);
+      governance.assertRun(store,run,item.ownerAgentId);
+      if(body.idempotencyKey){const old=(store.executionAttempts||[]).find(a=>a.runId===runId&&a.idempotencyKey===body.idempotencyKey);if(old){if(old.stepId!==item.id||old.transport!=='model-route')throw governance.error('input_changed');return sendJson(res,200,{attemptId:old.id,state:old.state});}}
+      if(!['queued','rework','doing'].includes(item.status))throw governance.error('step_not_ready');
+      const attempt=governance.reserve(store,{runId,stepId:item.id,agentId:item.ownerAgentId,jobId:id('model'),transport:'model-route',extra:{modelRoute:true},idempotencyKey:body.idempotencyKey,timeoutMs:180000});
+      attemptId=attempt.id;owner=item.ownerAgentId;
+      if(['queued','rework'].includes(item.status))startItem(store,runId,itemId);
+      const reviewedSnapshot=item.role==='reviewer'?delivery.assertReady(store,run):null;
+      const prompt=rolePrompt(run,item,store);prompt.prompt+=governance.skillBlock(governance.skillVersions(store,run,item));
+      const writingGate=run.requiresWritingApproval!==false&&!run.writingApproved;
+      if(writingGate)prompt.prompt+='\n完整写作未获批准：只提供来源清单、准备材料与纲要，不能提交完整报告或宣称交付完成。';
+      governance.starting(store,attempt,JSON.stringify(prompt));writeStore(store);let evidence;
+      const text=await chat(store,{...prompt,vaultQuery:run.goal,onEvidence:value=>{evidence=value;},onBeforeStart:()=>governance.beforeStart(readStore(),attemptId),temperature:item.role==='reviewer'?0.1:0.35,maxTokens:1600,timeoutMs:180000});
+      if(!String(text||'').trim())throw governance.error('result_uncertain');
       store=readStore();run=getRun(store,runId);item=getItem(run,itemId);
-      if(inactive(run)||(run.archiveGeneration||0)!==generation||item.status!=="doing"||item.ownerAgentId!==owner){
-        run.modelLateResults||=[];run.modelLateResults.push({itemId,output:text,evidence,status:"held",completedAt:nowIso()});
-        if(item.status==="doing"&&item.ownerAgentId===owner)item.status="queued";
-        writeStore(store);return sendJson(res,200,{held:true,run});
-      }
+      const held=governance.collect(store,governance.get(store,attemptId),text).held;
+      if(held){run.modelLateResults||=[];run.modelLateResults.push({attemptId,itemId,output:text,evidence,status:'held',completedAt:nowIso()});if(item.activeAttemptId===attemptId&&item.status==='doing')item.status='queued';writeStore(store);return sendJson(res,200,{held:true,run});}
+      writeStore(store);
       if(evidence)item.evidence=evidence;
-      if(item.role==="reviewer")reviewExecutor(store,runId,{reviewerAgentId:owner,verdict:/VERDICT\s*:\s*PASS/i.test(text)&&!/VERDICT\s*:\s*REJECT/i.test(text)&&(!reviewedSnapshot||text.includes("FILE_REVIEW: "+reviewedSnapshot.batchId+" PASS"))?"pass":"reject",comment:text,reviewedSnapshot});
+      if(writingGate&&item.role!=='reviewer'&&item.role!=='director'){item.output=text;item.preparationReady=true;}
+      else if(item.role==='reviewer')reviewExecutor(store,runId,{reviewerAgentId:owner,verdict:/VERDICT\s*:\s*PASS/i.test(text)&&!/VERDICT\s*:\s*REJECT/i.test(text)&&(!reviewedSnapshot||text.includes('FILE_REVIEW: '+reviewedSnapshot.batchId+' PASS'))?'pass':'reject',comment:text,reviewedSnapshot});
       else submitItem(store,runId,itemId,{output:text});
-      run.planningMode="model-assisted";
-      postMessage(store,{runId,sender:owner,type:item.role==="reviewer"?"review":"artifact",relatedTaskId:item.id,text:String(text).slice(0,4000)});
-      writeStore(store);return sendJson(res,200,{run,item});
+      run.planningMode='model-assisted';postMessage(store,{runId,sender:owner,type:item.role==='reviewer'?'review':'artifact',relatedTaskId:item.id,text});
+      writeStore(store);return sendJson(res,200,{run,item,attemptId});
     }catch(err){
-      if(generation!==undefined){const fresh=readStore();try{const item=getItem(getRun(fresh,runId),itemId);if(item.status==="doing"&&item.ownerAgentId===owner)item.status="queued";writeStore(fresh);}catch(_) {}}
-      return sendJson(res,500,{error:String(err.message||err)});
+      if(attemptId){const fresh=readStore();try{const a=governance.get(fresh,attemptId);governance.failed(fresh,a,err);const item=getItem(getRun(fresh,runId),itemId);if(item.activeAttemptId===attemptId&&item.status==='doing')item.status='queued';writeStore(fresh);}catch(_) {}}
+      return sendJson(res,409,{error:err.code||String(err.message||err)});
     }
   }
 
   const departmentAutoRun = p.match(/^\/api\/departments\/runs\/([^/]+)\/auto-run$/);
   if (departmentAutoRun && method === "POST") {
+    const body=await readBody(req)||{};store=readStore();
     const runId = departmentAutoRun[1];
     try {
       const run = getRun(store, runId);
       if (inactive(run)) return sendJson(res, 409, { error: "project_paused_or_archived" });
+      governance.assertRun(store,run,'codex');
       const director = getItem(run, "director");
       run.externalAutomation = true;
       writeStore(store);
@@ -644,7 +736,7 @@ async function handleApi(req, res, url) {
         director.status = "queued";
         writeStore(store);
       }
-      const job = codexManager.start({ runId, role: "director" });
+      const job = codexManager.start({ runId, role: "director",idempotencyKey:body.idempotencyKey });
       return sendJson(res, 202, { job });
     } catch (err) { return sendJson(res, 400, { error: String(err.message || err) }); }
   }
@@ -1209,6 +1301,7 @@ async function main() {
   await require('./lib/network').configureNetwork();
   ensureDirs();
   codexManager.recover();
+  {const s=readStore();if(governance.recover(s))writeStore(s);}
   skillManager.recover();
   const store = readStore();
   if (importLegacyDailyPlanReminder(store)) writeStore(store);

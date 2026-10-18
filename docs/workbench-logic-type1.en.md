@@ -170,3 +170,24 @@ flowchart TB
 ```
 
 Refresh reads the ledger and never fabricates check-in timestamps or resumes execution. Enabled registration is not live availability. Queue heartbeats and historical attempts are distinct evidence. WorkBuddy remains paused until explicitly resumed. GET /api/extensions exposes read-only metadata; reserved adapters do not connect to external systems. See docs/扩展接口约定.md for versioned contracts.
+
+
+## Second iteration: execution governance and stage skills (2026-10-18)
+
+```mermaid
+flowchart TB
+  inbox["Agent inbox message"] --> preview["Preview goal, deliverables and acceptance"]
+  preview --> confirm["Confirm conversion: new task stays paused"]
+  confirm --> stage["Existing four-stage project workflow"]
+  skills["Confirmed skill versions in Assets"] --> binding["Explicit stage binding and actual file hash"]
+  binding --> stage
+  stage --> attempt["Execution attempt: input snapshot, control generation and claim receipt"]
+  attempt --> evidence["Waiting / claimed / process or self-reported start / result returned"]
+  evidence --> gates["Independent review and actual file acceptance"]
+  evidence --> hold["Timeout, restart or stale result: retained for reconciliation"]
+  hold --> decide["Confirm old session stopped, reject old attempt, then decide on a new attempt"]
+```
+
+The project execution panel and Agent's latest attempt use the same ledger. Registration, process startup and member self-reports are distinct from completion. Unverified historical details remain unknown; refresh only reads. There is at most one active execution per member and three attempts per input, while the existing three-rejection review budget remains in force. Pause/resume does not adopt old results. Reconciliation does not automatically execute again.
+
+WorkBuddy's intentional scheduler pause remains unchanged. Skill injection uses explicitly bound published versions and does not modify global rules. Receipts do not prove actual adoption. See SPEC-execution-governance.md for interfaces, validation and limits. Knowledge browsing and VaultRAG auto-start remain future work.

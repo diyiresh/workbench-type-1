@@ -150,4 +150,9 @@ table.deck{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .skill-compare > div { min-width:0; }
 .skill-markdown { overflow-wrap:anywhere; }
 .skill-markdown table { max-width:100%; display:block; overflow:auto; }
+.execution-panel { min-width:0; margin:18px 0; overflow-wrap:anywhere; }
+.execution-panel select[multiple] { width:100%; min-height:80px; }
+.execution-panel code { overflow-wrap:anywhere; }
+.execution-dialog { width:min(720px,90vw); max-height:90vh; overflow:auto; color:var(--ink); background:var(--paper); border:1px solid var(--line); }
+.execution-dialog::backdrop { background:rgba(0,0,0,.45); }
 @media(max-width:760px) { .skill-compare { grid-template-columns:1fr; } }

@@ -19,7 +19,9 @@ import { rememberChatPosition, restoreChatPosition } from "./js/chat-scroll.js";
 import { NAVIGATION as PRIMARY, resolveRoute, sectionFor, moduleTarget } from './js/navigation.mjs';
 import { businessProjectsView, assetsView, setCapabilities } from './js/centers.js';
 import { mountSkillStudio, bindSkillSources } from './js/skill-studio-ui.js';
+import { mountExecution, bindConversion } from './js/execution-ui.js';
 bindSkillSources();
+bindConversion();
 
 let primary = "home";
 let secondary = "all";
@@ -331,6 +333,7 @@ function workspace() {
   bindLearningPlan();
   bindDepartment();
   mountSkillStudio();
+  mountExecution();
   syncComposer();
   if (primary === 'crew' || primary === 'memory') void refreshCapabilities();
   if (primary === 'memory' && secondary === 'knowledge') void refreshVaultStatus();
@@ -1002,6 +1005,8 @@ function openDepartmentManual(runId, itemId) {
     e.preventDefault();
     const data = new FormData(e.target);
     const output = String(data.get("output") || "").trim();
+    const claim=(getStore().executionAttempts||[]).find(a=>a.id===item.activeAttemptId);
+    const receipt=claim?{attemptId:claim.id,claimId:claim.claimId}:{};
     const action = isReview ? "review" : item.status === "rework" ? "rework" : "submit";
     if (!isReview && item.status === "queued") {
       await api(`/api/departments/runs/${runId}/items/${itemId}/action`, { method: "POST", body: { action: "start" } });
@@ -1009,8 +1014,8 @@ function openDepartmentManual(runId, itemId) {
     await api(`/api/departments/runs/${runId}/items/${itemId}/action`, {
       method: "POST",
       body: isReview
-        ? { action, verdict: data.get("verdict"), comment: output, reviewerAgentId: item.ownerAgentId, reviewedSnapshot: data.get("fileChecked") ? reviewedSnapshot : null }
-        : { action, output, materials: String(data.get("materials") || "").split(/\r?\n/).map((x) => x.trim()).filter(Boolean) },
+        ? { ...receipt, action, verdict: data.get("verdict"), comment: output, reviewerAgentId: item.ownerAgentId, reviewedSnapshot: data.get("fileChecked") ? reviewedSnapshot : null }
+        : { ...receipt, action, output, materials: String(data.get("materials") || "").split(/\r?\n/).map((x) => x.trim()).filter(Boolean) },
     });
     modal.hidden = true;
     await reload();

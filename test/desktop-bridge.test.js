@@ -14,6 +14,13 @@ const {generate}=require("../lib/desktop-bridge");
   assert.equal(await second,"real result");
   assert.equal(JSON.parse(fs.readFileSync(path.join(root,"test-two.request.json"))).status,"collected");
   await assert.rejects(generate("timeout",process.cwd(),{jobId:"test-three"},{...options,timeoutMs:15}),/超时/);
-  console.log("Desktop bridge identity, duplicate and timeout checks passed");
+  const v2=generate("public fixture",process.cwd(),{jobId:"v2-one",attemptId:"ea-test"},options);
+  const v2request=path.join(root,"v2-one.request.json"),request=JSON.parse(fs.readFileSync(v2request));request.claimId='claim-test';request.status='claimed';fs.writeFileSync(v2request,JSON.stringify(request));
+  fs.writeFileSync(path.join(root,"v2-one.result.json"),JSON.stringify({jobId:"v2-one",agentId:"workbuddy",attemptId:"ea-test",claimId:"claim-test",output:"Exact receipt result"}));
+  assert.equal(await v2,"Exact receipt result");
+  const unclaimed=generate("fixture",process.cwd(),{jobId:"v2-unclaimed",attemptId:"ea-unclaimed"},options);
+  fs.writeFileSync(path.join(root,"v2-unclaimed.result.json"),JSON.stringify({jobId:"v2-unclaimed",agentId:"workbuddy",attemptId:"ea-unclaimed",claimId:"invented",output:"Must not be applied"}));
+  await assert.rejects(unclaimed,error=>error.code==='result_identity_mismatch');
+  console.log("Desktop bridge identity, duplicate, timeout and exact v2 claim receipt checks passed");
  } finally {fs.rmSync(root,{recursive:true,force:true});}
 })().catch(e=>{console.error(e);process.exitCode=1;});

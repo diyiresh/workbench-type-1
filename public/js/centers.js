@@ -2,6 +2,7 @@ import { esc, fmt, getStore } from './core.js';
 import { t as tr, ui } from './i18n.js';
 import { renderCard } from '../modules/index.js';
 import { skillStudioView } from './skill-studio-ui.js';
+import { executionState, executionReason } from './execution-ui.js';
 
 let capabilities = null;
 export function setCapabilities(value) { capabilities = value; }
@@ -13,6 +14,7 @@ export function businessProjectsView() {
 }
 
 export function agentEvidence(agentId) {
+  const attempt=(getStore().executionAttempts||[]).find(a=>a.agentId===agentId);
   const data = capabilities?.agents?.find(a => a.agentId === agentId);
   const labels = { paused:tr('已暂停'), stale:tr('领取心跳已过期'), 'heartbeat-fresh':tr('近期有领取检查'), unknown:tr('尚未核实执行通道') };
   const sources = { 'workbuddy-automation':tr('WorkBuddy 定时任务记录'), 'queue-heartbeat':tr('领取队列心跳') };
@@ -21,6 +23,7 @@ export function agentEvidence(agentId) {
     ${data.evidence ? `<p class="k">${sources[data.evidence] || esc(data.evidence)} · ${fmt(data.observedAt)}</p>` : ''}
     ${data.heartbeatAt ? `<p class="k">${tr('最近领取检查')} · ${fmt(data.heartbeatAt)}</p>` : ''}
     ${data.lastAttempt ? `<p class="k">${tr('最近执行记录')} · ${esc(data.lastAttempt.status)} · ${fmt(data.lastAttempt.createdAt)}</p>` : ''}
+    ${attempt?`<p>${tr('最近执行尝试')} · ${executionState(attempt)} ${attempt.blockerCode?' · '+esc(executionReason(attempt.blockerCode)):''}</p><a class="tiny" href="#projects/run:${esc(attempt.runId)}">${tr('查看执行时间线')}</a>`:''}
     ${data.agentId === 'workbuddy' ? ui`<p class="k">暂停保持到你明确恢复；领取检查不代表任务执行成功。</p>` : ''}</div>`;
 }
 

@@ -1,0 +1,60 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {randomUUID}=require('node:crypto'),{chromium}=require('playwright');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'bench-execution-ui-'));process.env.BENCH_DATA_DIR=root;
+const state=require('../lib/default-store').buildDefaultStore(),dept=require('../lib/department'),skills=require('../lib/skill-studio'),gov=require('../lib/execution-governance');
+state.modules=[];state.departmentRuns=[];state.remote.vault={enabled:false};
+state.inbox=[{id:'ordinary-ui',toAgentId:'workbuddy',body:'中文业务原文保持',status:'queued',createdAt:new Date().toISOString()}];
+const run=dept.createDepartmentRun(state,{goal:'隔离页面验收项目',participantAgentIds:['codex','workbuddy','cursor'],requiresWritingApproval:false,delivery:{mode:'text'}});
+const req=body=>({...body,idempotencyKey:randomUUID()});
+const id=skills.create(state,req({sourceRefs:[]})).skillId,skill=skills.get(state,id);
+skills.mutate(state,path.join(root,'skill-library'),id,'draft',req({expectedRevision:skill.revision,name:'public-rule',description:'Public evidence',scope:'Synthetic fixtures',allowedAgents:['codex'],markdown:'---\nname: public-rule\ndescription: "Public evidence"\n---\n\nCheck real evidence.'}));
+skills.mutate(state,path.join(root,'skill-library'),id,'publish',req({expectedRevision:skill.revision,confirmed:true}));
+const director=dept.getItem(run,'director');
+const held=gov.reserve(state,{runId:run.id,stepId:director.id,agentId:'codex',jobId:'ui-old',transport:'fixture'});gov.starting(state,held,'Synthetic');gov.touch(run);gov.collect(state,held,'<script>unsafe()</script> Synthetic returned evidence.');
+fs.writeFileSync(path.join(root,'store.json'),JSON.stringify(state));
+let calls=0;require('../lib/codex').generate=async()=>{calls++;throw new Error('No browser action may execute a model');};
+const {createServer,readStore}=require('../server'),server=createServer();
+(async()=>{
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+server.address().port;
+  const browser=await chromium.launch({channel:'msedge',headless:true});
+  try{
+    const page=await browser.newPage({viewport:{width:1440,height:1100}}),errors=[],writes=[];
+    page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()!=='GET')writes.push(r.url());});
+    await page.route('**/api/briefings',r=>r.fulfill({json:{items:[]}}));
+    const project=base+'/#projects/run:'+run.id;
+    await page.goto(project);await page.locator('[data-execution-action="reconcile"]').waitFor();
+    assert.equal(writes.length,0);assert.equal(calls,0);
+    await page.locator('[data-execution-action="result"]').click();await page.locator('[data-execution-result] pre').waitFor();
+    assert.match(await page.locator('[data-execution-result] pre').textContent(),/<script>/);assert.equal(await page.locator('[data-execution-result] script').count(),0);
+    await page.locator('[data-execution-action="reconcile"]').click();
+    await page.locator('[data-execution-reconcile] [name="evidence"]').fill('Isolated fixture: stopped and rejected.');
+    await page.locator('[data-execution-reconcile] [name="stopped"]').check();await page.locator('[data-execution-reconcile] button').click();
+    await page.getByText('旧尝试已核对，不会自动重发。',{exact:true}).waitFor();assert.equal(readStore().executionAttempts[0].state,'cancelled');assert.equal(calls,0);
+    await page.locator('[data-execution-skills] summary').click();const select=page.locator('[data-execution-bind]').first().locator('select');
+    const option=await select.locator('option').first().getAttribute('value');await select.selectOption(option);
+    await page.evaluate(()=>location.hash='#assets/all');await page.locator('[data-execution-run]').waitFor({state:'detached'});await page.goto(project);
+    await page.locator('[data-execution-bind]').first().waitFor({state:'attached'});await page.locator('[data-execution-skills] summary').click();
+    assert.deepEqual(await page.locator('[data-execution-bind]').first().locator('select').evaluate(e=>[...e.selectedOptions].map(o=>o.value)),[option]);
+    await page.locator('[data-execution-bind]').first().locator('button').click();await page.getByText('本阶段已绑定指定技能版本。',{exact:true}).waitFor();
+    assert.equal(dept.getItem(readStore().departmentRuns[0],'director').skillBindings[0].versionId,skill.currentVersionId);assert.equal(calls,0);
+    await page.locator('[data-execution-action="pause"]').click();await page.locator('[data-execution-action="resume"]').waitFor();assert.equal(readStore().departmentRuns[0].automationPaused,true);
+    const before=writes.length;await page.reload();await page.locator('[data-execution-action="resume"]').waitFor();await page.locator('[data-execution-action="refresh"]').click();assert.equal(writes.length,before);assert.equal(calls,0);
+    await page.goto(base+'/#agents/workbuddy');await page.locator('[data-convert-inbox="ordinary-ui"]').click();
+    await page.locator('#execution-conversion').waitFor();await page.locator('[name="deliverable"]').fill('A public checklist');await page.locator('[name="acceptance"]').fill('Every check has evidence');
+    await page.locator('[data-convert-form] button').click();await page.locator('[data-convert-confirm]').waitFor();assert.equal(readStore().departmentRuns.length,1);
+    await page.locator('[data-convert-form] [name="goal"]').fill('Changed synthetic goal');assert.equal(await page.locator('[data-convert-confirm]').count(),0);
+    await page.locator('[data-convert-form] button').click();await page.locator('[data-convert-confirm]').click();await page.locator('[data-convert-open]').waitFor();
+    assert.equal(readStore().departmentRuns.length,2);assert.equal(readStore().departmentRuns[0].automationPaused,true);assert.equal(readStore().inbox.find(m=>m.id==='ordinary-ui').body,'中文业务原文保持');assert.equal(calls,0);
+    await page.locator('[data-convert-close]').click();
+    for(const theme of ['violet','warm','night','guofeng']){
+      await page.request.patch(base+'/api/meta',{data:{theme,language:'en'}});await page.goto(project);await page.reload();await page.getByRole('heading',{name:'Execution records and skills',exact:true}).waitFor();await page.locator('[data-execution-action="resume"]').waitFor();
+      assert.equal(await page.locator('[data-execution-control]').textContent().then(s=>s.includes('Workflow paused')),true);
+    }
+    await page.setViewportSize({width:480,height:900});await page.locator('[data-execution-timeline] details').first().locator('summary').click();
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+2));await page.screenshot({path:path.join(root,'execution-narrow-en.png'),fullPage:false});
+    await page.setViewportSize({width:1440,height:1100});await page.request.patch(base+'/api/meta',{data:{language:'zh-CN'}});await page.reload();await page.locator('[data-execution-action="resume"]').waitFor();await page.locator('[data-execution-run]').screenshot({path:path.join(root,'execution-guofeng.png')});
+    assert.deepEqual(errors,[]);assert.equal(calls,0);
+    console.log('Execution UI: explicit controls, preserved binding drafts, safe result preview, reconciliation, conversion, read-only refresh, EN/CN, four themes and narrow screen passed. Screenshots: '+root);
+  }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>server.close());

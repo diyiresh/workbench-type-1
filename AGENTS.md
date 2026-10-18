@@ -4,6 +4,14 @@
 
 默认根地址：`http://127.0.0.1:3780`
 
+## 执行治理（第二迭代）
+
+正式调用先登记 executionAttempts，绑定阶段输入、控制代数和技能实际版本；jobs 仅为引用。`GET /api/departments/runs/<id>/execution` 只读；同路径的 control/skills/started/result/reconcile/retry 以幂等键和预期快照进行明确操作，详见 `docs/SPEC-execution-governance.md`。暂停后又恢复的旧成果仍保留 held，不推进；重启/超时不证明未执行，须先核对旧会话停止并记录依据，不能盲目重发。每成员最多一个有效调用，同一输入最多三次，原复核退回预算继续有效。
+
+WorkBuddy 定时领取保持用户暂停。领取脚本使用本机 `/api/workbuddy/claim` 确认，再返回任务；实际开始时可按任务提示运行 `scripts/workbuddy-queue.js started <jobId>` 自报，页面不将它当作独立执行证明。新结果必须准确带 jobId/agentId/attemptId/claimId/output。人工成员通过 `/api/agents/claim` 领取后，回填 `/items/<id>/action` 须携带返回的 attemptId 与 claimId；不能覆盖运行通道正在拥有的阶段。普通留言可预览转换为暂停协作任务，不自动获得写作批准或解除通道暂停。
+
+已发布技能可在项目房间明确绑定到阶段，固定版本并核验实际哈希；不改全局规则、不自动判为实际采用。单独技能测试仍只支持 Codex。状态回执、正文复核和实际文件交付验收各自独立。
+
 ## 技能工作室（第一迭代）
 
 资产中心的技能工作室将用户选定的经验/教训/项目消息生成规则模板草稿，人工编辑并确认发布后才写入实际 Markdown 版本。`GET /api/skill-library`、`GET /api/skill-library/<id>` 查询；本机 POST 的 draft/publish/restore/state/cases/run/evaluate 操作须遵守预期修订与幂等键，详情见 `docs/SPEC-skill-studio.md`。不能通过旧 `/api/skills` 说明卡冒充已发布版本，也不能绕过用户确认发布。
