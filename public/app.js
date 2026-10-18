@@ -20,7 +20,7 @@ import { NAVIGATION as PRIMARY, resolveRoute, sectionFor, moduleTarget } from '.
 import { businessProjectsView, assetsView, setCapabilities } from './js/centers.js';
 import { mountSkillStudio, bindSkillSources } from './js/skill-studio-ui.js';
 import { mountExecution, bindConversion } from './js/execution-ui.js';
-import { sidebarToggle, bindCompactLayout, mountCompactLayout } from './js/compact-layout.js';
+import { bindCompactLayout, mountCompactLayout } from './js/compact-layout.js';
 bindCompactLayout();
 bindSkillSources();
 bindConversion();
@@ -280,7 +280,7 @@ function workspace() {
     memory: tr("从经验到技能，保留来源、确认和版本；知识检索沿用现有资料库。"),
     set: tr("简报自动化、指令规则与导出。"),
   };
-  $("ws-head").innerHTML = `<div class="workspace-heading">${sidebarToggle()}<div class="workspace-title"><h1>${esc(["home","department","briefs","crew","work"].includes(primary) && secondary!=="all" ? titleMap[primary] : tr(titleMap[primary] || ""))}</h1><p>${esc(ledeMap[primary] || "")}</p></div></div><button type="button" class="ghost" data-act="manage-records">${tr(tr("管理与归档"))}</button>`;
+  $("ws-head").innerHTML = `<div class="workspace-heading"><div class="workspace-title"><h1>${esc(["home","department","briefs","crew","work"].includes(primary) && secondary!=="all" ? titleMap[primary] : tr(titleMap[primary] || ""))}</h1><p>${esc(ledeMap[primary] || "")}</p></div></div><button type="button" class="ghost" data-act="manage-records">${tr(tr("管理与归档"))}</button>`;
 
   const body = safe(() => {
     if (primary === "home") return secondary === "all" ? V.homeAllView(overviewFilter) : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });

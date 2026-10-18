@@ -2,8 +2,8 @@
 export const EN = {
   "导航与内容收起": "Navigation and compact content",
   "中文导航统一为四字；原有页面链接保持可用。": "Chinese navigation names use four characters. Existing page links remain valid.",
-  "顶栏的“收起侧栏 / 展开侧栏”控制二级栏。宽屏记住本浏览器选择，窄屏用抽屉展示；侧栏开关保留当前未提交草稿。": "Use Collapse sidebar / Expand sidebar in the header. Desktop remembers this browser’s preference; narrow screens use a drawer. Toggling preserves unsaved inputs.",
-  "四角色卡片默认展示四行说明，长内容下方可展开或收起详情；完整原文和阶段成果保留。": "Stage cards show four lines of instructions by default. Expand or hide longer details beneath them; the full original text and stage outputs are retained.",
+  "二级侧栏顶部的图标可收起侧栏，收起后在一级导航顶部展开。宽屏记住本浏览器选择，窄屏用抽屉展示；开关保留当前未提交草稿。": "Collapse the sidebar using the icon at its top; restore it from the top of the main navigation. Desktop remembers this browser’s preference; narrow screens use a drawer. Toggling preserves unsaved inputs.",
+  "四角色卡片的说明与退回意见各自默认展示四行，长内容下方可展开或收起详情；完整原文和阶段成果保留。": "Stage instructions and revision comments each show four lines by default. Expand or hide longer details beneath each section; the full original text and stage outputs are retained.",
   "工作首页": "Home",
   "成员中心": "Agents",
   "学习成长": "Learning",

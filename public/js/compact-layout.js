@@ -10,12 +10,20 @@ let focusToggleAfterNavigation = false;
 let projectId = null;
 const expandedStages = new Set();
 let stageObserver;
+let sidebarButton;
 
 function sidebarOpen() { return mobile.matches ? mobileOpen : !desktopCollapsed; }
 
-export function sidebarToggle() {
-  const label = tr(sidebarOpen() ? '收起侧栏' : '展开侧栏');
-  return `<button type="button" class="ghost sidebar-toggle" data-sidebar-toggle aria-controls="sidebar" aria-expanded="${sidebarOpen()}" title="${esc(label)}"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg><span>${esc(label)}</span></button>`;
+function sidebarToggle() {
+  if (!sidebarButton) {
+    sidebarButton = document.createElement('button');
+    sidebarButton.type = 'button';
+    sidebarButton.className = 'sidebar-toggle';
+    sidebarButton.setAttribute('data-sidebar-toggle', '');
+    sidebarButton.setAttribute('aria-controls', 'sidebar');
+    sidebarButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>';
+  }
+  return sidebarButton;
 }
 
 function applySidebar() {
@@ -25,6 +33,13 @@ function applySidebar() {
   const open = sidebarOpen();
   const modal = mobile.matches && open;
   const focusWasInside = sidebar.contains(document.activeElement);
+  const toggle = sidebarToggle();
+  const focusWasToggle = document.activeElement === toggle;
+  const tools = document.getElementById('rail-tools');
+  const host = open ? sidebar.querySelector('[data-sidebar-toggle-host]') : tools;
+  // Keep one real control on the navigation side, including when the sidebar is hidden.
+  if (toggle.parentElement !== host) host.append(toggle);
+  tools.hidden = open;
   document.getElementById('shell').dataset.sidebarCollapsed = String(!open);
   sidebar.hidden = !open;
   sidebar.inert = !open;
@@ -41,19 +56,16 @@ function applySidebar() {
   document.getElementById('sidebar-backdrop').hidden = !modal;
   workspace.inert = modal;
   rail.inert = modal;
-  const toggle = document.querySelector('[data-sidebar-toggle]');
   if (toggle) {
     const label = tr(open ? '收起侧栏' : '展开侧栏');
     toggle.setAttribute('aria-expanded', String(open));
     toggle.title = label;
-    toggle.querySelector('span').textContent = label;
-    if ((!open && focusWasInside) || focusToggleAfterNavigation || (!mobile.matches && document.activeElement?.matches('.sidebar-dismiss'))) {
+    toggle.setAttribute('aria-label', label);
+    if ((!open && focusWasInside) || focusToggleAfterNavigation || focusWasToggle) {
       toggle.focus({ preventScroll:true });
       focusToggleAfterNavigation = false;
     }
   }
-  const close = sidebar.querySelector('[data-sidebar-close]');
-  close.textContent = tr('关闭侧栏');
 }
 
 function closeMobile({ restoreFocus = true } = {}) {
@@ -73,7 +85,7 @@ export function bindCompactLayout() {
         try { localStorage.setItem(SIDEBAR_KEY, desktopCollapsed ? 'collapsed' : 'expanded'); } catch { /* Memory-only. */ }
       }
       applySidebar();
-      if (mobileOpen) document.querySelector('#sidebar [data-sidebar-close]').focus();
+      if (mobileOpen) sidebarToggle().focus();
       return;
     }
     if (event.target.closest('[data-sidebar-close]')) { closeMobile(); return; }
@@ -111,11 +123,13 @@ export function bindCompactLayout() {
   applySidebar();
 }
 
-export function stageDescription(run, item) {
-  const key = JSON.stringify([run.id, item.id]);
+export function stageDescription(run, item, kind = 'instruction') {
+  const review = kind === 'review';
+  const content = review ? item.review.comment : item.instruction;
+  const key = JSON.stringify([run.id, item.id, kind]);
   const open = projectId === run.id && expandedStages.has(key);
-  const id = 'stage-instruction-' + encodeURIComponent(run.id) + '-' + encodeURIComponent(item.id);
-  return `<div class="stage-description" data-stage-description="${esc(key)}" data-stage-project="${esc(run.id)}"><p class="stage-instruction" id="${esc(id)}" data-expanded="${open}">${esc(item.instruction)}</p><button type="button" class="tiny stage-description-toggle" data-stage-toggle aria-expanded="${open}" aria-controls="${esc(id)}" hidden>${tr(open ? '收起详情' : '展开详情')}</button></div>`;
+  const id = 'stage-' + kind + '-' + encodeURIComponent(run.id) + '-' + encodeURIComponent(item.id);
+  return `<div class="stage-description${review ? ' agenda-review' : ''}" data-stage-description="${esc(key)}" data-stage-project="${esc(run.id)}" data-stage-kind="${kind}">${review ? `<b>${tr('退回意见：')}</b>` : ''}<p class="stage-instruction" id="${esc(id)}" data-expanded="${open}">${esc(content)}</p><button type="button" class="tiny stage-description-toggle" data-stage-toggle aria-expanded="${open}" aria-controls="${esc(id)}" hidden>${tr(open ? '收起详情' : '展开详情')}</button></div>`;
 }
 
 function setStageExpanded(section, open) {
