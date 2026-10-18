@@ -12,6 +12,7 @@ import { renderCard, renderDetail } from "../modules/index.js";
 import { deliveryView } from './delivery-ui.js';
 import { agentEvidence } from './centers.js';
 import { executionPanel, conversionButton } from './execution-ui.js';
+import { stageDescription } from './compact-layout.js';
 
 // ---------- 指挥舱 / 事业部 ----------
 
@@ -302,7 +303,7 @@ function departmentItemCard(run, item) {
   const owner = agent(item.ownerAgentId);
   return ui`<article class="card department-stage ${done ? "stage-done" : ""}">
     <div class="row"><div><div class="eyebrow">${esc(item.role.toUpperCase())}</div><div class="h">${esc(tr(item.label))}</div></div><span class="chip ${done ? "ok" : actionable ? "doing" : ""}">${esc(tr(DEPARTMENT_STATUS[item.status] || item.status))}</span></div>
-    <p>${esc(item.instruction)}</p>
+    ${stageDescription(run, item)}
     ${["director", "reviewer", "secretary"].includes(item.role) && item.ownerAgentId === "codex" ? `<div class="actions"><button type="button" class="solid" data-act="codex-run" data-run-id="${esc(run.id)}" data-role="${esc(item.role)}" ${item.status !== "queued" || codexBusy ? "disabled" : ""}>${codexBusy ? tr("Codex 总管工作中…") : item.role === "director" ? tr("交给 Codex 总管拆解") : item.role === "secretary" ? tr("交给 Codex 最终整合") : tr("交给 Codex 独立复核")}</button></div><p class="k">${codexJob ? esc(codexJob.status === "failed" ? codexJob.error : codexJob.status === "done" ? tr("Codex 成果已自动保存") : tr("可切换页面，成果自动保存")) : tr("使用已登录的 ChatGPT 权益；请只提供已脱敏内容。")}</p>` : ""}
     <div class="meta"><span class="chip">承办：${esc(owner.name)}</span><span class="chip">引擎：${esc(["cursor", "workbuddy"].includes(item.ownerAgentId) ? tr("外部成员领取执行") : item.engine === "current-model" ? tr("待真实执行通道") : item.engine)}</span><span class="chip">执行 ${Number(item.attempts || 0)} 次</span></div>
     ${item.review && item.review.verdict === "reject" ? ui`<div class="agenda-review"><b>退回意见：</b>${esc(item.review.comment)}</div>` : ""}

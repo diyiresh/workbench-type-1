@@ -191,3 +191,8 @@ flowchart TB
 The project execution panel and Agent's latest attempt use the same ledger. Registration, process startup and member self-reports are distinct from completion. Unverified historical details remain unknown; refresh only reads. There is at most one active execution per member and three attempts per input, while the existing three-rejection review budget remains in force. Pause/resume does not adopt old results. Reconciliation does not automatically execute again.
 
 WorkBuddy's intentional scheduler pause remains unchanged. Skill injection uses explicitly bound published versions and does not modify global rules. Receipts do not prove actual adoption. See SPEC-execution-governance.md for interfaces, validation and limits. Knowledge browsing and VaultRAG auto-start remain future work.
+
+
+## Compact layout (2026-10-18)
+
+Chinese primary labels now use four characters, with natural English equivalents. Existing routes and business text remain intact. The persistent header toggle hides or restores the secondary sidebar without replacing unsaved form inputs. Desktop preference is browser-local; narrow screens use a closable drawer. Stage instructions show four lines initially, with Show details / Hide details for longer text. Full text, status, actions and stage outputs remain available. See SPEC-compact-layout.md.

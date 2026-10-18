@@ -1,8 +1,8 @@
 // Canonical public routes; legacy view IDs stay internal to preserve existing workflows.
 export const NAVIGATION = [
-  ['home', '首页'], ['projects', '项目中心'], ['agents', 'Agent 中心'],
+  ['home', '工作首页'], ['projects', '项目中心'], ['agents', '成员中心'],
   ['agenda', '每日行程'], ['briefs', '简报中心'], ['reports', '工作报告'],
-  ['assets', '资产中心'], ['learn', '学习'], ['life', '生活'], ['set', '设置'],
+  ['assets', '资产中心'], ['learn', '学习成长'], ['life', '生活管理'], ['set', '系统设置'],
 ].map(([id, name]) => ({ id, name }));
 
 export function sectionFor(primary) {

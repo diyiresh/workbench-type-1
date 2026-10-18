@@ -47,7 +47,7 @@ const server=createServer();
     await page.goto(base+'/#ops/weekly');assert.equal(await page.locator('#report-body').inputValue(),'报告正文：设置与归档');
     await page.goto(base+'/#set');await page.locator('#language-select').selectOption('zh-CN');await page.getByRole('button',{name:'Apply language',exact:true}).click();
     await page.waitForFunction(()=>document.documentElement.lang==='zh-CN');
-    assert.equal(await page.locator('[data-primary="set"]').first().textContent(),'设置');
+    assert.equal(await page.locator('[data-primary="set"]').first().textContent(),'系统设置');
     await page.reload();await page.locator('#language-select').waitFor();assert.equal(await page.locator('#language-select').inputValue(),'zh-CN');
     await page.goto(base+'/#set/help');await page.locator('#logic-document svg').first().waitFor({timeout:45000});
     await page.getByRole('button',{name:'放大查看',exact:true}).first().click();await page.locator('dialog[open]').waitFor();await page.locator('dialog button').click();

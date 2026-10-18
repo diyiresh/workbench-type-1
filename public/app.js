@@ -20,6 +20,8 @@ import { NAVIGATION as PRIMARY, resolveRoute, sectionFor, moduleTarget } from '.
 import { businessProjectsView, assetsView, setCapabilities } from './js/centers.js';
 import { mountSkillStudio, bindSkillSources } from './js/skill-studio-ui.js';
 import { mountExecution, bindConversion } from './js/execution-ui.js';
+import { sidebarToggle, bindCompactLayout, mountCompactLayout } from './js/compact-layout.js';
+bindCompactLayout();
 bindSkillSources();
 bindConversion();
 
@@ -188,14 +190,14 @@ function channels() {
   const hit = (t) => !q || String(t).toLowerCase().includes(q);
   let html = "";
   if (primary === "home") {
-    html += ui`<div class="sec">首页</div>${channelBtn("all", tr("全部模块"))}<a class="ch" href="#home/decisions">${tr("风险与决策")}</a>`;
+    html += ui`<div class="sec">工作首页</div>${channelBtn("all", tr("全部模块"))}<a class="ch" href="#home/decisions">${tr("风险与决策")}</a>`;
     html += ui`<div class="sec">模块（可拖到工作区改序）</div>`;
     html += modulesSorted()
       .filter((m) => hit(m.title))
       .map((m) => channelBtn(m.id, m.title, String(m.importance || "")))
       .join("");
   } else if (primary === "deck") {
-    html += ui`<div class="sec">首页</div><a class="ch" href="#home/all">总览</a>${channelBtn("all", tr("风险与决策"))}`;
+    html += ui`<div class="sec">工作首页</div><a class="ch" href="#home/all">总览</a>${channelBtn("all", tr("风险与决策"))}`;
   } else if (primary === "department" || primary === "work") {
     const runs = (getStore().departmentRuns || []).filter((run) => hit(run.title + run.goal)).slice().sort((a,b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)));
     html += ui`<div class="sec">项目中心</div><a class="ch ${primary === 'work' && secondary === 'all' ? 'active' : ''}" href="#projects/business">业务项目</a><a class="ch ${primary === 'department' && secondary === 'all' ? 'active' : ''}" href="#projects/all">协作任务</a><a class="ch ${secondary === 'new' ? 'active' : ''}" href="#projects/new">新建协作任务</a>`;
@@ -220,7 +222,7 @@ function channels() {
     html += ui`<div class="sec">工作报告</div>`;
     html += OPS.filter((o) => o.id !== "today" && hit(o.name)).map((o) => channelBtn(o.id, tr(o.name))).join("");
   } else if (primary === "crew") {
-    html += ui`<div class="sec">Agent 中心</div>${channelBtn("all", tr("全部成员"))}`;
+    html += ui`<div class="sec">成员中心</div>${channelBtn("all", tr("全部成员"))}`;
     html += (getStore().agents || [])
       .filter((a) => hit(a.name + a.role))
       .map((a) => {
@@ -230,14 +232,14 @@ function channels() {
       .join("");
   } else if (primary === "learn") {
     const plans = ((getStore().lifeSystem || {}).learningPlans || []).filter((x) => x.status === "active");
-    html += ui`<div class="sec">学习战线</div>${channelBtn("all", tr("繁星与银河"), plans.length ? ui`${plans.length} 个计划` : "")}`;
+    html += ui`<div class="sec">学习成长</div>${channelBtn("all", tr("繁星与银河"), plans.length ? ui`${plans.length} 个计划` : "")}`;
   } else if (primary === "life") {
     const todayRuns = ((getStore().lifeSystem || {}).habitRuns || []).filter((x) => x.date === ymd());
-    html += ui`<div class="sec">生活战线</div>${channelBtn("all", tr("繁星与银河"), todayRuns.length ? ui`${todayRuns.length} 项今日习惯` : "")}`;
+    html += ui`<div class="sec">生活管理</div>${channelBtn("all", tr("繁星与银河"), todayRuns.length ? ui`${todayRuns.length} 项今日习惯` : "")}`;
   } else if (primary === "memory") {
     html += ui`<div class="sec">资产中心</div>${channelBtn("all", tr("总览"))}${channelBtn("lessons", tr("经验与教训"))}${channelBtn("skills", tr("技能沉淀"))}${channelBtn("prompts", tr("提示词"))}${channelBtn("knowledge", tr("知识来源"))}${channelBtn("extensions", tr("扩展能力"))}`;
   } else {
-    html += ui`<div class="sec">设置</div>${channelBtn("all", tr("简报与偏好"))}${channelBtn("help", tr("使用说明与逻辑图"))}`;
+    html += ui`<div class="sec">系统设置</div>${channelBtn("all", tr("简报与偏好"))}${channelBtn("help", tr("使用说明与逻辑图"))}`;
   }
   $("channels").innerHTML = html;
   $("ws-name").textContent = tr("BEN · 一人公司");
@@ -251,18 +253,18 @@ function currentModule() {
 function workspace() {
   const m = currentModule();
   const titleMap = {
-    home: secondary === "all" ? tr("首页") : (m || {}).title || "",
+    home: secondary === "all" ? tr("工作首页") : (m || {}).title || "",
     deck: tr("风险与决策"),
     department: ["all","new"].includes(secondary) ? tr("项目中心") : ((getStore().departmentRuns || []).find((run) => run.id === secondary) || {}).title || tr("项目中心"),
     agenda: tr("每日行程"),
     briefs: secondary === "all" ? tr("简报中心") : ((getStore().briefSources || []).find((x) => x.id === secondary) || {}).name || tr("简报中心"),
     ops: tr((OPS.find((o) => o.id === secondary) || { name: "工作报告" }).name),
-    crew: secondary === "all" ? tr("Agent 中心") : agent(secondary).name,
+    crew: secondary === "all" ? tr("成员中心") : agent(secondary).name,
     work: secondary === "all" ? tr("项目中心") : (m || {}).title || "",
-    learn: tr("学习战线"),
-    life: tr("生活战线"),
+    learn: tr("学习成长"),
+    life: tr("生活管理"),
     memory: tr("资产中心"),
-    set: tr("设置"),
+    set: tr("系统设置"),
   };
   const ledeMap = {
     home: tr("今日重点、跨模块入口与待决策事项。"),
@@ -278,7 +280,7 @@ function workspace() {
     memory: tr("从经验到技能，保留来源、确认和版本；知识检索沿用现有资料库。"),
     set: tr("简报自动化、指令规则与导出。"),
   };
-  $("ws-head").innerHTML = `<div><h1>${esc(["home","department","briefs","crew","work"].includes(primary) && secondary!=="all" ? titleMap[primary] : tr(titleMap[primary] || ""))}</h1><p>${esc(ledeMap[primary] || "")}</p></div><button type="button" class="ghost" data-act="manage-records">${tr(tr("管理与归档"))}</button>`;
+  $("ws-head").innerHTML = `<div class="workspace-heading">${sidebarToggle()}<div class="workspace-title"><h1>${esc(["home","department","briefs","crew","work"].includes(primary) && secondary!=="all" ? titleMap[primary] : tr(titleMap[primary] || ""))}</h1><p>${esc(ledeMap[primary] || "")}</p></div></div><button type="button" class="ghost" data-act="manage-records">${tr(tr("管理与归档"))}</button>`;
 
   const body = safe(() => {
     if (primary === "home") return secondary === "all" ? V.homeAllView(overviewFilter) : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
@@ -334,6 +336,7 @@ function workspace() {
   bindDepartment();
   mountSkillStudio();
   mountExecution();
+  mountCompactLayout();
   syncComposer();
   if (primary === 'crew' || primary === 'memory') void refreshCapabilities();
   if (primary === 'memory' && secondary === 'knowledge') void refreshVaultStatus();

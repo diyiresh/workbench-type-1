@@ -155,4 +155,31 @@ table.deck{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .execution-panel code { overflow-wrap:anywhere; }
 .execution-dialog { width:min(720px,90vw); max-height:90vh; overflow:auto; color:var(--ink); background:var(--paper); border:1px solid var(--line); }
 .execution-dialog::backdrop { background:rgba(0,0,0,.45); }
+/* Compact navigation preserves the workspace DOM and its unfinished inputs. */
+#shell { --rail-width:112px; }
+#shell[data-sidebar-collapsed="true"] { grid-template-columns:var(--rail-width) minmax(0,1fr); }
+#sidebar[hidden] { display:none; }
+.rail-btn { min-height:48px; flex-shrink:0; text-align:center; white-space:normal; line-height:1.3; }
+.rail-label { overflow-wrap:anywhere; }
+.workspace-heading { display:flex; align-items:center; gap:12px; flex:1 1 240px; min-width:0; }
+.workspace-title { min-width:0; overflow-wrap:anywhere; }
+.sidebar-toggle { display:inline-flex; align-items:center; justify-content:center; gap:6px; flex-shrink:0; }
+.sidebar-toggle svg { flex-shrink:0; }
+.sidebar-dismiss { display:none; }
+.stage-description { min-width:0; margin:12px 0; }
+.department-stage { min-width:0; }
+.stage-instruction { white-space:pre-wrap; overflow-wrap:anywhere; margin:0 0 8px; }
+.stage-instruction[data-expanded="false"] { display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
+.stage-description-toggle { color:var(--accent-deep); }
+@media(max-width:980px) { #shell { --rail-width:100px; } }
+@media(max-width:720px) {
+  #shell { --rail-width:92px; }
+  #shell[data-sidebar-collapsed] { grid-template-columns:var(--rail-width) minmax(0,1fr); }
+  #sidebar.open { position:fixed; left:var(--rail-width); width:min(280px,calc(100vw - var(--rail-width) - 12px)); z-index:16; }
+  #sidebar .ws-name { position:relative; padding-right:82px; }
+  .sidebar-dismiss { display:block; position:absolute; right:8px; top:16px; }
+  #sidebar-backdrop:not([hidden]) { position:fixed; inset:0; background:rgba(0,0,0,.42); z-index:15; }
+  .workspace-heading { flex-basis:100%; gap:9px; }
+  .sidebar-toggle { font-size:11px; padding:7px; }
+}
 @media(max-width:760px) { .skill-compare { grid-template-columns:1fr; } }
