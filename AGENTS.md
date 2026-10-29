@@ -12,6 +12,16 @@ WorkBuddy 调度遵从用户明确选择，不得擅自启停。2026-10-18 15:21
 
 已发布技能可在项目房间明确绑定到阶段，固定版本并核验实际哈希；不改全局规则、不自动判为实际采用。单独技能测试仍只支持 Codex。状态回执、正文复核和实际文件交付验收各自独立。
 
+## v2 部门协作
+
+`POST /api/departments/runs` 只有显式 `v2: true` 才建立 Boss → Lead → Room。省略时仍是原来的主管、执行、独立复核、整合四阶段，旧接口保持可用。组织树用 `GET /api/departments/runs/<runId>/org`：董事长只提供目标与约束，主管对应 `orgRole: "lead"`，每个执行房间有 `roomId` 与 `parentItemId`。
+
+房间领取不新开执行器，也不要自行启动 WorkBuddy。先看 org 里自己的 `itemId`，再走现有 `POST /api/agents/claim` 或 WorkBuddy 的 `/api/workbuddy/claim`。执行人不能复核自己的房间。
+
+同一输入最多三次。房间上的 `circuitBreaker.exhausted` 为真时，不要发起第 4 次相同尝试；主管门禁返回 `execution_budget_exhausted`，原因在 `circuitBreaker.reason`。换输入后预算按执行治理的输入哈希重新计算。
+
+交接必须由主管写入台账，不能把项目群聊粘贴当作交接。`POST /api/departments/runs/<runId>/handoff`（仅本机）至少提交 `summary`，`agentId` 必须是主管；省略 `agentId` 时按该房间主管记。包里保留 `decisions`、`openQuestions`、`artifacts`、`kvHints`，以及九段 `sections`：目标、约束、不超过 5 个活跃文件、改动、契约、黑名单、阻塞、下一步、验收。`source: "chat"` 或 `toolSealed: false` 会被拒绝。`dispatch: true` 只询问能否再试一次，不会启动成员。
+
 ## 技能工作室（第一迭代）
 
 资产中心的技能工作室将用户选定的经验/教训/项目消息生成规则模板草稿，人工编辑并确认发布后才写入实际 Markdown 版本。`GET /api/skill-library`、`GET /api/skill-library/<id>` 查询；本机 POST 的 draft/publish/restore/state/cases/run/evaluate 操作须遵守预期修订与幂等键，详情见 `docs/SPEC-skill-studio.md`。不能通过旧 `/api/skills` 说明卡冒充已发布版本，也不能绕过用户确认发布。
