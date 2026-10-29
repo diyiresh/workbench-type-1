@@ -15,6 +15,10 @@ const governance = require('./lib/execution-governance');
 const executionCommands = require('./lib/execution-commands');
 const agendaNotes = require('./lib/agenda-notes');
 const agendaNoteCleanup = require('./lib/agenda-note-cleanup');
+const providerPolicy = require('./lib/provider-policy');
+const reportJobs = require('./lib/agenda-report-jobs');
+const reportExport = require('./lib/agenda-report-export');
+const agendaReportManager = reportJobs.createManager({ readStore, writeStore });
 const codex = require("./lib/codex");
 const { createManager } = require("./lib/codex-jobs");
 const codexManager = createManager({ readStore, writeStore });
@@ -155,7 +159,7 @@ function isLoopback(req) {
 
 async function ollamaStatus(store) {
   const cfg = (store.remote && store.remote.llm) || {};
-  if (cfg.provider === "openai") return onlineCompatibleStatus(cfg);
+  if (cfg.provider === "openai") return onlineCompatibleStatus(cfg, { paused: providerPolicy.paused(store, cfg) });
   const baseUrl = (cfg.baseUrl || "http://127.0.0.1:11434").replace(/\/$/, "");
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 6000);
@@ -290,7 +294,7 @@ async function openAgendaMaterial(store, agendaId, materialIndex) {
   }
 }
 
-async function handleApi(req, res, url) {
+async function handleApi(req, res, url, reportManager = agendaReportManager) {
   const method = req.method;
   const p = url.pathname;
   let store = readStore();
@@ -384,7 +388,7 @@ async function handleApi(req, res, url) {
       const result=queue.claim(path.join(DATA,'workbuddy-queue'),{eligible:r=>queue.eligibleRequest(fresh,r),onClaim:r=>{
         const a=governance.get(fresh,r.attemptId);if(a.jobId!==r.jobId||a.agentId!=='workbuddy')throw governance.error('result_identity_mismatch');
         if(a.purpose==='stage')agentDispatch.claim(fresh,{agentId:'workbuddy',runId:a.runId,attemptId:a.id,idempotencyKey:body.idempotencyKey});else governance.claim(fresh,a,{claimKey:body.idempotencyKey,workerId:body.workerId||'workbuddy-desktop'});
-        const j=[...(fresh.externalJobs||[]),...(fresh.chatJobs||[])].find(j=>j.id===a.jobId);if(j)j.status='doing';writeStore(fresh);return {attemptId:a.id,claimId:a.claimId,inputHash:a.inputHash};
+        const j=[...(fresh.externalJobs||[]),...(fresh.chatJobs||[]),...(fresh.agendaReportJobs||[])].find(j=>j.id===a.jobId||j.attemptId===a.id);if(j)j.status='doing';writeStore(fresh);return {attemptId:a.id,claimId:a.claimId,inputHash:a.inputHash};
       }});
       executionCommands.remember(fresh,'workbuddy-claim',body,result);writeStore(fresh);return sendJson(res,200,result);
     }catch(e){return sendJson(res,409,{error:e.code||e.message});}
@@ -823,22 +827,30 @@ async function handleApi(req, res, url) {
     } catch (error) { return sendJson(res, error.status || 400, { error: error.message }); }
   }
 
-  if (method === "POST" && p === "/api/agenda/reports/draft") {
-    const body = await readBody(req) || {};
-    const draft = buildAgendaReportSeed(store, body.view, body.anchorDate);
-    if (!draft.entries.length) return sendJson(res, 400, { error: "no_agenda_entries" });
+  const reportJobRoute = p.match(/^\/api\/agenda\/reports\/jobs\/([a-zA-Z0-9-]+)(?:\/(started|retry|reconcile))?$/);
+  if (p === '/api/agenda/reports/draft' || reportJobRoute || p === '/api/agenda/reports/jobs') {
+    if (!isLoopback(req)) return sendJson(res,403,{error:'report_local_only'});
     try {
-      const text = await chat(store, {
-        system: reportSystemPrompt(draft.kind),
-        prompt: draft.body,
-        temperature: 0.4,
-        maxTokens: 450,
-        timeoutMs: 120000,
-      });
-      return sendJson(res, 200, { ...draft, ...modelReportDraft(draft, text), entries: undefined });
-    } catch (err) {
-      return sendJson(res, 500, { error: String((err && err.message) || err) });
-    }
+      if (method === 'GET' && p === '/api/agenda/reports/jobs') return sendJson(res,200,{jobs:(readStore().agendaReportJobs||[]).map(j=>reportManager.get(j.id))});
+      if (method === 'POST' && p === '/api/agenda/reports/draft') return sendJson(res,202,{job:reportManager.start(await readBody(req)||{})});
+      if (method === 'GET' && reportJobRoute && !reportJobRoute[2]) return sendJson(res,200,{job:reportManager.get(reportJobRoute[1])});
+      if (method === 'POST' && reportJobRoute?.[2]) return sendJson(res,200,{job:reportManager.action(reportJobRoute[1],reportJobRoute[2],await readBody(req)||{})});
+      return sendJson(res,405,{error:'method_not_allowed'});
+    } catch(err) { return sendJson(res,409,{error:err.code||err.message}); }
+  }
+
+  if (['/api/agenda/reports/export/config','/api/agenda/reports/export/preview','/api/agenda/reports/export/save'].includes(p)) {
+    if (!isLoopback(req)) return sendJson(res,403,{error:'report_export_local_only'});
+    try {
+      if (method==='GET' && p.endsWith('/config')) return sendJson(res,200,{directory:reportExport.directory(readStore()),folder:reportExport.FOLDER});
+      if (method!=='POST') return sendJson(res,405,{error:'method_not_allowed'});
+      const body=await readBody(req)||{},fresh=readStore();
+      if (p.endsWith('/preview')) return sendJson(res,200,reportExport.preview(fresh,body));
+      if (!p.endsWith('/save')) return sendJson(res,405,{error:'method_not_allowed'});
+      const exported=reportExport.save(fresh,body);
+      try { writeStore(fresh); } catch(error) { return sendJson(res,500,{error:'report_export_ledger_failed',message:'文件已写入，但台账登记失败；请保留草稿后重试。',file:exported.file}); }
+      return sendJson(res,200,{export:exported,report:fresh.reports.find(r=>r.id===exported.reportId)});
+    } catch(error) { return sendJson(res,409,{error:error.code||'report_export_failed',message:error.message}); }
   }
 
   if (method === "POST" && p === "/api/remote/outbox") {
@@ -858,6 +870,7 @@ async function handleApi(req, res, url) {
 
   if (method === "PATCH" && p === "/api/remote") {
     const body = await readBody(req) || {};
+    if (Object.hasOwn(body,'providerPauses')) return sendJson(res,400,{error:'use_provider_pause_endpoint'});
     store.remote = { ...store.remote, ...body, outbox: store.remote.outbox };
     writeStore(store);
     return sendJson(res, 200, store.remote);
@@ -1094,6 +1107,7 @@ async function handleApi(req, res, url) {
     const cfg = { ...((store.remote && store.remote.llm) || {}) };
     cfg.hasKey = Boolean(cfg.apiKey);
     delete cfg.apiKey; // 密钥不回传前端，只回传是否已设置
+    cfg.siliconflowPaused = !!store.remote?.providerPauses?.siliconflow?.paused;
     return sendJson(res, 200, cfg);
   }
 
@@ -1107,9 +1121,20 @@ async function handleApi(req, res, url) {
     const prevKey = (store.remote.llm && store.remote.llm.apiKey) || "";
     const next = { ...(store.remote.llm || {}), ...body };
     if (!body.apiKey || body.apiKey === "__KEEP__") next.apiKey = prevKey;
+    delete next.siliconflowPaused;
+    if (providerPolicy.paused(store,next)) next.enabled = false;
     store.remote.llm = next;
     writeStore(store);
     return sendJson(res, 200, { ok: true, hasKey: Boolean(next.apiKey) });
+  }
+
+  if (p === '/api/llm/provider-pause') {
+    if (!isLoopback(req)) return sendJson(res,403,{error:'provider_pause_local_only'});
+    if (method === 'GET') return sendJson(res,200,{provider:'siliconflow',paused:!!store.remote?.providerPauses?.siliconflow?.paused});
+    if (method === 'POST') {
+      try { const body=await readBody(req)||{},fresh=readStore();const result=providerPolicy.setPause(fresh,body);writeStore(fresh);return sendJson(res,200,result); }
+      catch(error) { return sendJson(res,400,{error:error.message}); }
+    }
   }
 
   if (method === "POST" && p === "/api/llm/test") {
@@ -1250,6 +1275,9 @@ async function handleApi(req, res, url) {
   const collMatch = p.match(/^\/api\/(tasks|specs|memories|lessons|reports|plans|events|skills|modules|inbox|prompts|agendas)$/);
   if (collMatch && method === "POST") {
     const body = await readBody(req);
+    if (collMatch[1] === 'reports') {
+      try { reportJobs.validateSave(store,body||{}); } catch(error) { return sendJson(res,409,{error:error.code||error.message}); }
+    }
     const saved = touch(store, collMatch[1], body || {});
     writeStore(store);
     return sendJson(res, 200, saved);
@@ -1280,13 +1308,14 @@ async function handleApi(req, res, url) {
   return false;
 }
 
-function createServer() {
+function createServer({ reportExecute } = {}) {
   ensureDirs();
+  const reportManager = reportExecute ? reportJobs.createManager({readStore,writeStore,execute:reportExecute}) : agendaReportManager;
   return http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, `http://${HOST}:${PORT}`);
       if (url.pathname.startsWith("/api/")) {
-        const handled = await handleApi(req, res, url);
+        const handled = await handleApi(req, res, url, reportManager);
         if (handled === false) notFound(res);
         return;
       }
@@ -1303,6 +1332,7 @@ async function main() {
   codexManager.recover();
   {const s=readStore();if(governance.recover(s))writeStore(s);}
   skillManager.recover();
+  agendaReportManager.recover();
   const store = readStore();
   if (importLegacyDailyPlanReminder(store)) writeStore(store);
   const server = createServer();

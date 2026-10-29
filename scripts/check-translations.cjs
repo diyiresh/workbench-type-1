@@ -3,6 +3,7 @@ const acorn=require('acorn');
 const files=['public/app.js','public/js/core.js','public/js/centers.js','public/js/views.js','public/js/archive-ui.js','public/js/help.js','public/js/delivery-ui.js','public/js/agenda-notes-ui.js','public/js/agenda-note-cleanup-ui.js',...fs.readdirSync('public/modules').filter(f=>f.endsWith('.js')).map(f=>'public/modules/'+f)];
 const entries=acorn.parse(fs.readFileSync('public/js/translations.js','utf8'),{ecmaVersion:'latest',sourceType:'module'}).body[0].declaration.declarations[0].init.properties;
 const translations=new Set(entries.map(p=>p.key.value));
+files.push('public/js/agenda-report-ui.js');
 files.push('public/js/skill-studio-ui.js');
 files.push('public/js/execution-ui.js');
 files.push('public/js/compact-layout.js');

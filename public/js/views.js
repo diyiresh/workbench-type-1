@@ -183,13 +183,13 @@ export function opsView(kind, secondaryName) {
       <button type="button" class="solid" data-act="gen" data-kind="${esc(kind)}">生成${esc(secondaryName || kind)}</button>
     </div>
     ${cur
-      ? ui`<textarea class="full" id="report-body" style="min-height:280px">${esc(cur.body)}</textarea>
+      ? ui`${cur.status==='historical-draft' ? ui`<p class="report-historical-status">历史草稿：来源已变化，未作为最新事实确认。</p>` : ''}${cur.obsidianFile ? ui`<p>已登记的 Obsidian 文件：<code style="white-space:normal;overflow-wrap:anywhere">${esc(cur.obsidianFile.path)}</code></p><p class="k">修改报告库正文不会覆盖已导出的版本。</p>` : ''}<textarea class="full" id="report-body" style="min-height:280px">${esc(cur.body)}</textarea>
          <div class="actions" style="margin-top:8px"><button type="button" class="ghost" data-act="save-report" data-id="${esc(cur.id)}">保存人话</button></div>`
       : ui`<div class="card">还没有这份文件。点上方生成初稿。</div>`}
     <div class="k" style="margin-top:16px">历史</div>
     ${reports
       .slice(1)
-      .map((r) => `<div class="msg"><b>${esc(r.title)}</b><div class="who">${fmt(r.createdAt)}</div></div>`)
+      .map((r) => `<div class="msg"><b>${esc(r.title)}</b>${r.status==='historical-draft'?`<span class="chip">${tr('历史草稿')}</span>`:''}<div class="who">${fmt(r.createdAt)}</div></div>`)
       .join("")}`;
 }
 
@@ -608,10 +608,12 @@ function groupedAgenda(entries) {
   return [...groups.entries()];
 }
 
-export function agendaView(date, mode = "day", reportDraft = null, filter = "all") {
+export function agendaView(date, mode = "day", reportDraft = null, filter = "all", options = {}) {
   const s = getStore();
   const labels = { day: tr("日"), week: tr("周"), month: tr("月") };
   const reportLabels = { day: tr("日报"), week: tr("周报"), month: tr("月报") };
+  const reportTitles = {day:tr('基于本日已录入事项与复盘生成日报'),week:tr('基于本周已录入事项与复盘生成周报'),month:tr('基于本月已录入事项与复盘生成月报')};
+  const reportActions = {day:tr('生成日报'),week:tr('生成周报'),month:tr('生成月报')};
   const range = periodForAgenda(mode, date);
   const entries = (s.agendas || []).filter((item) => item.date >= range.start && item.date <= range.end)
     .slice().sort((a, b) => `${a.date}|${a.time || "99:99"}`.localeCompare(`${b.date}|${b.time || "99:99"}`));
@@ -634,8 +636,12 @@ export function agendaView(date, mode = "day", reportDraft = null, filter = "all
   const emptyHtml = selected === "all" ? systemFragment('<div class="agenda-empty">这个范围还没有已录入日程。</div>') : systemFragment('<div class="agenda-empty">当前范围没有符合筛选条件的日程。</div>');
   const entriesHtml = visibleEntries.length ? visibleEntries.map((item) => agendaItem(item)).join("") : emptyHtml;
   const groupedHtml = groupedAgenda(visibleEntries).map(([day, list]) => ui`<section class="agenda-day-group"><div class="section-head"><div><div class="eyebrow">${esc(dateText(day))}</div><h2>${list.length} 项已录入日程</h2></div><button type="button" class="tiny" data-act="agenda-open-day" data-date="${esc(day)}">进入日视图</button></div>${list.map((item) => agendaItem(item, { compact: false })).join("")}</section>`).join("") || emptyHtml;
-  const reportHtml = reportDraft ? ui`<section class="card agenda-report"><div class="section-head"><div><div class="eyebrow">AI DRAFT · 可编辑</div><h2>${esc(reportDraft.title)}</h2></div><button type="button" class="tiny" data-act="agenda-report-discard">放弃草稿</button></div><p class="agenda-report-notice ${reportDraft.modelApplied === false ? "is-warning" : ""}">${esc(reportDraft.notice || tr("请核对事实后再保存。"))}</p><textarea id="agenda-report-body" rows="16">${esc(reportDraft.body)}</textarea><div class="actions"><button type="button" class="solid" data-act="agenda-report-save">保存到报告库</button></div></section>` : "";
-  const reportButton = ui`<section class="agenda-report-cta"><div><div class="eyebrow">PERIOD REPORT</div><b>基于本${labels[mode]}已录入事项与复盘生成${reportLabels[mode]}</b><p>仅将本周期事实发送给当前模型路由；不会自动对外发送或保存。</p></div><button type="button" class="solid" data-act="agenda-report-draft">生成${reportLabels[mode]}</button></section>`;
+  const saveLabel = reportDraft?.kind === 'monthly' && reportDraft.sourceJobId ? tr('保存到报告库和 Obsidian') : tr('保存到报告库');
+  const saveChoices = options.exportPreview?.sourceJobId === reportDraft?.sourceJobId && options.exportPreview?.sourceState === 'changed' ? ui`<div class="agenda-report-source-warning" role="status"><p>生成报告后日程来源或执行状态已变化。可以保留当前文字为历史草稿，也可以重新生成。</p><div class="actions"><button type="button" class="solid" data-act="agenda-report-save-historical">保留为历史草稿</button><button type="button" class="ghost" data-act="agenda-report-regenerate">重新生成</button><button type="button" class="ghost" data-act="agenda-report-save-cancel">取消</button></div></div>` : '';
+  const receipt = options.saveReceipt;
+  const receiptHtml = receipt ? ui`<section class="card agenda-report-save-receipt" role="status"><b>${receipt.status === "historical-draft" ? tr("已保存为历史草稿，并写入 Obsidian。") : tr("已保存到报告库，并写入 Obsidian。")}</b><p><code style="white-space:normal;overflow-wrap:anywhere" data-report-export-path>${esc(receipt.file.path)}</code></p><small style="overflow-wrap:anywhere;word-break:break-all">SHA-256 ${esc(receipt.file.sha256)}</small></section>` : '';
+  const reportHtml = reportDraft ? ui`<section class="card agenda-report"><div class="section-head"><div><div class="eyebrow">AI DRAFT · 可编辑</div><h2>${esc(reportDraft.title)}</h2></div><button type="button" class="tiny" data-act="agenda-report-discard">放弃草稿</button></div><p class="agenda-report-notice ${reportDraft.modelApplied === false ? "is-warning" : ""}">${esc(reportDraft.notice || tr("请核对事实后再保存。"))}</p><textarea id="agenda-report-body" data-source-job-id="${esc(reportDraft.sourceJobId || '')}" rows="16">${esc(reportDraft.body)}</textarea>${saveChoices}<div class="actions"><button type="button" class="solid" data-act="agenda-report-save" ${options.saving ? "disabled" : ""}>${saveLabel}</button></div></section>` : "";
+  const reportButton = ui`<section class="agenda-report-cta"><div><div class="eyebrow">PERIOD REPORT</div><b>${reportTitles[mode]}</b><p>仅将本周期事实交给所选成员；返回可编辑草稿，确认后保存。</p>${s.remote?.providerPauses?.siliconflow?.paused ? ui`<p>SiliconFlow 已暂停，配置已保留。</p>` : ""}</div><div class="report-member-controls"><label for="agenda-report-agent">生成成员</label><select id="agenda-report-agent"><option value="codex">Codex</option><option value="cursor">Cursor</option><option value="workbuddy">WorkBuddy</option></select><button type="button" class="solid" data-act="agenda-report-draft">${reportActions[mode]}</button></div><div id="agenda-report-status" role="status" aria-live="polite"></div></section>`;
   return ui`<section class="agenda-hero"><div><div class="eyebrow">AGENDA · 本地单一台账</div><h2>${mode === "day" ? esc(dateText(date)) : ui`${labels[mode]}视图 · ${esc(range.start)} — ${esc(range.end)}`}</h2><p>日程只录一次；日、周、月只是从同一份本机台账查看不同范围。</p></div><div class="agenda-hero-controls"><div class="agenda-view-switch">${switches}</div><label class="date-picker">日期锚点<input id="agenda-date" type="date" value="${esc(date)}" /></label></div></section>
     ${navigator}
     <div class="actions"><button type="button" class="ghost" data-act="agenda-notes">复盘笔记</button></div>
@@ -643,7 +649,7 @@ export function agendaView(date, mode = "day", reportDraft = null, filter = "all
     <div class="agenda-filter-summary" role="status">当前筛选：<b>${filterLabels[selected]}</b><span>${visibleEntries.length} 项日程</span></div>
     ${mode === "day" && slot ? `<section class="plan-strip"><div><div class="eyebrow">WEEKLY INTENT</div><b>${esc(plan.title || tr("本周安排"))}</b></div><ul>${(slot.items || []).map((item) => `<li>${esc(item)}</li>`).join("")}</ul></section>` : ""}
     ${mode === "day" ? ui`<section class="agenda-layout"><form id="agenda-form" class="card agenda-form"><div class="section-head"><div><div class="eyebrow">NEW TIME BLOCK</div><h2>添加行程</h2></div></div><label>时间<input name="time" type="time" value="09:00" /></label><label>事项<input name="title" required placeholder="例如：审阅季度汇报材料" /></label><div class="form-two"><label>分类<select name="category"><option value="工作">工作</option><option value="会议">会议</option><option value="学习">学习</option><option value="生活">生活</option></select></label><label>标签（逗号分隔）<input name="tags" placeholder="公文, 季度汇报" /></label></div><label>备注<textarea name="note" rows="3" placeholder="地点、材料或下一步（可选）"></textarea></label><label>材料存放路径（每行一条）<textarea name="materials" rows="3" placeholder="D:\\工作\\项目\\成果文件.docx&#10;D:\\工作\\项目\\材料文件夹"></textarea></label><label class="check-line"><input name="important" type="checkbox" /> 作为重点事项（开始前 12 小时微信提醒）</label><div class="actions"><button type="button" class="ghost" data-note-suggest>建议</button><button class="solid" type="submit">加入时间轴</button></div><div id="agenda-note-suggestion" role="status"></div></form><section class="agenda-timeline" id="agenda-results"><div class="section-head"><div><div class="eyebrow">TIME LINE</div><h2>当天安排</h2></div><button type="button" class="ghost" data-act="agenda-ai-draft">AI 生成建议</button></div>${entriesHtml}<div id="agenda-ai-output" class="ai-draft" hidden></div></section></section>` : `<section class="agenda-period-list" id="agenda-results">${groupedHtml}</section>`}
-    ${reportHtml}${reportButton}`;
+    ${reportHtml}${receiptHtml}${reportButton}`;
 }
 
 export function memoryView(secondary) {
@@ -718,6 +724,7 @@ export function setView() {
   <div class="card">
     <div class="h">模型路由（基础整理 / AI 生成用）</div>
     <p>本地 Ollama 用于基础汇总和进度整理。Codex 总管使用上方独立通道。</p>
+    ${s.remote?.providerPauses?.siliconflow?.paused ? ui`<p>SiliconFlow 已暂停，配置已保留。</p><button type="button" class="ghost" data-act="resume-siliconflow">明确恢复 SiliconFlow</button>` : ""}
     <div id="llm-status" class="engine-status">正在检测本地 Ollama…</div>
     <label>通道</label>
     <select id="llm-provider" class="full">

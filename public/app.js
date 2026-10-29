@@ -12,6 +12,7 @@ import * as V from "./js/views.js";
 import { t as tr, ui, systemFragment } from "./js/i18n.js";
 import { bindDelivery } from './js/delivery-ui.js';
 import { bindNoteSuggestion, openReviewNote, openNotesManager, resetSuggestion } from './js/agenda-notes-ui.js';
+import { mountAgendaReports, startAgendaReport } from './js/agenda-report-ui.js';
 import { openArchive } from "./js/archive-ui.js";
 import { helpView, renderLogic } from "./js/help.js";
 import { rememberChatPosition, restoreChatPosition } from "./js/chat-scroll.js";
@@ -38,6 +39,7 @@ let briefFilter = "all";
 let overviewFilter = "all";
 const briefPreferenceUpdates = new Set();
 let agendaReportDraft = null;
+let agendaReportExportPreview = null, agendaReportSaveReceipt = null, agendaReportSaving = false, agendaReportSaveCommand = null;
 let agendaEditId = null;
 let agendaEditDraft = null;
 let agendaFormDraft = null;
@@ -251,6 +253,8 @@ function currentModule() {
 }
 
 function workspace() {
+  const reportEditor = $('agenda-report-body');
+  if (reportEditor && agendaReportDraft && (!agendaReportDraft.sourceJobId || reportEditor.dataset.sourceJobId === agendaReportDraft.sourceJobId)) agendaReportDraft.body = reportEditor.value;
   const m = currentModule();
   const titleMap = {
     home: secondary === "all" ? tr("工作首页") : (m || {}).title || "",
@@ -286,7 +290,7 @@ function workspace() {
     if (primary === "home") return secondary === "all" ? V.homeAllView(overviewFilter) : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
     if (primary === "deck") return V.deckView();
     if (primary === "department") return V.departmentView(secondary, departmentGoalDraft);
-    if (primary === "agenda") return V.agendaView(agendaDate, agendaMode, agendaReportDraft, agendaFilter);
+    if (primary === "agenda") return V.agendaView(agendaDate, agendaMode, agendaReportDraft, agendaFilter, {exportPreview:agendaReportExportPreview,saveReceipt:agendaReportSaveReceipt,saving:agendaReportSaving});
     if (primary === "briefs") return V.briefHubView(secondary, briefFilter, briefPreferenceUpdates);
     if (primary === "work") return secondary === "all" ? businessProjectsView() : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
     if (primary === "ops") return V.opsView(secondary === "all" ? "weekly" : secondary, tr((OPS.find((o) => o.id === (secondary === "all" ? "weekly" : secondary)) || {}).name));
@@ -332,6 +336,7 @@ function workspace() {
   bindDrag();
   bindAgenda();
   bindNoteSuggestion(api);
+  mountAgendaReports({api,view:agendaMode,anchorDate:agendaDate,jobs:getStore().agendaReportJobs||[],savedJobIds:(getStore().reports||[]).map(r=>r.sourceJobId).filter(Boolean),hasDraft:()=>!!agendaReportDraft,clearDraft:()=>{agendaReportDraft=null;agendaReportExportPreview=null;},onDraft:draft=>{agendaReportDraft=draft;agendaReportExportPreview=null;render();}});
   bindLearningPlan();
   bindDepartment();
   mountSkillStudio();
@@ -796,6 +801,12 @@ function bindAgenda() {
       }
     }
     if (agendaEditId && agendaEditDraft) {
+      const dateLabel = document.createElement('label');
+      dateLabel.textContent = tr('行程日期');
+      const dateInput = document.createElement('input');
+      dateInput.type = 'date'; dateInput.name = 'date'; dateInput.required = true;
+      dateLabel.append(dateInput);
+      form.querySelector('.section-head').after(dateLabel);
       for (const [name, value] of Object.entries(agendaEditDraft)) {
         const field = form.elements.namedItem(name);
         if (!field) continue;
@@ -823,10 +834,11 @@ function bindAgenda() {
       if (!title) return;
       const original = agendaEditId && (getStore().agendas || []).find(item => item.id === agendaEditId);
       if (agendaEditId && !original) throw new Error(tr("该行程已不存在，请取消修改后刷新。"));
+      const scheduledDate = original ? String(f.get('date') || original.date) : agendaDate;
       await api(agendaEditId ? `/api/agendas/${agendaEditId}` : "/api/agendas", {
         method: agendaEditId ? "PATCH" : "POST",
         body: {
-          date: original ? original.date : agendaDate,
+          date: scheduledDate,
           time: String(f.get("time") || ""),
           title,
           category: String(f.get("category") || ""),
@@ -840,6 +852,11 @@ function bindAgenda() {
           ...(original ? {} : { done: false }),
         },
       });
+      if (original && scheduledDate !== original.date) {
+        agendaDate = scheduledDate;
+        agendaFilter = 'all';
+        agendaReportDraft = null;
+      }
       agendaEditId = null;
       agendaEditDraft = null;
       agendaFormDraft = null;
@@ -856,6 +873,7 @@ function editAgenda(id) {
   if (!item) return;
   agendaEditId = id;
   agendaEditDraft = {
+    date: item.date,
     time: item.time || "", title: item.title || "", category: item.category || "工作",
     tags: (item.tags || []).join(", "), note: item.note || "",
     materials: (item.materials || []).map(material => typeof material === "string" ? material : material.path).join("\n"),
@@ -1147,21 +1165,44 @@ async function openAgendaMaterial(id, index) {
 }
 
 async function draftAgendaReport() {
-  try {
-    agendaReportDraft = await api("/api/agenda/reports/draft", { method: "POST", body: { view: agendaMode, anchorDate: agendaDate } });
-    render();
-  } catch (err) {
-    window.alert("报告未生成：" + (err.message || err) + "。请确认当前模型路由已经启用，且本周期至少录入了一条日程。");
-  }
+  await startAgendaReport();
 }
 
-async function saveAgendaReport() {
+async function saveAgendaReport(historical = false) {
   if (!agendaReportDraft) return;
-  const body = $("agenda-report-body") ? $("agenda-report-body").value.trim() : agendaReportDraft.body;
-  if (!body) return;
-  await api("/api/reports", { method: "POST", body: { ...agendaReportDraft, body } });
+  const body = $("agenda-report-body") ? $("agenda-report-body").value : agendaReportDraft.body;
+  if (!body.trim()) return;
+  if (agendaReportDraft.kind === 'monthly' && agendaReportDraft.sourceJobId) return saveMonthlyReport(body,historical);
+  try { await api("/api/reports", { method: "POST", body: { ...agendaReportDraft, body } }); }
+  catch(error) { window.alert(tr('报告保存失败，当前草稿已保留：') + error.message); return; }
   agendaReportDraft = null;
   await reload();
+}
+
+async function saveMonthlyReport(body, historical) {
+  if (agendaReportSaving) return;
+  const draft = agendaReportDraft;
+  draft.body = body; agendaReportSaving = true; agendaReportSaveReceipt = null;
+  document.querySelectorAll('[data-act="agenda-report-save"],[data-act="agenda-report-save-historical"],[data-act="agenda-report-regenerate"]').forEach(button=>button.disabled=true);
+  let reloadNeeded = false;
+  try {
+    const input={sourceJobId:draft.sourceJobId,sourceHash:draft.sourceHash,body};
+    const preview=await api('/api/agenda/reports/export/preview',{method:'POST',body:input});
+    if (agendaReportDraft !== draft || $('agenda-report-body')?.value !== body) {
+      window.alert(tr('保存确认期间正文已变化，当前修改已保留，请再次保存。')); return;
+    }
+    if (preview.sourceState === 'changed' && !historical) { agendaReportExportPreview=preview; return; }
+    const payload={...input,previewSnapshot:preview.snapshot,confirmedHistorical:historical===true};
+    const identity=JSON.stringify(payload);
+    if (agendaReportSaveCommand?.identity !== identity) agendaReportSaveCommand={identity,key:crypto.randomUUID()};
+    const result=await api('/api/agenda/reports/export/save',{method:'POST',body:{...payload,idempotencyKey:agendaReportSaveCommand.key}});
+    agendaReportSaveReceipt=result.export;agendaReportSaveCommand=null;agendaReportExportPreview=null;reloadNeeded=true;
+    if (agendaReportDraft===draft && $('agenda-report-body')?.value===body) agendaReportDraft=null;
+    else if (agendaReportDraft===draft) draft.notice=tr('已保存所提交版本；保存期间的新修改仍在草稿中，请再次确认保存。');
+  } catch(error) {
+    let detail=error.message;try{const e=JSON.parse(detail);detail=e.message||e.error||detail;}catch{}
+    window.alert(tr('报告保存失败，当前草稿已保留：')+detail);
+  } finally { agendaReportSaving=false;if(reloadNeeded)await reload();else render(); }
 }
 
 async function draftAgendaWithAi() {
@@ -1248,6 +1289,10 @@ document.addEventListener("click", async (e) => {
   if (a === "codex-test") await startCodex({ test: true }, act);
   if (a === "codex-run") await startCodex({ runId: act.dataset.runId, role: act.dataset.role }, act);
   if (a === "save-llm") await saveLlm();
+  if (a === 'resume-siliconflow') {
+    if (!window.confirm(tr('恢复后 SiliconFlow 请求可能产生费用，确认恢复？'))) return;
+    await api('/api/llm/provider-pause',{method:'POST',body:{provider:'siliconflow',paused:false,confirmed:true}}); await reload();
+  }
   if (a === 'save-vault') await saveVault();
   if (a === 'refresh-vault') await refreshVaultStatus();
   if (a === 'search-vault') await searchVault();
@@ -1273,6 +1318,9 @@ document.addEventListener("click", async (e) => {
   if (a === "agenda-open-material") await openAgendaMaterial(act.dataset.id, act.dataset.index);
   if (a === "agenda-report-draft") await draftAgendaReport();
   if (a === "agenda-report-save") await saveAgendaReport();
+  if (a === 'agenda-report-save-historical') await saveAgendaReport(true);
+  if (a === 'agenda-report-regenerate') await startAgendaReport({confirmedReplace:true});
+  if (a === 'agenda-report-save-cancel') { agendaReportExportPreview=null;render(); }
   if (a === "agenda-report-discard") { agendaReportDraft = null; render(); }
   if (a === "habit-toggle") await toggleHabit(act.dataset.id);
   if (a === "learning-session-toggle") await toggleLearningSession(act.dataset.planId, act.dataset.sessionId);
@@ -1397,7 +1445,7 @@ $("composer").addEventListener("submit", (e) => {
 });
 
 $("modal").addEventListener("click", (e) => {
-  if (e.target === $("modal")) $("modal").hidden = true;
+  if (e.target === $("modal") && !$("modal").querySelector('.review-note-editor')) $("modal").hidden = true;
 });
 
 window.addEventListener("hashchange", () => {

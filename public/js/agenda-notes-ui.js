@@ -6,7 +6,7 @@ const model = () => document.getElementById('modal');
 const errorText = error => { try { return JSON.parse(error.message).error || error.message; } catch { return error.message; } };
 const input = form => {
   const values = new FormData(form);
-  return { title: values.get('title'), tags: values.get('tags'), note: values.get('note'), date: document.getElementById('agenda-date')?.value };
+  return { title: values.get('title'), tags: values.get('tags'), note: values.get('note'), date: values.get('date') || document.getElementById('agenda-date')?.value };
 };
 const key = form => JSON.stringify(input(form));
 export function resetSuggestion() { suggestion = null; requestId++; }
@@ -46,6 +46,9 @@ export function openReviewNote(item, api, reload) {
   const original = panel.querySelector('#review-note-original'), message = panel.querySelector('[data-note-message]'), preview = panel.querySelector('[data-note-preview]');
   const summary = panel.querySelector('#review-note-summary'), tags = panel.querySelector('#review-note-keywords'), comparison = panel.querySelector('[data-note-before]');
   let draft = null, previous = null, busy = false;
+  let savedReview = original.value.trim(), savedNoteFields = null;
+  const noteFields = () => JSON.stringify([summary.value, tags.value]);
+  const hasUnsavedChanges = () => original.value.trim() !== savedReview || (draft && noteFields() !== savedNoteFields);
   const attached = () => !modal.hidden && modal.firstElementChild === panel;
   const currentDraft = () => draft && original.value.trim() === draft.original.trim();
   const controls = () => { cleanup.setBusy(busy); panel.querySelectorAll('button:not([data-note-close])').forEach(button => {
@@ -62,11 +65,16 @@ export function openReviewNote(item, api, reload) {
     finally { busy = false; controls(); }
   };
   const saveReview = async () => {
-    await api(`/api/agendas/${encodeURIComponent(item.id)}`, { method: 'PATCH', body: { review: original.value.trim() } });
+    const review = original.value.trim();
+    await api(`/api/agendas/${encodeURIComponent(item.id)}`, { method: 'PATCH', body: { review } });
+    savedReview = review;
     await reload();
     message.textContent = tr('复盘已保存。');
   };
-  panel.querySelector('[data-note-close]').onclick = () => { modal.hidden = true; };
+  panel.querySelector('[data-note-close]').onclick = () => {
+    if (hasUnsavedChanges() && !window.confirm(tr('复盘或笔记有未保存的内容，关闭将放弃当前草稿。确定关闭？'))) return;
+    modal.hidden = true;
+  };
   panel.querySelector('[data-note-review-only]').onclick = () => run(saveReview);
   original.oninput = () => { controls(); if (draft && !currentDraft()) message.textContent = tr('复盘已修改，请重新生成摘要。'); };
   panel.querySelector('[data-note-draft]').onclick = () => run(async () => {
@@ -85,6 +93,7 @@ export function openReviewNote(item, api, reload) {
     if (!attached()) return;
     if (snapshot !== original.value || original.value.trim() !== result.original.trim()) { message.textContent = tr('复盘已修改，请重新生成摘要。'); return; }
     previous = null; comparison.hidden = true; paintDraft(result);
+    savedNoteFields = noteFields();
     await cleanup.load();
     message.textContent = tr('已载入最新笔记，可补充回复并整合；尚未保存新版本。');
   });
@@ -111,6 +120,7 @@ export function openReviewNote(item, api, reload) {
     const snapshot = { ...draft, summary: summary.value, keywords: tags.value, ...cleanup.selection() };
     const saved = await api(`/api/agendas/${encodeURIComponent(item.id)}/review-note/save`, { method: 'POST', body: snapshot });
     if (!attached()) return;
+    savedNoteFields = JSON.stringify([snapshot.summary, snapshot.keywords]);
     message.textContent = tr('Markdown 笔记已保存并读回：') + saved.note.path;
     if (summary.value === snapshot.summary && tags.value === snapshot.keywords && original.value.trim() === draft.original.trim()) { preview.hidden = true; draft = null; previous = null; comparison.hidden = true; }
     else { draft.baseNote = { file: saved.note.file, sha256: saved.note.sha256 }; message.textContent = tr('笔记已保存；保存期间的新修改仍保留在草稿中，尚未写入。'); }

@@ -191,3 +191,8 @@ table.deck{width:100%;border-collapse:separate;border-spacing:0;background:var(-
   .workspace-heading { flex-basis:100%; gap:9px; }
 }
 @media(max-width:760px) { .skill-compare { grid-template-columns:1fr; } }
+
+/* Agenda report member selection */
+.agenda-report-cta{flex-wrap:wrap}.report-member-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.report-member-controls label{margin:0}.report-member-controls select{min-width:125px}#agenda-report-status{flex:1 0 100%;overflow-wrap:anywhere}#agenda-report-status p{margin:5px 0}@media(max-width:600px){.report-member-controls{width:100%}.report-member-controls select{flex:1}.report-member-controls button{flex:1}}
+
+.report-member-controls select{width:auto}

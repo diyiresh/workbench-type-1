@@ -135,13 +135,16 @@ const server = createServer();
 
     // Filter is never sent as a report scope, and UI language never translates business text.
     let reportRequest;
+    const reportJob={id:'filter-report-fixture',agentId:'codex',attemptId:'fixture-attempt',status:'done',view:'day',anchorDate:'2026-10-14',draft:{title:'模拟报告草稿',body:'模拟底稿',notice:'请核对事实后再保存。'}};
+    await page.route('**/api/agenda/reports/jobs/filter-report-fixture',route=>route.fulfill({json:{job:reportJob}}));
     await page.route('**/api/agenda/reports/draft', async route => {
       reportRequest = route.request().postDataJSON();
-      await route.fulfill({ json: { title: '模拟报告草稿', body: '模拟底稿', notice: '请核对事实后再保存。' } });
+      await route.fulfill({json:{job:reportJob}});
     });
     await page.locator('[data-act="agenda-report-draft"]').click();
     await page.locator('#agenda-report-body').waitFor();
-    assert.deepEqual(reportRequest, { view: 'day', anchorDate: '2026-10-14' });
+    assert.deepEqual(Object.keys(reportRequest).sort(),['agentId','anchorDate','idempotencyKey','view']);
+    assert.equal(reportRequest.view,'day');assert.equal(reportRequest.anchorDate,'2026-10-14');assert.equal(reportRequest.agentId,'codex');assert.equal(typeof reportRequest.idempotencyKey,'string');
     assert.equal(await card('pending').getAttribute('aria-pressed'), 'true');
     await page.locator('#agenda-report-body').fill('报告草稿尚未提交的修改');
     await select('done');

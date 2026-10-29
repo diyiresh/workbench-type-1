@@ -1,0 +1,77 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {chromium}=require('playwright');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'bench-report-ui-'));process.env.BENCH_DATA_DIR=root;
+const state=require('../lib/default-store').buildDefaultStore();
+state.agendas=[{id:'report-fact',date:'2026-10-27',title:'真实台账格式的隔离事项',done:false,note:'不得把计划写成完成',review:'已有复盘'}];
+state.remote.llm={enabled:true,provider:'openai',baseUrl:'https://api.siliconflow.cn/v1',model:'preserve-model',apiKey:'fixture-only-key'};
+state.remote.providerPauses={siliconflow:{paused:true,wasEnabled:true}};
+state.remote.agendaNotes={vaultRoot:path.join(root,'vault')};fs.mkdirSync(state.remote.agendaNotes.vaultRoot);
+fs.writeFileSync(path.join(root,'store.json'),JSON.stringify(state));
+const {createServer,readStore,writeStore}=require('../server');const gov=require('../lib/execution-governance');
+const calls=[];let releaseWorker,workerContext,cursorCount=0;
+const server=createServer({reportExecute:async(agent,prompt,context)=>{
+  calls.push(agent);assert.match(prompt,/不得把计划写成完成/);assert(!prompt.includes('fixture-only-key'));
+  if(agent==='cursor'&&++cursorCount===1)throw Object.assign(new Error('fixture_cursor_login_required'),{code:'auth_required'});
+  if(agent==='workbuddy'){workerContext=context;return new Promise(resolve=>releaseWorker=resolve);}
+  context.onBeforeStart();context.onStart({pid:456});return '# '+agent+' 工作报告\n\n## 一、总体情况\n事项尚未完成，供本人复核。';
+}});
+(async()=>{
+  await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
+  const originalFetch=global.fetch;let forbidden=0;
+  global.fetch=(url,opts)=>{if(!String(url).startsWith(base)){forbidden++;throw Error('fixture blocks external requests');}return originalFetch(url,opts);};
+  const browser=await chromium.launch({channel:'msedge',headless:true});
+  try{
+    const page=await browser.newPage({viewport:{width:1450,height:1000},timezoneId:'Asia/Shanghai'}),errors=[];
+    page.setDefaultTimeout(10000);page.on('pageerror',e=>errors.push(e.message));page.on('dialog',dialog=>dialog.accept());
+    await page.clock.setFixedTime(new Date('2026-10-27T12:00:00+08:00'));
+    await page.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));
+    await page.goto(base+'/#agenda');await page.locator('[data-act="agenda-view"][data-view="month"]').click();
+    const selector=page.locator('#agenda-report-agent'),generate=page.locator('[data-act="agenda-report-draft"]');
+    assert.deepEqual(await selector.locator('option').evaluateAll(options=>options.map(o=>o.value)),['codex','cursor','workbuddy']);
+    assert.equal(await selector.getAttribute('multiple'),null);
+    assert.match(await page.locator('.agenda-report-cta').innerText(),/SiliconFlow 已暂停/);
+    await page.locator('.agenda-report-cta').screenshot({path:path.join(root,'report-selector-cn.png')});
+    const reportsBefore=readStore().reports.length;
+    await generate.click();await page.evaluate(()=>document.querySelector('[data-act="agenda-report-draft"]').click());
+    await page.locator('#agenda-report-body').waitFor();assert.deepEqual(calls,['codex']);
+    assert.equal(readStore().reports.length,reportsBefore);
+    await page.locator('#agenda-report-body').fill('# 人工修改后的月报\n保留完整修改。');
+    await page.evaluate(()=>window.dispatchEvent(new HashChangeEvent('hashchange')));
+    assert.equal(await page.locator('#agenda-report-body').inputValue(),'# 人工修改后的月报\n保留完整修改。');
+    await page.locator('[data-act="agenda-report-save"]').click();await page.locator('#agenda-report-body').waitFor({state:'detached'});
+    assert.equal(readStore().reports.length,reportsBefore+1);assert.equal(readStore().reports[0].agentId,'codex');assert.match(readStore().reports[0].body,/保留完整修改/);
+    await selector.selectOption('cursor');await generate.click();
+    await page.getByText('fixture_cursor_login_required',{exact:true}).waitFor();assert.deepEqual(calls,['codex','cursor']);
+    await page.getByRole('button',{name:'明确重试一次',exact:true}).click();
+    await page.locator('#agenda-report-body').waitFor();assert.match(await page.locator('#agenda-report-body').inputValue(),/cursor/);
+    assert.equal(calls.filter(x=>x==='cursor').length,2);
+    await page.locator('[data-act="agenda-report-discard"]').click();
+    await selector.selectOption('workbuddy');await generate.click();await page.getByText('等待成员领取',{exact:false}).waitFor();
+    assert(await selector.isDisabled());assert.equal(calls.filter(x=>x==='workbuddy').length,1);
+    await page.reload();await page.locator('[data-act="agenda-view"][data-view="month"]').click();
+    await page.getByText('等待成员领取',{exact:false}).waitFor();assert.equal(calls.filter(x=>x==='workbuddy').length,1,'Refresh must not create another execution');
+    let fresh=readStore(),attempt=gov.get(fresh,workerContext.attemptId);gov.claim(fresh,attempt,{claimKey:'browser-claim'});writeStore(fresh);
+    const started=await page.request.post(base+'/api/agenda/reports/jobs/'+workerContext.runId+'/started',{data:{idempotencyKey:'browser-start',attemptId:attempt.id,claimId:attempt.claimId,inputHash:attempt.inputHash}});assert.equal(started.status(),200);
+    releaseWorker('# WorkBuddy 月报\n完整返回');await page.locator('#agenda-report-body').waitFor();assert.match(await page.locator('#agenda-report-body').inputValue(),/WorkBuddy/);
+    assert.equal(readStore().reports.length,reportsBefore+1);
+    // Pausing wins over ordinary configuration saves and blocks even connection tests.
+    await page.request.put(base+'/api/llm/config',{data:{enabled:true,apiKey:'__KEEP__'}});
+    assert.equal(readStore().remote.llm.enabled,false);assert.equal(readStore().remote.llm.apiKey,'fixture-only-key');
+    const test=await page.request.post(base+'/api/llm/test',{data:{}});assert.equal(test.status(),500);assert.match((await test.json()).error,/SiliconFlow 已暂停/);assert.equal(forbidden,0);
+    const old=await page.request.post(base+'/api/agenda/reports/draft',{data:{view:'month',anchorDate:'2026-10-27',idempotencyKey:'missing-member'}});assert.equal(old.status(),409);
+    await page.request.patch(base+'/api/meta',{data:{language:'en'}});await page.reload();
+    await page.setViewportSize({width:390,height:844});
+    assert(await page.getByLabel('Report member',{exact:true}).isVisible());assert.equal(await selector.inputValue(),'workbuddy');
+    await page.locator('.agenda-report-cta').screenshot({path:path.join(root,'report-selector-en-mobile.png')});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    await page.route('**/api/codex/status',route=>route.fulfill({json:{ok:true,authenticated:true,version:'fixture'}}));
+    await page.route('**/api/vault/status',route=>route.fulfill({json:{enabled:false}}));
+    await page.goto(base+'/#set');
+    await page.getByRole('button',{name:'Resume SiliconFlow',exact:true}).click();
+    await page.getByRole('button',{name:'Resume SiliconFlow',exact:true}).waitFor({state:'detached'});
+    assert.equal(readStore().remote.providerPauses.siliconflow.paused,false);assert.equal(readStore().remote.llm.apiKey,'fixture-only-key');
+    await page.request.post(base+'/api/llm/provider-pause',{data:{provider:'siliconflow',paused:true,confirmed:true}});
+    assert.deepEqual(errors,[]);assert.equal(forbidden,0);
+    console.log('Report member UI/API: single choice, three isolated adapters, duplicate/refresh guards, waiting/claim/start/result, failure/explicit retry, editable manual save, global pause/config retention/zero remote fetches, CN/EN/mobile passed. Screenshots: '+root);
+  }finally{await browser.close();global.fetch=originalFetch;}
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>server.close());
