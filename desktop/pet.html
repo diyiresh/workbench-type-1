@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Jarvis</title>
+  <style>
+    html,body{margin:0;background:transparent;overflow:hidden;font:13px "Segoe UI","Microsoft YaHei",sans-serif}
+    body{height:100vh;display:flex;align-items:flex-end;justify-content:flex-end}
+    .wrap{position:relative}
+    button.orb{width:72px;height:72px;border:0;border-radius:50%;color:#fff;font-weight:800;letter-spacing:.08em;cursor:pointer;background:radial-gradient(circle at 35% 30%,#e8fbff,#3ec6ff 42%,#0b4f86 72%,#071426);box-shadow:0 0 0 8px rgba(62,198,255,.18);animation:in .6s ease}
+    menu{position:absolute;right:0;bottom:84px;display:none;flex-direction:column;min-width:148px;margin:0;padding:8px;list-style:none;border-radius:14px;background:#0e2240;border:1px solid #1d4e89}
+    menu.open{display:flex}
+    menu button{background:transparent;color:#e7f2ff;border:0;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer}
+    menu button:hover{background:#123a66}
+    @keyframes in{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <menu id="menu">
+      <li><button type="button" data-act="home">打开工作台</button></li>
+      <li><button type="button" data-act="focus">我的关注</button></li>
+      <li><button type="button" data-act="mute">静音今日</button></li>
+      <li><button type="button" data-act="close">关闭宠物</button></li>
+    </menu>
+    <button type="button" class="orb" id="orb">BEN</button>
+  </div>
+  <script>
+    const menu = document.getElementById("menu");
+    document.getElementById("orb").addEventListener("click", () => menu.classList.toggle("open"));
+    menu.addEventListener("click", (event) => {
+      const action = event.target.dataset.act;
+      if (!action) return;
+      menu.classList.remove("open");
+      window.jarvis.act(action);
+    });
+    window.jarvis.onSpeak((text) => {
+      if (!window.speechSynthesis) return;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "en-US";
+      window.speechSynthesis.speak(utterance);
+    });
+  </script>
+</body>
+</html>

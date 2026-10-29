@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>侧栏</title>
+  <style>
+    html,body{margin:0;height:100%;background:#071426;color:#d5e8ff;font:12px "Segoe UI","Microsoft YaHei",sans-serif}
+    body{display:flex;align-items:center;gap:8px;padding:0 10px}
+    #url{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#9ec9e6}
+    button{border:1px solid #24507a;background:#0e2240;color:#e7f2ff;border-radius:8px;padding:5px 8px;cursor:pointer}
+  </style>
+</head>
+<body>
+  <span id="url"></span>
+  <button type="button" id="system">用系统浏览器打开</button>
+  <button type="button" id="close">关闭</button>
+  <script>
+    const bar = window.paneBar;
+    document.getElementById("system").addEventListener("click", () => bar.openSystem());
+    document.getElementById("close").addEventListener("click", () => bar.close());
+    bar.onUrl((url) => { document.getElementById("url").textContent = url; });
+  </script>
+</body>
+</html>

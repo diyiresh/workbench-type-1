@@ -13,6 +13,8 @@ import { deliveryView } from './delivery-ui.js';
 import { agentEvidence } from './centers.js';
 import { executionPanel, conversionButton } from './execution-ui.js';
 import { stageDescription } from './compact-layout.js';
+import { feedFor } from './focus.mjs';
+import { FOCUS_CATEGORIES, REPORT_KINDS, focusCategoryFor } from './navigation.mjs';
 
 // ---------- 指挥舱 / 事业部 ----------
 
@@ -161,6 +163,43 @@ export function briefHubView(sourceId = "all", filter = "all", busyIds = new Set
     <section class="brief-run-list" id="brief-results">${runs.length ? runs.map((run) => briefRunCard(run, sources.find((source) => source.id === run.sourceId), busyIds.has(run.id))).join("") : empty}</section>`;
 }
 
+// ---------- 我的关注 ----------
+
+function focusCategory(id) {
+  return (getStore().focusCategories || []).find((item) => item.id === id) || FOCUS_CATEGORIES.find((item) => item.id === id) || null;
+}
+
+export function focusView(secondary) {
+  const categoryId = focusCategoryFor(secondary);
+  const today = new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" }).format(new Date());
+  const category = categoryId ? focusCategory(categoryId) : null;
+  const title = category ? category.name : "我的关注";
+  const hero = ui`<header class="focus-hero"><div><div class="eyebrow">YOUR PERSONAL WORKSPACE</div><h2>${esc(tr(title))}</h2><p>${esc(today)}</p></div><button type="button" class="ghost" data-act="asset-rescan">重新读取台账</button></header>`;
+  if (!category) {
+    return hero + ui`<section class="card"><h2>这个地址没有对应的关注分类</h2><p>旧的报告种类仍然可以从经营报告进入。</p><p><a class="tiny" href="#reports/pain">行业痛点</a> <a class="tiny" href="#reports/business">经营报告</a></p></section>`;
+  }
+  const intro = ui`<p class="focus-blurb">${esc(category.blurb || "")}</p>`;
+  if (categoryId === "business" || REPORT_KINDS.includes(secondary)) {
+    const activeKind = REPORT_KINDS.includes(secondary) ? secondary : "";
+    const chips = OPS.filter((item) => item.id !== "today").map((item) => {
+      const count = (getStore().reports || []).filter((report) => report.kind === item.id).length;
+      return `<button type="button" class="ch focus-kind ${activeKind === item.id ? "active" : ""}" data-sec="${esc(item.id)}">${esc(tr(item.name))}<small>${esc(String(count))}</small></button>`;
+    }).join("");
+    const editor = activeKind ? opsView(activeKind, tr((OPS.find((item) => item.id === activeKind) || {}).name || activeKind)) : ui`<section class="card"><h2>经营报告</h2><p>日报、每日复盘、周指导、周报、月评估、月报、季度总结都还在。点上面的种类打开原文，或直接生成初稿。</p><div class="focus-generators">${OPS.filter((item) => item.id !== "today").map((item) => ui`<div class="msg"><b>${esc(tr(item.name))}</b><button type="button" class="tiny" data-act="gen" data-kind="${esc(item.id)}">生成 ${esc(tr(item.name))}</button></div>`).join("")}</div></section>`;
+    return hero + intro + `<div class="focus-kinds" role="tablist">${chips}</div>` + editor;
+  }
+  const feed = feedFor(category, getStore());
+  const runs = feed.runs.map((run) => {
+    const href = safeWebUrl(run.sourceUrl || "");
+    const origin = href ? ui`<a class="tiny" href="${esc(href)}">在侧栏打开</a><button type="button" class="tiny" data-act="open-system" data-url="${esc(href)}">用系统浏览器打开</button>` : "";
+    return `<article class="msg focus-card" data-focus-run="${esc(run.id)}"><div class="k">${esc(run.sourceId || "")} · ${esc(fmt(run.completedAt || run.receivedAt))}</div><b>${esc(run.title)}</b><p>${esc(run.body || "")}</p><div class="actions">${origin}<a class="tiny" href="#briefs/${esc(run.sourceId || "all")}">在简报中心查看</a></div></article>`;
+  }).join("");
+  const memories = feed.memories.map((memory) => `<article class="msg" data-focus-memory="${esc(memory.id)}"><div class="k">${esc((memory.tags || []).join(" · "))}</div><b>${esc(memory.title)}</b><p>${esc(memory.body || "")}</p></article>`).join("");
+  const empty = !feed.runs.length && !feed.memories.length ? ui`<section class="card focus-empty"><h2>这一类还没有台账记录</h2><p>这里只显示已经写入本机台账的简报和记忆，不会编造条数。</p><p>${esc(category.fill || "")}</p><p class="k">${tr("投递 sourceId")}: ${esc(category.intakeSourceId || "")}</p></section>` : ui`<p class="k">${tr("继续投递可以使用这个 sourceId")} ${esc(category.intakeSourceId || "")}</p>`;
+  const memoryBlock = memories ? ui`<div class="k">带标签的记忆</div>${memories}` : "";
+  return hero + intro + (runs ? `<div class="focus-feed">${runs}</div>` : "") + memoryBlock + empty;
+}
+
 // ---------- 经营秘书 ----------
 
 export function opsView(kind, secondaryName) {
@@ -179,7 +218,7 @@ export function opsView(kind, secondaryName) {
   const s = getStore();
   const reports = (s.reports || []).filter((r) => r.kind === kind);
   const cur = reports[0];
-  return ui`<p class="k"><a href="#agenda/all">每日行程</a> · <a href="#reports/all">工作报告</a></p><div class="filters">
+  return ui`<p class="k"><a href="#agenda/all">每日行程</a> · <a href="#reports/business">经营报告</a></p><div class="filters">
       <button type="button" class="solid" data-act="gen" data-kind="${esc(kind)}">生成${esc(secondaryName || kind)}</button>
     </div>
     ${cur
@@ -690,34 +729,25 @@ export function memoryView(secondary) {
     return ui`<div class="filters"><button type="button" class="solid" data-act="add-prompt">+ 新增提示词</button></div>
       ${(s.prompts || [])
         .map(
-          (p) => `<div class="msg"><div class="k">${(p.tags || []).join(" · ")}</div><b>${esc(p.title)}</b><p>${esc(p.body)}</p></div>`
+          (p) => `<div class="msg" data-asset-text="${esc([p.title, p.body, ...(p.tags || [])].join(" "))}"><div class="k">${(p.tags || []).join(" · ")}</div><b>${esc(p.title)}</b><p>${esc(p.body)}</p></div>`
         )
         .join("") || systemFragment("<p>还没有沉淀提示词。AI 帮你干得好用的活，把提示词存下来就是能力资产。</p>")}`;
   }
   if (secondary === "lessons") {
     return (s.lessons || [])
-      .map((l) => `<div class="msg"><b>${esc(l.rule)}</b><div class="who">${esc(l.from)}</div><button type="button" class="tiny" data-skill-from="lessons" data-skill-id="${esc(l.id)}">${tr('创建技能草稿')}</button></div>`)
-      .join("");
+      .map((l) => `<div class="msg" data-asset-text="${esc([l.rule, l.from].join(" "))}"><b>${esc(l.rule)}</b><div class="who">${esc(l.from)}</div><button type="button" class="tiny" data-skill-from="lessons" data-skill-id="${esc(l.id)}">${tr('创建技能草稿')}</button></div>`)
+      .join("") || ui`<p class="asset-empty">台账里还没有教训。</p>`;
   }
   if (secondary === "skills") {
     return (s.skills || [])
-      .map((s2) => `<div class="msg"><b>${esc(s2.name)}</b><p>${esc(s2.summary)}</p></div>`)
+      .map((s2) => `<div class="msg" data-asset-text="${esc([s2.name, s2.summary].join(" "))}"><b>${esc(s2.name)}</b><p>${esc(s2.summary)}</p></div>`)
       .join("");
   }
-  const overview = ui`<div class="card"><div class="h">现有资产记录</div>
-    <div class="meta">
-      <span class="chip">记忆 ${(s.memories || []).length}</span>
-      <span class="chip">教训 ${(s.lessons || []).length}</span>
-      <span class="chip">技能说明 ${(s.skills || []).length}</span>
-      <span class="chip">提示词 ${(s.prompts || []).length}</span>
-      <span class="chip">报告 ${(s.reports || []).length}</span>
-    </div>
-    <p class="k">能力资产思想：AI 每干完一件事，留下一条可复用的沉淀，而不是聊天记录蒸发。</p></div>`;
-  return overview + (s.memories || [])
+  return (s.memories || [])
     .map(
-      (m) => `<div class="msg"><div class="k">${(m.tags || []).join(" · ")}</div><b>${esc(m.title)}</b><p>${esc(m.body)}</p><button type="button" class="tiny" data-skill-from="memories" data-skill-id="${esc(m.id)}">${tr('创建技能草稿')}</button></div>`
+      (m) => `<div class="msg" data-asset-text="${esc([m.title, m.body, ...(m.tags || [])].join(" "))}"><div class="k">${(m.tags || []).join(" · ")}</div><b>${esc(m.title)}</b><p>${esc(m.body)}</p><button type="button" class="tiny" data-skill-from="memories" data-skill-id="${esc(m.id)}">${tr('创建技能草稿')}</button></div>`
     )
-    .join("");
+    .join("") || ui`<p class="asset-empty">台账里还没有知识原子。记忆写入后才会出现在这里。</p>`;
 }
 
 export function setView() {
@@ -737,6 +767,16 @@ export function setView() {
       <option value="guofeng" ${(s.meta && s.meta.theme) === "guofeng" ? "selected" : ""}>中国风 · 青墨</option>
     </select><div class="actions" style="margin-top:10px"><button type="button" class="solid" data-act="save-theme">应用主题</button></div>
     <p>中国风 · 青墨：宣纸底色、松绿导航、青玉按钮与朱砂点缀。</p>
+  </div>
+  <div class="card" id="companion-settings">
+    <div class="eyebrow">JARVIS</div><div class="h">陪伴宠物</div>
+    <p>打开桌面工作台时，Jarvis 说一句问候。语音可关，今天也可以单独静音。</p>
+    <label class="check-line"><input type="checkbox" id="pet-enabled" ${s.meta?.companion?.enabled === false ? "" : "checked"} /> 启用 Jarvis 问候</label>
+    <label class="check-line"><input type="checkbox" id="pet-voice" ${s.meta?.companion?.voice === false ? "" : "checked"} /> 问候语音</label>
+    <label class="check-line"><input type="checkbox" id="pet-always" ${s.meta?.companion?.speakMode === "always" ? "checked" : ""} /> 每次打开都问候</label>
+    <label class="check-line"><input type="checkbox" id="pet-autostart" ${s.meta?.companion?.autostart === true ? "checked" : ""} /> 登录时启动桌面工作台</label>
+    <p class="k">登录自启动在 Windows 上还需要运行一次 scripts/windows-desktop.ps1。见桌面壳说明。</p>
+    <div class="actions"><button type="button" class="solid" data-act="save-companion">保存陪伴设置</button><button type="button" class="ghost" data-act="preview-greeting">预览问候</button></div>
   </div>
   <div class="card">
     <div class="h">开屏简报与跨 Agent 收件</div>

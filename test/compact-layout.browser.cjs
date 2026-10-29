@@ -29,7 +29,7 @@ const {createServer,readStore}=require('../server'),server=createServer();
     await page.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));
     await page.goto(base+'/#home/all');await page.locator('[data-sidebar-toggle]').waitFor();
     const original=readStore();
-    assert.deepEqual(await page.locator('#rail .rail-label').allTextContents(),['工作首页','项目中心','成员中心','每日行程','简报中心','工作报告','资产中心','学习成长','生活管理','系统设置']);
+    assert.deepEqual(await page.locator('#rail .rail-label').allTextContents(),['工作首页','项目中心','成员中心','每日行程','简报中心','我的关注','资产中心','学习成长','生活管理','系统设置']);
     assert.equal(await page.locator('#ws-head h1').textContent(),'工作首页');
     assert.equal(await page.locator('#workspace [data-sidebar-toggle]').count(),0);
     assert.equal(await page.locator('[data-sidebar-toggle]').count(),1);

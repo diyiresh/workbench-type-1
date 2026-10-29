@@ -37,6 +37,7 @@ const dropbox = require("./lib/dropbox");
 const { inactive, operationalStore, changeArchive } = require("./lib/archive");
 const delivery = require("./lib/delivery");
 const { ensureCollaboration, postMessage, addArtifact, messagesFor, artifactsFor } = require("./lib/collaboration");
+const { applyCompanion } = require("./lib/focus");
 const {
   ensureDepartmentSystem, createDepartmentRun, getRun, getItem, startItem, submitItem,
   reviewExecutor, completeRework, rolePrompt,
@@ -80,6 +81,7 @@ function readStore() {
   }
   store = JSON.parse(fs.readFileSync(STORE, "utf8"));
   const before = (store.meta && store.meta.version) || "";
+  const focusBefore = Array.isArray(store.focusCategories) && store.focusCategories.length >= 6;
   const lifeBefore = JSON.stringify(store.lifeSystem || null);
   const collaborationBefore = Array.isArray(store.projectMessages) && Array.isArray(store.artifacts);
   store = ensureV2(store);
@@ -88,7 +90,7 @@ function readStore() {
   for (const run of store.departmentRuns || []) delivery.refresh(store, run);
   if (deliveryBefore !== JSON.stringify((store.departmentRuns || []).map(r => [r.status, r.delivery, r.items?.map(i => i.status)]))) writeStore(store);
   if (agentDispatch.syncAssignments(store)) writeStore(store);
-  if ((store.meta.version || "") !== before || JSON.stringify(store.lifeSystem || null) !== lifeBefore || !collaborationBefore) writeStore(store, { backup: true });
+  if ((store.meta.version || "") !== before || JSON.stringify(store.lifeSystem || null) !== lifeBefore || !collaborationBefore || !focusBefore) writeStore(store, { backup: true });
   return store;
 }
 
@@ -1289,6 +1291,7 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
     const allowed = ["theme","language"];
     store.meta = store.meta || {};
     for (const key of allowed) if (typeof body[key] === "string") store.meta[key] = body[key];
+    if (body.companion && typeof body.companion === "object") store.meta.companion = applyCompanion(store.meta.companion, body.companion);
     writeStore(store);
     return sendJson(res, 200, store.meta);
   }
