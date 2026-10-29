@@ -36,7 +36,28 @@ const focus = require("../lib/focus");
   assert.equal(store.meta.companion.autostart, false);
   assert.equal(store.meta.companion.speakMode, "daily");
   assert.deepEqual(store.focusCategories.find((item) => item.id === "construction").sourceIds, ["chatgpt-guangdong-construction"]);
-  assert.deepEqual(store.focusCategories.find((item) => item.id === "pain").sourceIds, []);
+  const painSeed = store.focusCategories.find((item) => item.id === "pain");
+  assert.deepEqual(painSeed.sourceIds, ["research-pulse", "grok-x-pain"]);
+  assert.equal(painSeed.intakeSourceId, "focus-industry-pain");
+  assert.match(painSeed.blurb, /research-pulse/);
+  assert.match(painSeed.blurb, /grok-x-pain/);
+  assert.match(painSeed.fill, /Research Pulse/);
+  assert.match(painSeed.fill, /grok-x-pain/);
+  assert.match(painSeed.fill, /focus-industry-pain/);
+  const painBound = web.feedFor(painSeed, {
+    briefRuns: [
+      { id: "rp", sourceId: "research-pulse", title: "t", body: "b", completedAt: "2026-10-29T03:00:00.000Z" },
+      { id: "gx", sourceId: "grok-x-pain", title: "t", body: "b", completedAt: "2026-10-29T02:00:00.000Z" },
+      { id: "legacy", sourceId: "focus-industry-pain", title: "t", body: "b", completedAt: "2026-10-29T01:00:00.000Z" },
+      { id: "other", sourceId: "chatgpt-daily-priority", title: "t", body: "b", completedAt: "2026-10-29T04:00:00.000Z" },
+    ],
+    memories: [
+      { id: "tagged", title: "痛", body: "x", tags: ["行业痛点"] },
+      { id: "nope", title: "别", body: "y", tags: ["其他"] },
+    ],
+  });
+  assert.deepEqual(painBound.runs.map((item) => item.id), ["rp", "gx", "legacy"]);
+  assert.deepEqual(painBound.memories.map((item) => item.id), ["tagged"]);
   store.reports = [{ id: "r1", kind: "weekly", title: "保留", body: "原文" }];
   store.focusCategories.find((item) => item.id === "pain").sourceIds = ["custom-pain"];
   store.meta.companion.enabled = false;
@@ -51,6 +72,7 @@ const focus = require("../lib/focus");
       { id: "b1", sourceId: "chatgpt-guangdong-construction", title: "穗建", body: "政策", completedAt: "2026-10-29T01:00:00.000Z" },
       { id: "b2", sourceId: "focus-industry-pain", title: "养老", body: "痛点", completedAt: "2026-10-28T01:00:00.000Z" },
       { id: "b3", sourceId: "chatgpt-guangdong-construction", title: "归档", body: "隐藏", archived: true },
+      { id: "b4", sourceId: "research-pulse", title: "t", body: "b", completedAt: "2026-10-29T05:00:00.000Z" },
     ],
     memories: [
       { id: "m1", title: "实验", body: "记下了", tags: ["本地实验"] },
@@ -71,7 +93,7 @@ const focus = require("../lib/focus");
   pain.sourceIds = [];
   const built = web.feedFor(construction, ledger);
   assert.deepEqual(built.runs.map((item) => item.id), ["b1"]);
-  assert.equal(web.feedFor(pain, ledger).runs[0].id, "b2");
+  assert.deepEqual(web.feedFor(pain, ledger).runs.map((item) => item.id), ["b2"]);
   assert.equal(web.feedFor(again.focusCategories.find((item) => item.id === "lab"), ledger).memories[0].id, "m1");
   assert.equal(web.feedFor(again.focusCategories.find((item) => item.id === "business"), ledger).runs.length, 0);
   const snap = web.assetSnapshot(ledger);
