@@ -40,7 +40,7 @@ const { ensureCollaboration, postMessage, addArtifact, messagesFor, artifactsFor
 const {
   ensureDepartmentSystem, createDepartmentRun, getRun, getItem, startItem, submitItem,
   reviewExecutor, completeRework, rolePrompt,
-  retryAutomation,
+  retryAutomation, orgTree, sealHandoff,
 } = require("./lib/department");
 
 const ROOT = __dirname;
@@ -373,6 +373,26 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
       executionCommands.remember(fresh,scope,body,result);writeStore(fresh);return sendJson(res,200,result);
     }catch(e){return sendJson(res,409,{error:e.code||e.message});}
   }
+  const orgMatch = p.match(/^\/api\/departments\/runs\/([^/]+)\/org$/);
+  if (orgMatch && method === "GET") {
+    try { return sendJson(res, 200, orgTree(store, decodeURIComponent(orgMatch[1]))); }
+    catch (err) { return sendJson(res, err.message === "department_run_not_found" ? 404 : 400, { error: err.message }); }
+  }
+  const handoffMatch = p.match(/^\/api\/departments\/runs\/([^/]+)\/handoff$/);
+  if (handoffMatch && method === "POST") {
+    if (!isLoopback(req)) return sendJson(res, 403, { error: "handoff_local_only" });
+    const body = await readBody(req) || {};
+    store = readStore();
+    try {
+      const result = sealHandoff(store, decodeURIComponent(handoffMatch[1]), body);
+      writeStore(store);
+      return sendJson(res, 201, result);
+    } catch (err) {
+      const code = String(err.message || err);
+      const status = code === "department_run_not_found" ? 404 : code === "execution_budget_exhausted" ? 409 : code === "lead_required" || code === "handoff_must_be_tool_sealed" ? 403 : 400;
+      return sendJson(res, status, { error: code, reason: err.reason || "" });
+    }
+  }
   const conversion=p.match(/^\/api\/inbox\/([^/]+)\/convert(?:\/(preview))?$/);
   if(conversion&&method==='POST'){
     if(!isLoopback(req))return sendJson(res,403,{error:'execution_local_only'});
@@ -682,7 +702,8 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
       writeStore(store);
       return sendJson(res, 200, result);
     } catch (err) {
-      return sendJson(res, 400, { error: String((err && err.message) || err) });
+      const code = String((err && err.message) || err);
+      return sendJson(res, code === "execution_budget_exhausted" ? 409 : 400, { error: code, reason: err.reason || "" });
     }
   }
 
