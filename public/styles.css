@@ -297,3 +297,46 @@ table.deck{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .room-panel h2,.room-chat h2{font-size:14px}
 @media(max-width:980px){#shell{--rail-width:88px;--sidebar-default-width:208px}.rail-btn{font-size:11px;padding-inline:7px}}
 @media(max-width:720px){#shell{--rail-width:84px}#sidebar.open{left:84px}.rail-btn{font-size:11px;padding-inline:6px}.command-hero h2,.agenda-hero h2{font-size:17px}.overview-stats b,.stat b{font-size:19px}}
+
+/* ===== Lively layer (Slack-style icons, avatars, badges, illustrations) — see public/js/lively.js ===== */
+.lv-ico{width:16px;height:16px;flex:0 0 auto;display:inline-block;vertical-align:-3px}
+.lively .rail-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;min-height:54px;padding:5px 2px;background:transparent!important;box-shadow:none!important;font-size:10.5px}
+.lively .rail-btn .lv-rail-tile{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.08);transition:background .15s,transform .15s}
+.lively .rail-btn .lv-rail-tile .lv-ico{width:18px;height:18px}
+.lively .rail-btn:hover .lv-rail-tile{background:rgba(255,255,255,.18);transform:scale(1.05)}
+.lively .rail-btn.active .lv-rail-tile{background:var(--rail-ink,#fff);color:var(--rail,#32123d);box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.lively .rail-btn.active{color:var(--rail-ink,#fff);font-weight:800}
+.lively .rail-btn .badge{position:absolute;top:2px;right:calc(50% - 24px);margin:0;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e01e5a;color:#fff;font-size:10px;line-height:16px;box-shadow:0 0 0 2px var(--rail-bg,var(--rail))}
+.lively #channels .sec{display:flex;align-items:center;gap:6px}
+.lively .lv-sec-ico{width:13px;height:13px;opacity:.85}
+.lively #channels .ch{display:flex;align-items:center;justify-content:flex-start;gap:7px}
+.lively #channels .ch small{margin-left:auto}
+.lively .lv-ch-ico{width:14px;height:14px;opacity:.75}
+.lively #channels .ch.active .lv-ch-ico{opacity:1}
+.lv-av{position:relative;display:inline-grid;place-items:center;width:20px;height:20px;flex:0 0 20px;border-radius:6px;background:var(--av,#8e5cf7);color:#fff;font-size:11px;font-weight:800;line-height:1}
+.lv-dot{position:absolute;right:-3px;bottom:-3px;width:9px;height:9px;border-radius:50%;background:#2bac76;box-shadow:0 0 0 2px var(--side-bg,var(--side))}
+.lively .avatar,.lively .chat-avatar{background:var(--av,var(--accent-soft))!important;color:#fff!important}
+.lv-chip{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:9px;color:var(--lv-c,var(--accent));background:color-mix(in srgb,var(--lv-c,var(--accent)) 16%,transparent)}
+.lv-chip .lv-ico{width:16px;height:16px}
+.lv-chip-sm{width:20px;height:20px;border-radius:6px;margin-right:6px;vertical-align:middle}
+.lv-chip-sm .lv-ico{width:12px;height:12px;vertical-align:0}
+.lively .overview-stat{display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-items:center;border-top:3px solid var(--lv-c,var(--accent))}
+.lively .overview-stat .lv-chip{grid-row:1 / span 3}
+.lively .overview-stat b{color:var(--lv-c,var(--accent))}
+.lively .card.lv-typed{border-top:3px solid var(--lv-c);transition:transform .15s,box-shadow .15s}
+.lively .card.lv-typed:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.lively .card.lv-typed .bar i{background:var(--lv-c)}
+.lively .card.lv-typed > .k:first-child{display:flex;align-items:center;color:var(--lv-c);font-weight:700}
+.lively :is(.command-hero,.brief-hero,.front-hero,.focus-hero,.agenda-hero){position:relative;overflow:hidden}
+.lv-hero-art{position:absolute;right:250px;bottom:-6px;width:150px;height:auto;pointer-events:none;opacity:.95}
+.lively :is(.brief-hero,.front-hero,.focus-hero,.agenda-hero) .lv-hero-art{right:16px;opacity:.35}
+@media(max-width:1180px){.lv-hero-art{display:none}}
+.lv-empty{display:flex;align-items:center;gap:8px}
+.lv-empty-art{font-size:20px;line-height:1}
+.lively #ws-head{display:flex;align-items:center;gap:10px}
+.lv-head-tools{display:flex;gap:4px;order:1}
+.lively #ws-head > .workspace-heading{flex:1}
+.lively #ws-head > [data-act="manage-records"]{order:2}
+.lv-ib{position:relative;display:grid;place-items:center;width:30px;height:30px;padding:0;border:1px solid var(--line);border-radius:8px;background:var(--paper,#fff);color:var(--muted);cursor:pointer}
+.lv-ib:hover{color:var(--accent);border-color:var(--accent)}
+.lv-ib-dot{position:absolute;top:4px;right:5px;width:7px;height:7px;border-radius:50%;background:#e01e5a}

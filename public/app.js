@@ -24,6 +24,8 @@ import { syncPet, previewGreeting } from './js/pet.js';
 import { mountSkillStudio, bindSkillSources } from './js/skill-studio-ui.js';
 import { mountExecution, bindConversion } from './js/execution-ui.js';
 import { bindCompactLayout, mountCompactLayout } from './js/compact-layout.js';
+import { mountLively } from './js/lively.js';
+mountLively();
 bindCompactLayout();
 bindSkillSources();
 bindConversion();
