@@ -29,6 +29,9 @@ const { importLegacyDailyPlanReminder } = require("./lib/legacy-reminder");
 const { openInExplorer } = require("./lib/local-opener");
 const workspace = require("./lib/workspace");
 const agentDispatch = require("./lib/agent-dispatch");
+const superagentIntake = require("./lib/superagent-intake");
+const superagentWatchdog = require("./lib/superagent-watchdog");
+const superagentModel = require("./lib/superagent-model");
 const { createRuntime } = require("./lib/external-runtime");
 const { lifeHabitsForDate, normalizeLearningDraft, adoptLearningPlan, completeLearningSession } = require("./lib/life-learning");
 const { onlineCompatibleStatus } = require("./lib/model-status");
@@ -425,6 +428,50 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
     }catch(error){return sendJson(res,409,{error:error.message})}
   }
   if(method==='GET'&&p==='/api/help/logic')return send(res,200,fs.readFileSync(path.join(ROOT,'docs',url.searchParams.get('language')==='en'?'workbench-logic-type1.en.md':'工作台全图-类型1.md'),'utf8'),{'Content-Type':MIME['.md']});
+
+  // Super-agent Phase1: read/preview intake + watchdog (additive store.superagent)
+  if (method === "GET" && p === "/api/superagent/config") {
+    const sa = superagentIntake.ensureSuperagent(store);
+    return sendJson(res, 200, {
+      intake: sa.intake,
+      channels: sa.channels,
+      watchdog: sa.watchdog,
+      subscriptionCount: (sa.subscriptions || []).length,
+      aliases: superagentModel.describeAssignmentAlias(store),
+    });
+  }
+  if (method === "GET" && p === "/api/superagent/subscriptions") {
+    return sendJson(res, 200, { subscriptions: superagentIntake.listSubscriptions(store) });
+  }
+  if (method === "POST" && p === "/api/superagent/filter/preview") {
+    const body = await readBody(req) || {};
+    const result = superagentIntake.filterTrigger(store, body.trigger || body);
+    return sendJson(res, 200, result);
+  }
+  if (method === "POST" && p === "/api/superagent/fanout/preview") {
+    const body = await readBody(req) || {};
+    return sendJson(res, 200, superagentIntake.planFanOut(store, body.event || body));
+  }
+  if (method === "GET" && p === "/api/superagent/watchdog/scan") {
+    return sendJson(res, 200, superagentWatchdog.scan(store));
+  }
+  if (method === "POST" && p === "/api/superagent/watchdog/apply") {
+    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_watchdog_local_only" });
+    try {
+      const body = await readBody(req) || {};
+      const fresh = readStore();
+      const scanned = superagentWatchdog.scan(fresh);
+      const applied = superagentWatchdog.applySafePauses(fresh, scanned, {
+        confirmed: body.confirmed === true,
+        attemptIds: Array.isArray(body.attemptIds) ? body.attemptIds : null,
+      });
+      writeStore(fresh);
+      return sendJson(res, 200, { scanned, applied });
+    } catch (err) {
+      return sendJson(res, 400, { error: err.message });
+    }
+  }
+
   if (method === "GET" && p === "/api/health") {
     return sendJson(res, 200, { ok: true, at: nowIso(), tasks: store.tasks.length });
   }
