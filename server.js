@@ -32,6 +32,7 @@ const agentDispatch = require("./lib/agent-dispatch");
 const superagentIntake = require("./lib/superagent-intake");
 const superagentWatchdog = require("./lib/superagent-watchdog");
 const superagentModel = require("./lib/superagent-model");
+const superagentAsync = require("./lib/superagent-async");
 const { createRuntime } = require("./lib/external-runtime");
 const { lifeHabitsForDate, normalizeLearningDraft, adoptLearningPlan, completeLearningSession } = require("./lib/life-learning");
 const { onlineCompatibleStatus } = require("./lib/model-status");
@@ -429,7 +430,7 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
   }
   if(method==='GET'&&p==='/api/help/logic')return send(res,200,fs.readFileSync(path.join(ROOT,'docs',url.searchParams.get('language')==='en'?'workbench-logic-type1.en.md':'工作台全图-类型1.md'),'utf8'),{'Content-Type':MIME['.md']});
 
-  // Super-agent Phase1: read/preview intake + watchdog (additive store.superagent)
+  // Super-agent Phase1+2: intake, subscriptions, direct fan-out, async start/stop, watchdog
   if (method === "GET" && p === "/api/superagent/config") {
     const sa = superagentIntake.ensureSuperagent(store);
     return sendJson(res, 200, {
@@ -437,11 +438,32 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
       channels: sa.channels,
       watchdog: sa.watchdog,
       subscriptionCount: (sa.subscriptions || []).length,
+      asyncRunCount: (sa.asyncRuns || []).length,
       aliases: superagentModel.describeAssignmentAlias(store),
     });
   }
   if (method === "GET" && p === "/api/superagent/subscriptions") {
     return sendJson(res, 200, { subscriptions: superagentIntake.listSubscriptions(store) });
+  }
+  if (method === "POST" && p === "/api/superagent/subscriptions") {
+    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_subscriptions_local_only" });
+    try {
+      const body = await readBody(req) || {};
+      const fresh = readStore();
+      const subscription = superagentIntake.upsertSubscription(fresh, body);
+      writeStore(fresh);
+      return sendJson(res, 200, { subscription });
+    } catch (err) {
+      return sendJson(res, 400, { error: err.message });
+    }
+  }
+  const superSubMatch = p.match(/^\/api\/superagent\/subscriptions\/([^/]+)$/);
+  if (superSubMatch && method === "DELETE") {
+    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_subscriptions_local_only" });
+    const fresh = readStore();
+    const result = superagentIntake.removeSubscription(fresh, decodeURIComponent(superSubMatch[1]));
+    writeStore(fresh);
+    return sendJson(res, 200, result);
   }
   if (method === "POST" && p === "/api/superagent/filter/preview") {
     const body = await readBody(req) || {};
@@ -450,7 +472,103 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
   }
   if (method === "POST" && p === "/api/superagent/fanout/preview") {
     const body = await readBody(req) || {};
-    return sendJson(res, 200, superagentIntake.planFanOut(store, body.event || body));
+    const event = body.event || body;
+    return sendJson(res, 200, superagentIntake.deliverFanOut(store, event, { dryRun: true, idempotencyKey: body.idempotencyKey || null }));
+  }
+  if (method === "POST" && p === "/api/superagent/fanout/deliver") {
+    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_fanout_local_only" });
+    try {
+      const body = await readBody(req) || {};
+      const fresh = readStore();
+      const delivery = superagentIntake.deliverFanOut(fresh, body.event || body, {
+        dryRun: false,
+        idempotencyKey: body.idempotencyKey || null,
+        bypassPause: body.bypassPause === true,
+      });
+      writeStore(fresh);
+      return sendJson(res, 200, delivery);
+    } catch (err) {
+      return sendJson(res, 400, { error: err.message });
+    }
+  }
+  if (method === "POST" && p === "/api/superagent/ingest") {
+    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_ingest_local_only" });
+    try {
+      const body = await readBody(req) || {};
+      const fresh = readStore();
+      const result = superagentIntake.ingestAndDeliver(fresh, body.event || body.trigger || body, {
+        forceDeliver: body.forceDeliver === true,
+        idempotencyKey: body.idempotencyKey || null,
+        bypassPause: body.bypassPause === true,
+      });
+      writeStore(fresh);
+      return sendJson(res, 200, result);
+    } catch (err) {
+      return sendJson(res, 400, { error: err.message });
+    }
+  }
+  if (method === "GET" && p === "/api/superagent/async") {
+    const status = url.searchParams.get("status");
+    return sendJson(res, 200, { runs: superagentAsync.listAsyncRuns(store, { status: status || null }) });
+  }
+  if (method === "POST" && p === "/api/superagent/async/start") {
+    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_async_local_only" });
+    try {
+      const body = await readBody(req) || {};
+      const fresh = readStore();
+      const result = superagentAsync.startAsync(fresh, body);
+      writeStore(fresh);
+      return sendJson(res, result.duplicate ? 200 : 201, result);
+    } catch (err) {
+      return sendJson(res, 400, { error: err.message });
+    }
+  }
+  const superAsyncMatch = p.match(/^\/api\/superagent\/async\/([^/]+)(?:\/(stop|heartbeat|complete))?$/);
+  if (superAsyncMatch && method === "GET" && !superAsyncMatch[2]) {
+    try {
+      return sendJson(res, 200, { run: superagentAsync.getAsyncRun(store, decodeURIComponent(superAsyncMatch[1])) });
+    } catch (err) {
+      return sendJson(res, 404, { error: err.message });
+    }
+  }
+  if (superAsyncMatch && method === "POST" && superAsyncMatch[2] === "stop") {
+    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_async_local_only" });
+    try {
+      const body = await readBody(req) || {};
+      const fresh = readStore();
+      const result = superagentAsync.stopAsync(fresh, decodeURIComponent(superAsyncMatch[1]), {
+        confirmed: body.confirmed === true,
+        reason: body.reason || "cooperative_stop",
+      });
+      writeStore(fresh);
+      return sendJson(res, 200, result);
+    } catch (err) {
+      return sendJson(res, 400, { error: err.message });
+    }
+  }
+  if (superAsyncMatch && method === "POST" && superAsyncMatch[2] === "heartbeat") {
+    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_async_local_only" });
+    try {
+      const body = await readBody(req) || {};
+      const fresh = readStore();
+      const result = superagentAsync.heartbeatAsync(fresh, decodeURIComponent(superAsyncMatch[1]), body);
+      writeStore(fresh);
+      return sendJson(res, 200, result);
+    } catch (err) {
+      return sendJson(res, 400, { error: err.message });
+    }
+  }
+  if (superAsyncMatch && method === "POST" && superAsyncMatch[2] === "complete") {
+    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_async_local_only" });
+    try {
+      const body = await readBody(req) || {};
+      const fresh = readStore();
+      const result = superagentAsync.completeAsync(fresh, decodeURIComponent(superAsyncMatch[1]), body);
+      writeStore(fresh);
+      return sendJson(res, 200, result);
+    } catch (err) {
+      return sendJson(res, 400, { error: err.message });
+    }
   }
   if (method === "GET" && p === "/api/superagent/watchdog/scan") {
     return sendJson(res, 200, superagentWatchdog.scan(store));
