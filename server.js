@@ -1027,7 +1027,10 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
 
   if (p === '/api/agenda/reports/review-sources' && method === 'GET') {
     if (!isLoopback(req)) return sendJson(res,403,{error:'report_local_only'});
-    try { return sendJson(res,200,require('./lib/saved-review-report').preview(readStore(),url.searchParams.get('anchorDate'))); }
+    try {
+      const profile=url.searchParams.get('profile');if(profile&&profile!=='thoughts-v1')throw Error('报告类型无效。');
+      return sendJson(res,200,require(profile==='thoughts-v1'?'./lib/monthly-thought-report':'./lib/saved-review-report').preview(readStore(),url.searchParams.get('anchorDate')));
+    }
     catch(error) { return sendJson(res,409,{error:error.message}); }
   }
   const reportJobRoute = p.match(/^\/api\/agenda\/reports\/jobs\/([a-zA-Z0-9-]+)(?:\/(started|retry|reconcile))?$/);

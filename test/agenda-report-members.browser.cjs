@@ -32,7 +32,7 @@ const server=createServer({reportExecute:async(agent,prompt,context)=>{
     assert.match(await page.locator('.agenda-report-cta:not(.saved-review-report-cta)').innerText(),/SiliconFlow 已暂停/);
     await page.locator('.agenda-report-cta:not(.saved-review-report-cta)').screenshot({path:path.join(root,'report-selector-cn.png')});
     const reportsBefore=readStore().reports.length;
-    await generate.click();await page.evaluate(()=>document.querySelector('[data-act="agenda-report-draft"]').click());
+    await page.evaluate(()=>{const button=document.querySelector('[data-act="agenda-report-draft"]');button.click();button.click();});
     await page.locator('#agenda-report-body').waitFor();assert.deepEqual(calls,['codex']);
     assert.equal(readStore().reports.length,reportsBefore);
     await page.locator('#agenda-report-body').fill('# 人工修改后的月报\n保留完整修改。');

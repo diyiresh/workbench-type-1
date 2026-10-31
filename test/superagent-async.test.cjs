@@ -60,10 +60,14 @@ const linked = asyncApi.startAsync(store, {
   idempotencyKey: "k-2",
 });
 const stopped = asyncApi.stopAsync(store, linked.run.id, { confirmed: true, reason: "user_cancel" });
-assert.equal(stopped.run.status, "stopped");
+assert.equal(stopped.run.status, "stopping");
 assert.equal(stopped.run.stopRequested, true);
-assert.ok(["failed", "uncertain"].includes(attempt.state));
-assert.equal(attempt.blockerCode, "cooperative_stop");
+assert.equal(attempt.state, "uncertain");
+assert.equal(attempt.blockerCode, "cooperative_stop_requested");
+assert.ok(gov.busy(store,"cursor"));
+assert.throws(()=>asyncApi.completeAsync(store,linked.run.id,{status:'done'}),/async_stop_unconfirmed/);
+gov.reconcile(store,attempt,{confirmed:true,stopped:true,evidence:'Isolated worker stop confirmed',resultHash:null,resolution:'do-not-apply'});
+assert.equal(asyncApi.stopAsync(store,linked.run.id,{confirmed:true}).run.status,'stopped');
 
 assert.throws(() => asyncApi.stopAsync(store, started.run.id, { confirmed: false }), /confirmation_required/);
 const stopMain = asyncApi.stopAsync(store, started.run.id, { confirmed: true });

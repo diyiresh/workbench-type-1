@@ -65,6 +65,7 @@ function baseStore() {
   for (let i = 0; i < 3; i++) {
     store.executionAttempts.push({
       id: "ea-fail-" + i,
+      inputHash: "same-input",
       runId: "run-1",
       stepId: "executor",
       purpose: "stage",
@@ -75,6 +76,7 @@ function baseStore() {
   }
   store.executionAttempts.push({
     id: "ea-active",
+    inputHash: "same-input",
     runId: "run-1",
     stepId: "executor",
     purpose: "stage",

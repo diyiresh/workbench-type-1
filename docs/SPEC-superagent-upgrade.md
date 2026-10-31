@@ -1,6 +1,6 @@
 # SPEC：Super-agent 架构吸收升级（基于 DeepSeek 文章）
 
-> 状态：Phase1 完成 · **Phase2 完成（本地）** · 分支 `feature/v3-bold-workspace` · **本阶段不推送 GitHub**  
+> 状态：Phase1/Phase2 本地实现完成 · 分支 `feature/v3-bold-workspace` · 2026-11-01 用户授权审查并推送最新 v3。下文“未推送”描述原阶段交付时点，当前发布情况以 Git 提交和远端分支为准。
 > 来源文章：DeepSeek Super-agent（mp.weixin.qq.com/...zoS7GlReWPhfCjENGxXCdg）  
 > 参考原型（只吸收模式，不整仓迁入）：https://github.com/deepseek-ai/dsh-superagent-prototype  
 > 基线：本地 v3 Bold Workspace + Codex WIP（已本地提交，未推送）
@@ -45,7 +45,7 @@ Ticket/Assignment：文章 Ticket ≈ `store.inbox` + `executionAttempts`；Thre
   - 幂等：`store.superagent.deliveryLog`（eventKey + subscriptionId）
   - 尊重 `automationPaused` / 归档（默认 skip；`bypassPause` 仅显式）
 - 摄入：`ingestAndDeliver` = filter → accept 则 deliver；slow_path 则入队（除非 `forceDeliver`）
-- 异步：`lib/superagent-async.js` start/heartbeat/stop/complete；idempotencyKey；stop 可对挂接的 ACTIVE attempt 调 `governance.failed(cooperative_stop)`
+- 异步：`lib/superagent-async.js` start/heartbeat/stop/complete；绑定输入的 idempotencyKey。仅登记异步跟踪，不启动执行器；挂接 ACTIVE attempt 的 stop 保持 stopping/uncertain 和成员占用，待原执行治理确认终止或实际返回后才能完成停止；不能用 complete 绕过核对。
 - Watchdog 增加 `async_lease_expired` / `async_no_progress` / `async_stop_requested`
 - HTTP：订阅写删、fanout deliver、ingest、async start/stop/heartbeat/complete
 
@@ -108,3 +108,12 @@ Ticket/Assignment：文章 Ticket ≈ `store.inbox` + `executionAttempts`；Thre
 | POST | `/api/superagent/async/:id/complete` | 完成 |
 | GET | `/api/superagent/watchdog/scan` | 扫描 |
 | POST | `/api/superagent/watchdog/apply` | 确认后 pause |
+
+## 8. 2026-11-01 推送前审查
+
+用户授权将最新 v3（含 Codex 详细月度思考功能）推送到原 v3 分支，main 不变。旧“不推送”约束是阶段历史记录，已由本次授权更新。
+
+- async 是跟踪层，不直接启动或杀死 CLI/Worker。记录显式标注 trackingOnly；停止绑定的执行时保留 stopping/uncertain 和成员占用，不将请求当作停止证明。后续适配器报错不能解除该占用，须由执行治理的核对或实际结果处理。complete 不能绕过未确认停止。
+- 异步幂等键绑定项目、成员、attempt、目标、通道和用途；不同目标不能复用同一键。更新订阅后仍保持去重身份，ingest 不把自动生成的时间戳混入重放身份。
+- Watchdog 扫描不改输入对象；重试告警仅统计相同 inputHash，未知输入不合并预算。扫描及暂停是状态控制，不替代实际执行停止证明。
+- 回归使用隔离台账，不向真实成员投递消息。订阅去重日志仍按已有配置保留最近记录；长期全历史去重不在本阶段范围。
