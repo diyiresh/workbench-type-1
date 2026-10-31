@@ -13,15 +13,20 @@ import { t as tr, ui, systemFragment } from "./js/i18n.js";
 import { bindDelivery } from './js/delivery-ui.js';
 import { bindNoteSuggestion, openReviewNote, openNotesManager, resetSuggestion } from './js/agenda-notes-ui.js';
 import { mountAgendaReports, startAgendaReport } from './js/agenda-report-ui.js';
+import { mountSavedReviewReports, previewSavedReviewReport } from './js/saved-review-report-ui.js';
 import { openArchive } from "./js/archive-ui.js";
 import { helpView, renderLogic } from "./js/help.js";
 import { rememberChatPosition, restoreChatPosition } from "./js/chat-scroll.js";
 
-import { NAVIGATION as PRIMARY, resolveRoute, sectionFor, moduleTarget } from './js/navigation.mjs';
+import { NAVIGATION as PRIMARY, resolveRoute, sectionFor, moduleTarget, FOCUS_CATEGORIES, REPORT_KINDS, focusCategoryFor } from './js/navigation.mjs';
+import { feedFor, assetSnapshot } from './js/focus.mjs';
 import { businessProjectsView, assetsView, setCapabilities } from './js/centers.js';
+import { syncPet, previewGreeting } from './js/pet.js';
 import { mountSkillStudio, bindSkillSources } from './js/skill-studio-ui.js';
 import { mountExecution, bindConversion } from './js/execution-ui.js';
 import { bindCompactLayout, mountCompactLayout } from './js/compact-layout.js';
+import { mountLively } from './js/lively.js';
+mountLively();
 bindCompactLayout();
 bindSkillSources();
 bindConversion();
@@ -183,8 +188,8 @@ function rail() {
     }).join("") + `<div class="rail-gap"></div>`;
 }
 
-function channelBtn(id, label, extra) {
-  return `<button type="button" class="ch ${secondary === id ? "active" : ""}" data-sec="${esc(id)}">${esc(label)}${extra ? `<small>${esc(extra)}</small>` : ""}</button>`;
+function channelBtn(id, label, extra, activeId = secondary) {
+  return `<button type="button" class="ch ${activeId === id ? "active" : ""}" data-sec="${esc(id)}">${esc(label)}${extra ? `<small>${esc(extra)}</small>` : ""}</button>`;
 }
 
 function channels() {
@@ -221,8 +226,14 @@ function channels() {
         return channelBtn(source.id, source.name, n ? ui`未读 ${n}` : source.platform);
       }).join("");
   } else if (primary === "ops") {
-    html += ui`<div class="sec">工作报告</div>`;
-    html += OPS.filter((o) => o.id !== "today" && hit(o.name)).map((o) => channelBtn(o.id, tr(o.name))).join("");
+    const active = focusCategoryFor(secondary);
+    html += ui`<div class="sec">我的关注</div>`;
+    html += FOCUS_CATEGORIES.filter((item) => hit(item.name)).map((item) => {
+      const category = (getStore().focusCategories || []).find((entry) => entry.id === item.id);
+      const feed = category && item.id !== "business" ? feedFor(category, getStore()) : { runs: [], memories: [] };
+      const count = item.id === "business" ? (getStore().reports || []).length : feed.runs.length + feed.memories.length;
+      return channelBtn(item.id, tr(item.name), String(count), active);
+    }).join("");
   } else if (primary === "crew") {
     html += ui`<div class="sec">成员中心</div>${channelBtn("all", tr("全部成员"))}`;
     html += (getStore().agents || [])
@@ -239,7 +250,8 @@ function channels() {
     const todayRuns = ((getStore().lifeSystem || {}).habitRuns || []).filter((x) => x.date === ymd());
     html += ui`<div class="sec">生活管理</div>${channelBtn("all", tr("繁星与银河"), todayRuns.length ? ui`${todayRuns.length} 项今日习惯` : "")}`;
   } else if (primary === "memory") {
-    html += ui`<div class="sec">资产中心</div>${channelBtn("all", tr("总览"))}${channelBtn("lessons", tr("经验与教训"))}${channelBtn("skills", tr("技能沉淀"))}${channelBtn("prompts", tr("提示词"))}${channelBtn("knowledge", tr("知识来源"))}${channelBtn("extensions", tr("扩展能力"))}`;
+    const snap = assetSnapshot(getStore());
+    html += ui`<div class="sec">资产中心</div>${channelBtn("all", tr("总览"))}${channelBtn("skills", tr("技能"), String(snap.counts.skills))}${channelBtn("atoms", tr("知识原子"), String(snap.counts.atoms))}${channelBtn("materials", tr("内容原料"), String(snap.counts.materials))}${channelBtn("lessons", tr("教训"), String(snap.counts.lessons))}${channelBtn("prompts", tr("提示词"), String(snap.counts.prompts))}${channelBtn("pending", tr("待整理"), String(snap.counts.pending))}${channelBtn("knowledge", tr("知识来源"))}${channelBtn("extensions", tr("扩展能力"))}`;
   } else {
     html += ui`<div class="sec">系统设置</div>${channelBtn("all", tr("简报与偏好"))}${channelBtn("help", tr("使用说明与逻辑图"))}`;
   }
@@ -262,7 +274,7 @@ function workspace() {
     department: ["all","new"].includes(secondary) ? tr("项目中心") : ((getStore().departmentRuns || []).find((run) => run.id === secondary) || {}).title || tr("项目中心"),
     agenda: tr("每日行程"),
     briefs: secondary === "all" ? tr("简报中心") : ((getStore().briefSources || []).find((x) => x.id === secondary) || {}).name || tr("简报中心"),
-    ops: tr((OPS.find((o) => o.id === secondary) || { name: "工作报告" }).name),
+    ops: REPORT_KINDS.includes(secondary) ? tr((OPS.find((o) => o.id === secondary) || { name: "经营报告" }).name) : tr("我的关注"),
     crew: secondary === "all" ? tr("成员中心") : agent(secondary).name,
     work: secondary === "all" ? tr("项目中心") : (m || {}).title || "",
     learn: tr("学习成长"),
@@ -276,14 +288,15 @@ function workspace() {
     department: tr("只说一次目标，由主管、执行人、独立复核人与整合秘书接力完成。"),
     agenda: tr("把真正占用今天的时间排出来，再让 AI 给出可编辑的建议。"),
     briefs: tr("ChatGPT、WorkBuddy 与其他 Agent 继续各自生成；这里统一收件、去重和阅读。"),
-    ops: tr("周期报告统一保存在这里，行程安排进入每日行程。"),
+    ops: REPORT_KINDS.includes(secondary) ? tr("周期报告统一保存在这里，行程安排进入每日行程。") : tr("按关注分类阅读已入库的简报和记忆。经营报告仍在这一页生成。"),
     crew: tr("查看成员职责、台账指令和执行证据；登记状态不代表实时在线。"),
     work: tr("业务项目与协作任务共用入口，各自保留原记录。"),
     learn: tr("繁星引用临时学习行程；银河保存经您采纳的学习计划。"),
     life: tr("繁星保留生活行程；银河自动载入当天到期习惯。"),
-    memory: tr("从经验到技能，保留来源、确认和版本；知识检索沿用现有资料库。"),
+    memory: tr("技能、知识原子、内容原料、教训和提示词都来自本机台账。"),
     set: tr("简报自动化、指令规则与导出。"),
   };
+  $("workspace").classList.toggle("asset-mode", primary === "memory");
   $("ws-head").innerHTML = `<div class="workspace-heading"><div class="workspace-title"><h1>${esc(["home","department","briefs","crew","work"].includes(primary) && secondary!=="all" ? titleMap[primary] : tr(titleMap[primary] || ""))}</h1><p>${esc(ledeMap[primary] || "")}</p></div></div><button type="button" class="ghost" data-act="manage-records">${tr(tr("管理与归档"))}</button>`;
 
   const body = safe(() => {
@@ -293,7 +306,7 @@ function workspace() {
     if (primary === "agenda") return V.agendaView(agendaDate, agendaMode, agendaReportDraft, agendaFilter, {exportPreview:agendaReportExportPreview,saveReceipt:agendaReportSaveReceipt,saving:agendaReportSaving});
     if (primary === "briefs") return V.briefHubView(secondary, briefFilter, briefPreferenceUpdates);
     if (primary === "work") return secondary === "all" ? businessProjectsView() : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
-    if (primary === "ops") return V.opsView(secondary === "all" ? "weekly" : secondary, tr((OPS.find((o) => o.id === (secondary === "all" ? "weekly" : secondary)) || {}).name));
+    if (primary === "ops") return V.focusView(secondary);
     if (primary === "crew") return secondary === "all" ? V.crewAllView() : V.agentDetailView(agent(secondary));
     if (primary === "learn") return V.frontView("learn", secondary, learningPlanDraft, learningFormDraft);
     if (primary === "life") return V.frontView("life", secondary);
@@ -337,11 +350,13 @@ function workspace() {
   bindAgenda();
   bindNoteSuggestion(api);
   mountAgendaReports({api,view:agendaMode,anchorDate:agendaDate,jobs:getStore().agendaReportJobs||[],savedJobIds:(getStore().reports||[]).map(r=>r.sourceJobId).filter(Boolean),hasDraft:()=>!!agendaReportDraft,clearDraft:()=>{agendaReportDraft=null;agendaReportExportPreview=null;},onDraft:draft=>{agendaReportDraft=draft;agendaReportExportPreview=null;render();}});
+  mountSavedReviewReports({api,anchorDate:agendaDate,jobs:getStore().agendaReportJobs||[],savedJobIds:(getStore().reports||[]).map(r=>r.sourceJobId).filter(Boolean),hasDraft:()=>!!agendaReportDraft,currentJobId:()=>agendaReportDraft?.sourceJobId,draftToken:()=>agendaReportDraft?String(agendaReportDraft.sourceJobId||'')+':'+($('agenda-report-body')?.value??agendaReportDraft.body):null,onDraft:draft=>{const editor=$('agenda-report-body');if(editor)editor.value=draft.body;agendaReportDraft=draft;agendaReportExportPreview=null;render();}});
   bindLearningPlan();
   bindDepartment();
   mountSkillStudio();
   mountExecution();
   mountCompactLayout();
+  syncPet(getStore().meta?.companion);
   syncComposer();
   if (primary === 'crew' || primary === 'memory') void refreshCapabilities();
   if (primary === 'memory' && secondary === 'knowledge') void refreshVaultStatus();
@@ -674,6 +689,18 @@ async function saveLlm() {
 async function saveTheme() {
   const theme = $("theme-select").value;
   await api("/api/meta", { method: "PATCH", body: { theme } });
+  await reload();
+}
+
+async function saveCompanion() {
+  const companion = {
+    enabled: $("pet-enabled").checked,
+    voice: $("pet-voice").checked,
+    speakMode: $("pet-always").checked ? "always" : "daily",
+    autostart: $("pet-autostart").checked,
+  };
+  const saved = await api("/api/meta", { method: "PATCH", body: { companion } });
+  if (window.benchShell?.applyCompanion) await window.benchShell.applyCompanion(saved.companion || companion);
   await reload();
 }
 
@@ -1325,6 +1352,15 @@ document.addEventListener("click", async (e) => {
   if (a === "test-llm") await testLlm();
   if (a === "enable-ollama") await enableOllama();
   if (a === "save-theme") await saveTheme();
+  if (a === "save-companion") return saveCompanion();
+  if (a === "preview-greeting") return previewGreeting();
+  if (a === "asset-rescan") return reload();
+  if (a === "open-system") {
+    const url = act.dataset.url || "";
+    if (window.benchShell?.openExternal) await window.benchShell.openExternal(url);
+    else window.open(url, "_blank", "noopener,noreferrer");
+    return;
+  }
   if (a === "manage-records") openArchive(primary,reload);
   if (a === "save-language") { await api("/api/meta",{method:"PATCH",body:{language:$("language-select").value}}); await reload(); }
   if (a === "save-reminder") await saveReminder();
@@ -1343,7 +1379,7 @@ document.addEventListener("click", async (e) => {
   if (a === "agenda-report-draft") await draftAgendaReport();
   if (a === "agenda-report-save") await saveAgendaReport();
   if (a === 'agenda-report-save-historical') await saveAgendaReport(true);
-  if (a === 'agenda-report-regenerate') await startAgendaReport({confirmedReplace:true});
+  if (a === 'agenda-report-regenerate') { if (agendaReportDraft?.sourceMode==='saved-reviews') await previewSavedReviewReport(); else await startAgendaReport({confirmedReplace:true}); }
   if (a === 'agenda-report-save-cancel') { agendaReportExportPreview=null;render(); }
   if (a === "agenda-report-discard") { agendaReportDraft = null; render(); }
   if (a === "habit-toggle") await toggleHabit(act.dataset.id);
@@ -1471,6 +1507,15 @@ $("composer").addEventListener("submit", (e) => {
 $("modal").addEventListener("click", (e) => {
   if (e.target === $("modal") && !$("modal").querySelector('.review-note-editor')) $("modal").hidden = true;
 });
+
+document.addEventListener("input", (event) => {
+  if (event.target?.id !== "asset-search") return;
+  const query = event.target.value.trim().toLowerCase();
+  document.querySelectorAll("[data-asset-text]").forEach((node) => {
+    node.hidden = Boolean(query) && !node.dataset.assetText.toLowerCase().includes(query);
+  });
+});
+document.addEventListener("bench-reload", () => { void reload(); });
 
 window.addEventListener("hashchange", () => {
   parseHash();

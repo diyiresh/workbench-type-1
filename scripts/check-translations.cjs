@@ -4,10 +4,13 @@ const files=['public/app.js','public/js/core.js','public/js/centers.js','public/
 const entries=acorn.parse(fs.readFileSync('public/js/translations.js','utf8'),{ecmaVersion:'latest',sourceType:'module'}).body[0].declaration.declarations[0].init.properties;
 const translations=new Set(entries.map(p=>p.key.value));
 files.push('public/js/agenda-report-ui.js');
+files.push('public/js/saved-review-report-ui.js');
+files.push('public/js/review-note-members-ui.js');
 files.push('public/js/skill-studio-ui.js');
 files.push('public/js/execution-ui.js');
 files.push('public/js/compact-layout.js');
 files.push('public/js/sidebar-resize.js');
+files.push('public/js/pet.js');
 const needed=new Set();
 const han=/[\u3400-\u9fff]/;
 function add(value){if(han.test(value) && !/^[A-Z]:\\/.test(value))needed.add(value);}

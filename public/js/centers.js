@@ -1,8 +1,9 @@
 import { esc, fmt, getStore } from './core.js';
-import { t as tr, ui } from './i18n.js';
+import { t as tr, ui, language } from './i18n.js';
 import { renderCard } from '../modules/index.js';
 import { skillStudioView } from './skill-studio-ui.js';
 import { executionState, executionReason } from './execution-ui.js';
+import { assetSnapshot } from './focus.mjs';
 
 let capabilities = null;
 export function setCapabilities(value) { capabilities = value; }
@@ -44,15 +45,77 @@ export function knowledgeView() {
     <section class="card"><h2>独立行程复盘</h2><p>只读取有效最新版，继续排除 VaultRAG。集中展示不改变其检索边界。</p><button type="button" class="ghost" data-act="agenda-notes">管理复盘笔记</button></section>`;
 }
 
+function assetDate() {
+  const locale = language() === 'en' ? 'en-US' : 'zh-CN';
+  return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
+}
+
+function skillState(skill) {
+  if (skill.state === 'published') return tr('已发布');
+  if (skill.state === 'draft') return tr('草稿');
+  if (skill.state === 'disabled') return tr('已停用');
+  return skill.state || '';
+}
+
+function assetChrome(secondary, snap) {
+  const active = ['all','skills','atoms','materials','lessons','prompts','pending','knowledge','extensions'].includes(secondary) ? secondary : 'all';
+  const create = secondary === 'prompts'
+    ? ui`<button type="button" class="solid" data-act="add-prompt">+ 新建</button>`
+    : ui`<a class="solid asset-create" href="#assets/skills">+ 新建</a>`;
+  const mark = (id) => active === id ? 'active' : '';
+  return ui`<div class="asset-workspace" data-asset-workspace>
+    <header class="asset-hero"><div><div class="asset-kicker">YOUR PERSONAL WORKSPACE</div><h2>资产中心</h2><p>${esc(assetDate())}</p></div>${create}</header>
+    <section class="asset-stats">
+      <a class="asset-stat" href="#assets/skills"><b>${esc(String(snap.counts.skills))}</b><span>技能</span><small>技能工作室条目</small></a>
+      <a class="asset-stat" href="#assets/atoms"><b>${esc(String(snap.counts.atoms))}</b><span>知识原子</span><small>台账记忆</small></a>
+      <a class="asset-stat" href="#assets/lessons"><b>${esc(String(snap.counts.lessons))}</b><span>教训</span><small>经验与教训</small></a>
+      <a class="asset-stat" href="#assets/prompts"><b>${esc(String(snap.counts.prompts))}</b><span>提示词</span><small>可复用提示词</small></a>
+    </section>
+    <div class="asset-banners">
+      <p class="asset-banner">${tr('待确认草稿')} <b>${esc(String(snap.drafts))}</b></p>
+      <p class="asset-banner">${tr('已发布技能')} <b>${esc(String(snap.published))}</b> · ${tr('技能测试记录')} <b>${esc(String(snap.skillRuns))}</b> · ${tr('旧版技能说明')} <b>${esc(String(snap.legacySkills))}</b></p>
+    </div>
+    <nav class="asset-chips" aria-label="资产分类">
+      <a class="asset-chip ${mark('all')}" href="#assets/all">总览</a>
+      <a class="asset-chip ${mark('skills')}" href="#assets/skills">技能 <small>${esc(String(snap.counts.skills))}</small></a>
+      <a class="asset-chip ${mark('atoms')}" href="#assets/atoms">知识原子 <small>${esc(String(snap.counts.atoms))}</small></a>
+      <a class="asset-chip ${mark('materials')}" href="#assets/materials">内容原料 <small>${esc(String(snap.counts.materials))}</small></a>
+      <a class="asset-chip ${mark('lessons')}" href="#assets/lessons">教训 <small>${esc(String(snap.counts.lessons))}</small></a>
+      <a class="asset-chip ${mark('prompts')}" href="#assets/prompts">提示词 <small>${esc(String(snap.counts.prompts))}</small></a>
+      <a class="asset-chip ${mark('pending')}" href="#assets/pending">待整理 <small>${esc(String(snap.counts.pending))}</small></a>
+      <a class="asset-chip ${mark('knowledge')}" href="#assets/knowledge">知识来源</a>
+      <a class="asset-chip ${mark('extensions')}" href="#assets/extensions">扩展能力</a>
+    </nav>
+    <div class="asset-tools"><input id="asset-search" type="search" placeholder="搜索 Skill 名称、用途…" /><button type="button" class="ghost" data-act="asset-rescan">重新扫描</button></div>
+  </div>`;
+}
+
+function libraryCards(snap) {
+  return snap.library.map((skill) => {
+    const name = skill.draft?.name || skill.id;
+    const description = skill.draft?.description || '';
+    const versions = Array.isArray(skill.versions) ? skill.versions.length : 0;
+    const runs = snap.runs.filter((run) => run.skillId === skill.id).length;
+    return `<article class="asset-card" data-asset-text="${esc(`${name} ${description}`)}" data-skill-library="${esc(skill.id)}"><div class="row"><b>${esc(name)}</b><span class="asset-tag">${esc(skillState(skill))}</span></div><p>${esc(description)}</p><div class="actions"><a class="tiny" href="#assets/skills">查看原文</a><span class="chip">${esc(tr('版本'))} ${esc(String(versions))}</span><span class="chip">${esc(tr('测试记录'))} ${esc(String(runs))}</span></div></article>`;
+  }).join('');
+}
+
 export function assetsView(secondary, legacyView) {
-  if (secondary === 'knowledge') return knowledgeView();
-  if (secondary === 'extensions') return extensionsView();
-  if (secondary === 'skills') {
-    const skills = getStore().skills || [];
-    return skillStudioView() + ui`<section class="card"><h2>已有技能说明</h2><p>以下是旧版说明记录，不代表已发布技能文件。</p><a class="tiny" href="#assets/lessons">查看经验与教训</a></section>
-      ${skills.map(s => `<article class="msg" data-skill-record="${esc(s.id)}"><b>${esc(s.name)}</b><p>${esc(s.summary)}</p><span class="chip">${tr('技能说明，未绑定文件')}</span></article>`).join('')}`;
-  }
-  const prefix = secondary === 'lessons' ? ui`<section class="card"><h2>经验与教训</h2><p>先保留来源和适用场景，再确认哪些经验值得提炼成技能；已有教训不会自动成为所有 Agent 的永久规则。</p><a class="tiny" href="#assets/skills">查看技能沉淀流程</a></section>` : '';
-  const intro = secondary === 'all' ? ui`<section class="card"><h2>资产中心</h2><p>经验、教训、提示词、技能与知识各有用途，资产记录不代表项目已经完成。</p><div class="actions"><a class="tiny" href="#assets/lessons">经验与教训</a><a class="tiny" href="#assets/skills">技能沉淀</a><a class="tiny" href="#assets/knowledge">知识来源</a><a class="tiny" href="#assets/extensions">扩展能力</a></div></section>` : '';
-  return intro + prefix + legacyView(secondary);
+  const snap = assetSnapshot(getStore());
+  let body = '';
+  if (secondary === 'knowledge') body = knowledgeView();
+  else if (secondary === 'extensions') body = extensionsView();
+  else if (secondary === 'skills') {
+    const legacy = snap.skills.map((skill) => `<article class="msg" data-asset-text="${esc(`${skill.name || ''} ${skill.summary || ''}`)}" data-skill-record="${esc(skill.id)}"><b>${esc(skill.name)}</b><p>${esc(skill.summary)}</p><span class="chip">${tr('技能说明，未绑定文件')}</span></article>`).join('');
+    const cards = libraryCards(snap);
+    body = skillStudioView() + (cards || ui`<p class="asset-empty">技能工作室里还没有草稿或已发布技能。</p>`) + ui`<section class="card"><h2>已有技能说明</h2><p>以下是旧版说明记录，不代表已发布技能文件。</p><a class="tiny" href="#assets/lessons">查看经验与教训</a></section>${legacy}`;
+  } else if (secondary === 'materials') {
+    body = snap.artifacts.map((item) => `<article class="asset-card" data-asset-text="${esc(`${item.name || ''} ${item.title || ''} ${item.path || ''}`)}"><b>${esc(item.name || item.title || item.id)}</b><p>${esc(item.path || '')}</p>${item.reviewStatus ? `<span class="chip">${esc(item.reviewStatus)}</span>` : ''}</article>`).join('') || ui`<p class="asset-empty">台账里还没有内容原料。项目成果登记后会出现在这里。</p>`;
+  } else if (secondary === 'pending') {
+    const drafts = snap.library.filter((skill) => skill.state === 'draft');
+    body = drafts.map((skill) => `<article class="asset-card" data-asset-text="${esc(skill.draft?.name || '')}"><b>${esc(skill.draft?.name || skill.id)}</b><p>${esc(skill.draft?.description || '')}</p><a class="tiny" href="#assets/skills">查看原文</a></article>`).join('') || ui`<p class="asset-empty">没有待整理的技能草稿。</p>`;
+  } else if (secondary === 'prompts') body = legacyView('prompts');
+  else if (secondary === 'lessons') body = ui`<section class="card"><h2>教训</h2><p>先保留来源和适用场景，再确认哪些经验值得提炼成技能；已有教训不会自动成为所有 Agent 的永久规则。</p><a class="tiny" href="#assets/skills">查看技能沉淀流程</a></section>` + legacyView('lessons');
+  else body = ui`<p class="asset-note">下面是台账里的知识原子。上面的数字只统计当前台账，没有写入的不会算进去。</p>` + legacyView(secondary === 'atoms' ? 'atoms' : 'all');
+  return assetChrome(secondary, snap) + `<div class="asset-results">${body}</div>`;
 }

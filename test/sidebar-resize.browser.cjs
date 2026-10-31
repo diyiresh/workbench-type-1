@@ -26,12 +26,12 @@ function contrast(foreground,background){
   const handle=page.locator('#sidebar-resizer'),sidebar=page.locator('#sidebar'),icon=page.locator('[data-sidebar-toggle]');
   const width=()=>sidebar.evaluate(e=>e.getBoundingClientRect().width);
   const stored=()=>page.evaluate(()=>localStorage.getItem('bench-secondary-sidebar-width-v1'));
-  await handle.waitFor();assert.equal(await width(),258);
+  await handle.waitFor();assert.equal(await width(),236);
   const original=readStore(),composer=page.locator('.room-composer textarea');
   await composer.fill('调宽不丢草稿\nOriginal draft');await composer.evaluate(e=>{window.originalComposer=e;});
   await page.locator('#search').fill('隔离');await page.locator('#search').evaluate(e=>{window.originalSearch=e;});
   const drag=async delta=>{const box=await handle.boundingBox();await page.mouse.move(box.x+box.width/2,200);await page.mouse.down();await page.mouse.move(box.x+box.width/2+delta,200,{steps:8});};
-  await drag(112);assert.equal(await width(),370);assert.equal(await stored(),null);await page.mouse.up();assert.equal(await stored(),'370');
+  await drag(134);assert.equal(await width(),370);assert.equal(await stored(),null);await page.mouse.up();assert.equal(await stored(),'370');
   assert(await composer.evaluate(e=>e===window.originalComposer));assert.equal(await composer.inputValue(),'调宽不丢草稿\nOriginal draft');
   assert(await page.locator('#search').evaluate(e=>e===window.originalSearch));assert.equal(await page.locator('#search').inputValue(),'隔离');
   await icon.click();assert(await handle.isHidden());await icon.click();assert.equal(await width(),370);
@@ -39,20 +39,20 @@ function contrast(foreground,background){
   await page.locator('[data-primary="home"]').click();await page.locator('#ws-head h1').waitFor();assert.equal(await width(),370);
   await handle.press('Home');assert.equal(await width(),200);await handle.press('End');assert.equal(await width(),420);
   await handle.press('ArrowLeft');assert.equal(await width(),412);await handle.press('Shift+ArrowRight');assert.equal(await width(),420);
-  await handle.press('Enter');assert.equal(await width(),258);assert.equal(await stored(),null);
+  await handle.press('Enter');assert.equal(await width(),236);assert.equal(await stored(),null);
   await drag(-2000);await page.mouse.up();assert.equal(await width(),200);await drag(2000);await page.mouse.up();assert.equal(await width(),420);
-  await handle.dblclick();assert.equal(await width(),258);assert.equal(await stored(),null);
-  await handle.press('End');await page.setViewportSize({width:800,height:900});await page.waitForFunction(()=>document.querySelector('#sidebar').offsetWidth===340);
+  await handle.dblclick();assert.equal(await width(),236);assert.equal(await stored(),null);
+  await handle.press('End');await page.setViewportSize({width:800,height:900});await page.waitForFunction(()=>document.querySelector('#sidebar').offsetWidth===352);
   assert.equal(await stored(),'420');assert((await page.locator('#workspace').boundingBox()).width>=360);
   await page.setViewportSize({width:1440,height:1000});await page.waitForFunction(()=>document.querySelector('#sidebar').offsetWidth===420);
   await handle.press('Enter');
   await handle.evaluate(e=>e.addEventListener('pointerdown',event=>{window.resizePointer=event.pointerId;}));
-  await drag(65);await handle.evaluate(e=>e.dispatchEvent(new PointerEvent('pointercancel',{pointerId:window.resizePointer})));await page.mouse.up();assert.equal(await width(),258);assert.equal(await stored(),null);
-  await drag(65);await handle.press('Escape');await page.mouse.up();assert.equal(await width(),258);
-  await drag(65);await handle.evaluate(e=>e.releasePointerCapture(window.resizePointer));await page.mouse.up();assert.equal(await width(),258);
-  await drag(65);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.mouse.up();assert.equal(await width(),258);
-  await drag(65);await page.evaluate(()=>document.querySelector('[data-sidebar-toggle]').click());await page.mouse.up();assert(await handle.isHidden());assert(!(await page.locator('html').getAttribute('class')||'').includes('sidebar-resizing'));await icon.click();assert.equal(await width(),258);
-  await page.setViewportSize({width:390,height:900});await icon.click();assert(await sidebar.isVisible());assert(await handle.isHidden());await icon.click();await page.setViewportSize({width:1440,height:1000});assert.equal(await width(),258);
+  await drag(65);await handle.evaluate(e=>e.dispatchEvent(new PointerEvent('pointercancel',{pointerId:window.resizePointer})));await page.mouse.up();assert.equal(await width(),236);assert.equal(await stored(),null);
+  await drag(65);await handle.press('Escape');await page.mouse.up();assert.equal(await width(),236);
+  await drag(65);await handle.evaluate(e=>e.releasePointerCapture(window.resizePointer));await page.mouse.up();assert.equal(await width(),236);
+  await drag(65);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.mouse.up();assert.equal(await width(),236);
+  await drag(65);await page.evaluate(()=>document.querySelector('[data-sidebar-toggle]').click());await page.mouse.up();assert(await handle.isHidden());assert(!(await page.locator('html').getAttribute('class')||'').includes('sidebar-resizing'));await icon.click();assert.equal(await width(),236);
+  await page.setViewportSize({width:390,height:900});await icon.click();assert(await sidebar.isVisible());assert(await handle.isHidden());await icon.click();await page.setViewportSize({width:1440,height:1000});assert.equal(await width(),236);
   await page.goto(base+'/#projects/run:'+run.id);await page.locator('.project-menu').first().waitFor();
   const menu=page.locator('#sidebar .project-menu').last(),summary=menu.locator('summary'),panel=menu.locator('[data-project-menu-panel]');
   for(const language of ['zh-CN','en'])for(const theme of ['violet','warm','night','guofeng']){
@@ -76,8 +76,8 @@ function contrast(foreground,background){
    await page.setViewportSize({width:1440,height:1000});await handle.waitFor();
   }
   const noStorage=await browser.newPage({viewport:{width:1440,height:1000}});noStorage.on('pageerror',e=>errors.push(e.message));await noStorage.addInitScript(()=>{Object.defineProperty(window,'localStorage',{get(){throw new DOMException('Storage unavailable','SecurityError');}});});
-  await noStorage.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));await noStorage.goto(base);await noStorage.locator('#sidebar-resizer').waitFor();await noStorage.locator('#sidebar-resizer').press('ArrowRight');assert.equal(await noStorage.locator('#sidebar').evaluate(e=>e.offsetWidth),266);await noStorage.close();
-  const invalid=await browser.newPage({viewport:{width:1440,height:1000}});await invalid.addInitScript(()=>localStorage.setItem('bench-secondary-sidebar-width-v1','99999'));await invalid.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));await invalid.goto(base);await invalid.locator('#sidebar-resizer').waitFor();assert.equal(await invalid.locator('#sidebar').evaluate(e=>e.offsetWidth),258);await invalid.close();
+  await noStorage.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));await noStorage.goto(base);await noStorage.locator('#sidebar-resizer').waitFor();await noStorage.locator('#sidebar-resizer').press('ArrowRight');assert.equal(await noStorage.locator('#sidebar').evaluate(e=>e.offsetWidth),244);await noStorage.close();
+  const invalid=await browser.newPage({viewport:{width:1440,height:1000}});await invalid.addInitScript(()=>localStorage.setItem('bench-secondary-sidebar-width-v1','99999'));await invalid.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));await invalid.goto(base);await invalid.locator('#sidebar-resizer').waitFor();assert.equal(await invalid.locator('#sidebar').evaluate(e=>e.offsetWidth),236);await invalid.close();
   assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);assert.deepEqual(remote,[]);
   const after=readStore();for(const key of Object.keys(original).filter(key=>!['meta','events'].includes(key)))assert.deepEqual(after[key],original[key],key);
   console.log('Sidebar resize and menus: drag/keyboard/reset, bounds, preference, drafts, cancellation, resize/collapse/mobile, unavailable storage, menu contrast/placement/Escape, four themes, EN/CN, zero UI writes and unchanged business state passed. Screenshots: '+root);

@@ -1,0 +1,10 @@
+{
+  "name": "ben-workbench-desktop",
+  "private": true,
+  "version": "0.11.0",
+  "description": "Windows desktop shell for the local BEN workbench",
+  "main": "main.js",
+  "dependencies": {
+    "electron": "33.4.11"
+  }
+}
