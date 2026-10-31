@@ -1,0 +1,62 @@
+'use strict';
+const assert = require('node:assert/strict');
+const fs = require('node:fs'), os = require('node:os'), path = require('node:path'), { randomUUID } = require('node:crypto');
+const gov = require('../lib/execution-governance'), jobs = require('../lib/agenda-report-jobs'), notes = require('../lib/agenda-notes');
+let store = require('../lib/default-store').buildDefaultStore();
+store.agendas = [{ id: 'review', title: '会议', date: '2026-10-31', done: true, review: '记录原文', tags: ['机构'] }];
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'review-members-'));
+const vaultRoot = path.join(root, 'vault'), exclusionConfig = path.join(root, 'exclude.toml'); fs.mkdirSync(vaultRoot);
+fs.writeFileSync(exclusionConfig, `vault_path=${JSON.stringify(vaultRoot)}\nexclude_dirs=['行程复盘']`);
+store.remote.agendaNotes = { vaultRoot, exclusionConfig };
+store.remote.providerPauses = { siliconflow: { paused: true } }; store.remote.llm = { enabled: false, baseUrl: 'https://api.siliconflow.cn/v1' };
+gov.configure({ channelState: () => ({ state: 'test-isolated' }) });
+const readStore = () => structuredClone(store), writeStore = s => { gov.observeControls(s, store); store = structuredClone(s); };
+const body = agentId => ({ agentId, idempotencyKey: randomUUID() });
+const flush = () => new Promise(r => setImmediate(r));
+async function wait(m, id) { for (let i=0; i<150; i++) { await new Promise(r=>setTimeout(r,5)); const j=m.get(id); if (!['waiting','doing'].includes(j.status)) return j; } throw Error('timeout'); }
+(async () => {
+  let calls = 0;
+  const manager = jobs.createManager({ readStore, writeStore, execute: async (agent, prompt, ctx) => { calls++; assert.match(prompt,/关键记录/); assert.match(prompt,/不修改文件/); assert(!prompt.includes('VAULT_EVIDENCE')); if (agent !== 'workbuddy') ctx.onBeforeStart(); return '## 关键记录\n'+agent+' 摘要'; } });
+  store.agendas[0].done = false;
+  await assert.rejects(manager.startNote('review','draft',body('codex')),/请先完成行程/); assert.equal(calls,0);
+  store.agendas[0].done = true;
+  for (const member of ['codex','cursor','workbuddy']) {
+    const command = body(member), j = await manager.startNote('review','draft',command), done = await wait(manager,j.id);
+    assert.equal(done.status,'done',done.error); assert.equal(done.workType,'review-note'); assert.match(done.draft.summary,new RegExp(member));
+    assert.equal(done.draft.sourceHash,notes.signature(store.agendas[0])); assert.equal(done.draft.original,'记录原文');
+    assert.equal((await manager.startNote('review','draft',command)).id,j.id); assert.equal(calls,['codex','cursor','workbuddy'].indexOf(member)+1);
+    assert.equal(fs.existsSync(path.join(vaultRoot,'工作台')),false,'Generation must not write notes');
+  }
+  const draft = manager.get(store.agendaReportJobs.find(j=>j.agentId==='cursor').id).draft;
+  let captured;
+  const refine = jobs.createManager({readStore,writeStore,execute:async(agent,prompt)=>{captured=prompt;return '## 关键记录\n补充已整合';}});
+  const integrated=await wait(refine,(await refine.startNote('review','refine',{...draft,summary:'## 待确认问题\n回复：已经沟通',...body('cursor')})).id);
+  assert.equal(integrated.status,'done'); assert.match(captured,/已经沟通/); assert.match(captured,/待确认/);
+  let release;
+  const delayed=jobs.createManager({readStore,writeStore,execute:async(a,p,c)=>{c.onBeforeStart();c.onStart({pid:1});return new Promise(r=>release=r);}});
+  const pending=await delayed.startNote('review','draft',body('cursor'));await flush();
+  await assert.rejects(manager.startNote('review','draft',body('cursor')),e=>e.code==='already_claimed');
+  store.agendas[0].review='修改后的事实';assert.equal(delayed.get(pending.id).status,'uncertain');assert(gov.busy(store,'cursor'));
+  release('迟到原稿');assert.equal((await wait(delayed,pending.id)).status,'held');assert.equal(delayed.get(pending.id).draft,null);
+  store.agendas[0].review='目录变化情形';
+  const cfg=await delayed.startNote('review','draft',body('cursor'));await flush();store.remote.agendaNotes.vaultRoot += '-changed';release('旧目录原稿');assert.equal((await wait(delayed,cfg.id)).status,'held');store.remote.agendaNotes.vaultRoot=vaultRoot;
+  store.agendas[0].review='已保存笔记变化检查';
+  const ready=await wait(manager,(await manager.startNote('review','draft',body('cursor'))).id);
+  const saved=notes.save(store,'review',ready.draft), loaded=notes.savedDraft(store,'review');
+  const fileJob=await delayed.startNote('review','refine',{...loaded,...body('cursor')});await flush();
+  fs.appendFileSync(saved.note.path,'\n外部修改');release('旧文件整合稿');assert.equal((await wait(delayed,fileJob.id)).status,'held');
+  // The existing WorkBuddy queue carries note prompts with the same claim/start/result identities.
+  store.agendas[0].review='队列领取检查';
+  const queue=require('../lib/workbuddy-queue'),queueRoot=path.join(root,'queue');
+  const desktop=jobs.createManager({readStore,writeStore,execute:(a,p,c)=>require('../lib/desktop-bridge').generate(p,root,c,{root:queueRoot,pollMs:5,timeoutMs:2000})});
+  const queued=await desktop.startNote('review','draft',body('workbuddy'));await flush();
+  const claim=queue.claim(queueRoot,{eligible:r=>queue.eligibleRequest(store,r),onClaim:r=>{const s=readStore(),a=gov.get(s,r.attemptId);gov.claim(s,a,{claimKey:'note-queue-fixture'});writeStore(s);return {attemptId:a.id,claimId:a.claimId,inputHash:a.inputHash};}});
+  assert.equal(claim.status,'claimed');const assignment=claim.assignment;
+  desktop.action(queued.id,'started',{...assignment,idempotencyKey:randomUUID()});
+  fs.writeFileSync(assignment.resultPath,JSON.stringify({jobId:assignment.jobId,agentId:'workbuddy',attemptId:assignment.attemptId,claimId:assignment.claimId,output:'## 队列摘要'}));
+  const queueDone=await wait(desktop,queued.id);assert.equal(queueDone.status,'done');assert.equal(queueDone.startedEvidence.source,'member-self-report');assert.match(queueDone.draft.summary,/队列摘要/);
+  store.agendas[0].review='预算检查';for(let i=0;i<3;i++)assert.equal((await wait(manager,(await manager.startNote('review','draft',body('codex'))).id)).status,'done');
+  await assert.rejects(manager.startNote('review','draft',body('codex')),e=>e.code==='execution_budget_exhausted');
+  assert.equal(store.remote.providerPauses.siliconflow.paused,true);assert.equal(store.reports.filter(r=>r.kind==='review-note').length,0);
+  console.log('Review note members: incomplete gate, three adapters, exact original/draft contracts, idempotency, refinement, shared ownership, stale facts/configuration/files, real queue claim/start/result, three-attempt budget and generation without note writes passed. Real members/API calls: 0.');
+})().catch(e=>{console.error(e);process.exitCode=1;});

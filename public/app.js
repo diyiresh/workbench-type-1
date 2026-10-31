@@ -13,6 +13,7 @@ import { t as tr, ui, systemFragment } from "./js/i18n.js";
 import { bindDelivery } from './js/delivery-ui.js';
 import { bindNoteSuggestion, openReviewNote, openNotesManager, resetSuggestion } from './js/agenda-notes-ui.js';
 import { mountAgendaReports, startAgendaReport } from './js/agenda-report-ui.js';
+import { mountSavedReviewReports, previewSavedReviewReport } from './js/saved-review-report-ui.js';
 import { openArchive } from "./js/archive-ui.js";
 import { helpView, renderLogic } from "./js/help.js";
 import { rememberChatPosition, restoreChatPosition } from "./js/chat-scroll.js";
@@ -349,6 +350,7 @@ function workspace() {
   bindAgenda();
   bindNoteSuggestion(api);
   mountAgendaReports({api,view:agendaMode,anchorDate:agendaDate,jobs:getStore().agendaReportJobs||[],savedJobIds:(getStore().reports||[]).map(r=>r.sourceJobId).filter(Boolean),hasDraft:()=>!!agendaReportDraft,clearDraft:()=>{agendaReportDraft=null;agendaReportExportPreview=null;},onDraft:draft=>{agendaReportDraft=draft;agendaReportExportPreview=null;render();}});
+  mountSavedReviewReports({api,anchorDate:agendaDate,jobs:getStore().agendaReportJobs||[],savedJobIds:(getStore().reports||[]).map(r=>r.sourceJobId).filter(Boolean),hasDraft:()=>!!agendaReportDraft,currentJobId:()=>agendaReportDraft?.sourceJobId,draftToken:()=>agendaReportDraft?String(agendaReportDraft.sourceJobId||'')+':'+($('agenda-report-body')?.value??agendaReportDraft.body):null,onDraft:draft=>{const editor=$('agenda-report-body');if(editor)editor.value=draft.body;agendaReportDraft=draft;agendaReportExportPreview=null;render();}});
   bindLearningPlan();
   bindDepartment();
   mountSkillStudio();
@@ -1377,7 +1379,7 @@ document.addEventListener("click", async (e) => {
   if (a === "agenda-report-draft") await draftAgendaReport();
   if (a === "agenda-report-save") await saveAgendaReport();
   if (a === 'agenda-report-save-historical') await saveAgendaReport(true);
-  if (a === 'agenda-report-regenerate') await startAgendaReport({confirmedReplace:true});
+  if (a === 'agenda-report-regenerate') { if (agendaReportDraft?.sourceMode==='saved-reviews') await previewSavedReviewReport(); else await startAgendaReport({confirmedReplace:true}); }
   if (a === 'agenda-report-save-cancel') { agendaReportExportPreview=null;render(); }
   if (a === "agenda-report-discard") { agendaReportDraft = null; render(); }
   if (a === "habit-toggle") await toggleHabit(act.dataset.id);

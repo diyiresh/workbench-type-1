@@ -784,6 +784,15 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
   }
 
   const noteReview = p.match(/^\/api\/agendas\/([^/]+)\/review-note\/(draft|saved|refine|save|cleanup)$/);
+  if (p === '/api/agenda-notes/rename-preview' || p === '/api/agenda-notes/rename-apply') {
+    if (!isLoopback(req)) return sendJson(res,403,{error:'agenda_notes_local_only'});
+    try {
+      const renaming = require('./lib/agenda-note-rename');
+      if (p.endsWith('rename-preview') && method==='GET') return sendJson(res,200,renaming.preview(readStore()));
+      if (p.endsWith('rename-apply') && method==='POST') return sendJson(res,200,renaming.apply({readStore,writeStore,backupRoot:path.join(DATA,'backups','agenda-note-renames')},await readBody(req)||{}));
+      return sendJson(res,405,{error:'method_not_allowed'});
+    } catch(error) { return sendJson(res,409,{error:error.message}); }
+  }
   const noteRestore = p.match(/^\/api\/agenda-notes\/trash\/([^/]+)\/restore$/);
   const noteFile = p.match(/^\/api\/agenda-notes\/([^/]+)$/);
   if (p === '/api/agenda-notes' || p === '/api/agenda-notes/config' || p === '/api/agenda-notes/suggest' || noteReview || noteFile || noteRestore) {
@@ -814,6 +823,7 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
       if (noteReview && method === 'POST' && noteReview[2] !== 'saved') {
         const [, itemId, action] = noteReview;
         if (action === 'draft' || action === 'refine') {
+          if (body.agentId) return sendJson(res, 202, { job: await reportManager.startNote(itemId, action, body) });
           const draft = action === 'refine' ? await agendaNotes.refine(fresh, itemId, body, chat) : await agendaNotes.draft(fresh, itemId, chat);
           const current = readStore(), item = agendaNotes.agenda(current, itemId);
           if (agendaNotes.signature(item) !== draft.sourceHash || agendaNotes.hash(JSON.stringify(agendaNotes.config(current))) !== draft.configHash) return sendJson(res, 409, { error: '复盘已变化，请重新生成摘要。' });
@@ -850,6 +860,11 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
     } catch (error) { return sendJson(res, error.status || 400, { error: error.message }); }
   }
 
+  if (p === '/api/agenda/reports/review-sources' && method === 'GET') {
+    if (!isLoopback(req)) return sendJson(res,403,{error:'report_local_only'});
+    try { return sendJson(res,200,require('./lib/saved-review-report').preview(readStore(),url.searchParams.get('anchorDate'))); }
+    catch(error) { return sendJson(res,409,{error:error.message}); }
+  }
   const reportJobRoute = p.match(/^\/api\/agenda\/reports\/jobs\/([a-zA-Z0-9-]+)(?:\/(started|retry|reconcile))?$/);
   if (p === '/api/agenda/reports/draft' || reportJobRoute || p === '/api/agenda/reports/jobs') {
     if (!isLoopback(req)) return sendJson(res,403,{error:'report_local_only'});

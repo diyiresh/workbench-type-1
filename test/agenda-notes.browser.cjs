@@ -19,7 +19,10 @@ const model=http.createServer(async(req,res)=>{
   const content=prompt.editedDraft?'## 关键记录\n自检系统是个人设想，尚未反馈。\n## 待确认问题\n课题名称仍待确认。':body.messages[0].content.includes('个人行程')?'## 会议关注点\n王处关注产业带动；康处强调市场信心。':JSON.stringify({items:[{text:'参考 2026-10-14 科技处会议记录，准备产业带动说明并确认本次参会人员。',sourceIds:['N1']}],conflicts:[],unknowns:['人员有变化时核实适用性。']});
   res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({choices:[{message:{content}}]}));
 });
-const {createServer}=require('../server'),notes=require('../lib/agenda-notes');const server=createServer();
+const {createServer}=require('../server'),notes=require('../lib/agenda-notes');const server=createServer({reportExecute:async(agent,prompt)=>{
+  const split=prompt.lastIndexOf('\n');
+  return require('../lib/llm').chat(require('../server').readStore(),{system:prompt.slice(0,split),prompt:prompt.slice(split+1),useVault:false});
+}});
 (async()=>{
   await new Promise(resolve=>model.listen(0,'127.0.0.1',resolve));
   state.remote||={};state.remote.agendaNotes={vaultRoot,exclusionConfig};
@@ -46,6 +49,8 @@ const {createServer}=require('../server'),notes=require('../lib/agenda-notes');c
     await page.locator('[data-note-save]').click();
     await page.getByText('Markdown 笔记已保存并读回：',{exact:false}).waitFor();
     assert.equal(fs.readdirSync(directory).length,1);
+    assert(fs.readdirSync(directory)[0].startsWith('科技处会议 - v1 - '),'Saved note must use its appointment title and version');
+    const readableNote=notes.readFile(directory,fs.readdirSync(directory)[0]);assert(readableNote.file.includes(require('../lib/review-note-filenames').timestamp(readableNote.meta.confirmed_at)),'Filename must show stored time in Shanghai');
     assert.match(fs.readFileSync(path.join(directory,fs.readdirSync(directory)[0]),'utf8'),/已确认要点/);
     const oldFile=path.join(directory,fs.readdirSync(directory)[0]),oldBytes=fs.readFileSync(oldFile);
     await page.locator('[data-note-load]').click();await page.locator('#review-note-summary').waitFor();
