@@ -435,5 +435,18 @@ export const EN = {
   '陪伴宠物':'Companion','打开桌面工作台时，Jarvis 说一句问候。语音可关，今天也可以单独静音。':'Jarvis speaks a greeting when the desktop shell opens. Voice can be turned off, or muted for today.',
   '启用 Jarvis 问候':'Enable the Jarvis greeting','问候语音':'Greeting voice','每次打开都问候':'Greet on every open','登录时启动桌面工作台':'Start the desktop shell at login',
   '登录自启动在 Windows 上还需要运行一次 scripts/windows-desktop.ps1。见桌面壳说明。':'On Windows, run scripts/windows-desktop.ps1 once for the Startup shortcut. See the desktop shell notes.',
-  '保存陪伴设置':'Save companion settings','预览问候':'Preview greeting','打开工作台':'Open the workbench','静音今日':'Mute today','关闭宠物':'Hide companion'
+  '保存陪伴设置':'Save companion settings','预览问候':'Preview greeting','打开工作台':'Open the workbench','静音今日':'Mute today','关闭宠物':'Hide companion',
+  '外部工具':'External tools',
+  '从这里打开本机辅助工具。没有登记启动方式的条目不显示按钮。':'Open local helper tools here. Entries without a registered launch action have no button.',
+  '全部工具':'All tools','绘图视频':'Image & video','工作区':'Workspaces','音频':'Audio','模型容器':'Models & containers','开发工具':'Dev tools','本机软件':'Desktop apps','待核':'Check later',
+  '打开文件夹':'Open folder','打开地址':'Open address','启动':'Start','启动文件':'Start a file','已登记命令':'Registered command','运行已登记命令':'Run the registered command',
+  '已请求本机打开。':'Asked this computer to open it.','已记录打开意图。当前系统不是 Windows，未执行命令。':'The open request was recorded. This system is not Windows, so the command was not run.','打开失败：':'Could not open: ',
+  '没有可启动的动作。':'No launch action.','本机修改':'Edited on this computer','编辑工具':'Edit tool','添加工具':'Add a tool','清单':'Catalog',
+  '种子清单在 config/external-tools.json。你改过的条目写在 data/external-tools.json，刷新后生效。':'The seed catalog is config/external-tools.json. Your changes are stored in data/external-tools.json and apply after refresh.',
+  '置信度为低或标为待核且不保留动作时，不保存启动动作。':'Low-confidence items, and items marked check-later without keeping actions, do not store a launcher.',
+  '置信度':'Confidence','置信度高':'High confidence','置信度中':'Medium confidence','置信度低':'Low confidence','类别':'Category','可启动':'Launchable','待核但保留已登记动作':'Check later, keep registered actions','待核不保存动作':'Check later, drop actions',
+  '路径或仓库':'Path or repository','动作':'Actions','再加一个动作':'Add another action','保存到本机清单':'Save to this computer’s catalog','从清单移除':'Remove from catalog','取消编辑':'Cancel editing',
+  '从本机清单移除这项工具？种子条目可以再显示。':'Remove this tool from the catalog on this computer? A seed entry can be shown again.',
+  '保存失败：':'Could not save: ','动作类型':'Action type','命令':'Command','命令目录':'Command directory','命令所在目录':'Directory for the command','路径或地址':'Path or address','路径或本机地址':'Path or local address',
+  '正在读取本机工具清单…':'Reading the local tool catalog…','工具清单读取失败：':'Could not read the tool catalog: ','这一类还没有工具。':'No tools in this group yet.'
 };

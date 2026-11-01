@@ -28,10 +28,10 @@ const P = {
 };
 export const icon = (name, cls = '') => `<svg class="lv-ico ${cls}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || P.hash}</svg>`;
 
-const RAIL = { home:'home', projects:'folder', agents:'users', agenda:'calendar', briefs:'inbox', reports:'star', assets:'gem', learn:'book', life:'leaf', set:'gear' };
-const SEC = [[/首页|总览/, 'home'], [/项目|业务/, 'folder'], [/成员/, 'users'], [/行程/, 'calendar'], [/简报|来源/, 'inbox'], [/关注/, 'star'], [/资产/, 'gem'], [/学习/, 'book'], [/生活/, 'leaf'], [/设置/, 'gear'], [/模块/, 'sparkle'], [/置顶/, 'star'], [/进行中/, 'rocket'], [/已完成|归档/, 'archive']];
-const CH = [[/风险|需关注/, 'alert'], [/新建/, 'plus'], [/时间轴|今日|周计划/, 'calendar'], [/报告|简报|周报|日报/, 'file'], [/说明|帮助/, 'help'], [/技能|扩展/, 'zap'], [/知识|教训|提示词|原料/, 'book'], [/待整理/, 'archive'], [/繁星|银河/, 'sparkle'], [/成员|舰队/, 'users'], [/行程/, 'calendar'], [/经营|统筹|指挥/, 'chart'], [/学习/, 'book'], [/生活/, 'leaf']];
-export const TYPES = { SCHEDULE:['calendar','#2bac76'], CREW:['users','#1d9bd1'], PROJECT:['rocket','#e01e5a'], LEARN:['book','#8e5cf7'], LIFE:['leaf','#36c5a0'], OPS:['chart','#ecb22e'], HANDOFF:['archive','#e8912d'] };
+const RAIL = { home:'home', projects:'folder', agents:'users', agenda:'calendar', briefs:'inbox', reports:'star', assets:'gem', learn:'book', life:'leaf', tools:'zap', set:'gear' };
+const SEC = [[/首页|总览/, 'home'], [/项目|业务/, 'folder'], [/成员/, 'users'], [/行程/, 'calendar'], [/简报|来源/, 'inbox'], [/关注/, 'star'], [/资产/, 'gem'], [/学习/, 'book'], [/生活/, 'leaf'], [/外部工具/, 'zap'], [/设置/, 'gear'], [/模块/, 'sparkle'], [/置顶/, 'star'], [/进行中/, 'rocket'], [/已完成|归档/, 'archive']];
+const CH = [[/待核/, 'alert'], [/风险|需关注/, 'alert'], [/新建/, 'plus'], [/时间轴|今日|周计划/, 'calendar'], [/报告|简报|周报|日报/, 'file'], [/说明|帮助/, 'help'], [/外部|绘图|音频|模型|开发|软件|工作区|全部工具/, 'zap'], [/技能|扩展/, 'zap'], [/知识|教训|提示词|原料/, 'book'], [/待整理/, 'archive'], [/繁星|银河/, 'sparkle'], [/成员|舰队/, 'users'], [/行程/, 'calendar'], [/经营|统筹|指挥/, 'chart'], [/学习/, 'book'], [/生活/, 'leaf']];
+export const TYPES = { SCHEDULE:['calendar','#2bac76'], CREW:['users','#1d9bd1'], PROJECT:['rocket','#e01e5a'], LEARN:['book','#8e5cf7'], LIFE:['leaf','#36c5a0'], OPS:['chart','#ecb22e'], HANDOFF:['archive','#e8912d'], TOOL:['zap','#e01e5a'] };
 const STAT = { doing:['rocket','#e01e5a'], today:['calendar','#2bac76'], risks:['alert','#e8912d'], members:['users','#1d9bd1'] };
 const AV = ['#e01e5a','#2bac76','#1d9bd1','#ecb22e','#8e5cf7','#e8912d','#36c5a0','#d6457e'];
 const pick = (rules, text) => (rules.find(([re]) => re.test(text)) || [])[1];

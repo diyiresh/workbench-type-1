@@ -26,12 +26,15 @@ import { mountSkillStudio, bindSkillSources } from './js/skill-studio-ui.js';
 import { mountExecution, bindConversion } from './js/execution-ui.js';
 import { bindCompactLayout, mountCompactLayout } from './js/compact-layout.js';
 import { mountLively } from './js/lively.js';
+import { toolsView, filterLabel, bindToolEditor, captureToolForm, editTool, clearToolDraft, addToolAction, readToolForm, toolDraft } from './js/external-tools-ui.js';
 mountLively();
 bindCompactLayout();
 bindSkillSources();
 bindConversion();
 
 let primary = "home";
+let externalCatalog = null;
+let externalLoading = false;
 let secondary = "all";
 let search = "";
 let briefs = [];
@@ -252,6 +255,12 @@ function channels() {
   } else if (primary === "memory") {
     const snap = assetSnapshot(getStore());
     html += ui`<div class="sec">资产中心</div>${channelBtn("all", tr("总览"))}${channelBtn("skills", tr("技能"), String(snap.counts.skills))}${channelBtn("atoms", tr("知识原子"), String(snap.counts.atoms))}${channelBtn("materials", tr("内容原料"), String(snap.counts.materials))}${channelBtn("lessons", tr("教训"), String(snap.counts.lessons))}${channelBtn("prompts", tr("提示词"), String(snap.counts.prompts))}${channelBtn("pending", tr("待整理"), String(snap.counts.pending))}${channelBtn("knowledge", tr("知识来源"))}${channelBtn("extensions", tr("扩展能力"))}`;
+  } else if (primary === "tools") {
+    const tools = externalCatalog?.tools || [];
+    const count = (id) => id === "all" ? tools.length : id === "pending" ? tools.filter((tool) => tool.confidence === "low" || tool.status === "pending" || tool.status === "review").length : tools.filter((tool) => tool.category === id).length;
+    html += ui`<div class="sec">外部工具</div>`;
+    html += ["all", "media", "workspace", "audio", "stack", "dev", "desktop", "pending"].map((id) => channelBtn(id, filterLabel(id), String(count(id)))).join("");
+    if (q) html += tools.filter((tool) => hit(tool.name + (tool.location || "") + (tool.note || ""))).map((tool) => channelBtn(tool.id, tool.name, filterLabel(tool.category))).join("");
   } else {
     html += ui`<div class="sec">系统设置</div>${channelBtn("all", tr("简报与偏好"))}${channelBtn("help", tr("使用说明与逻辑图"))}`;
   }
@@ -265,6 +274,10 @@ function currentModule() {
 }
 
 function workspace() {
+  if (primary === "tools") {
+    captureToolForm();
+    ensureExternalTools();
+  }
   const reportEditor = $('agenda-report-body');
   if (reportEditor && agendaReportDraft && (!agendaReportDraft.sourceJobId || reportEditor.dataset.sourceJobId === agendaReportDraft.sourceJobId)) agendaReportDraft.body = reportEditor.value;
   const m = currentModule();
@@ -280,6 +293,7 @@ function workspace() {
     learn: tr("学习成长"),
     life: tr("生活管理"),
     memory: tr("资产中心"),
+    tools: tr("外部工具"),
     set: tr("系统设置"),
   };
   const ledeMap = {
@@ -294,10 +308,12 @@ function workspace() {
     learn: tr("繁星引用临时学习行程；银河保存经您采纳的学习计划。"),
     life: tr("繁星保留生活行程；银河自动载入当天到期习惯。"),
     memory: tr("技能、知识原子、内容原料、教训和提示词都来自本机台账。"),
+    tools: tr("从这里打开本机辅助工具。没有登记启动方式的条目不显示按钮。"),
     set: tr("简报自动化、指令规则与导出。"),
   };
   $("workspace").classList.toggle("asset-mode", primary === "memory");
-  $("ws-head").innerHTML = `<div class="workspace-heading"><div class="workspace-title"><h1>${esc(["home","department","briefs","crew","work"].includes(primary) && secondary!=="all" ? titleMap[primary] : tr(titleMap[primary] || ""))}</h1><p>${esc(ledeMap[primary] || "")}</p></div></div><button type="button" class="ghost" data-act="manage-records">${tr(tr("管理与归档"))}</button>`;
+  const manage = primary === "tools" ? "" : `<button type="button" class="ghost" data-act="manage-records">${tr(tr("管理与归档"))}</button>`;
+  $("ws-head").innerHTML = `<div class="workspace-heading"><div class="workspace-title"><h1>${esc(["home","department","briefs","crew","work"].includes(primary) && secondary!=="all" ? titleMap[primary] : tr(titleMap[primary] || ""))}</h1><p>${esc(ledeMap[primary] || "")}</p></div></div>${manage}`;
 
   const body = safe(() => {
     if (primary === "home") return secondary === "all" ? V.homeAllView(overviewFilter) : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
@@ -311,6 +327,7 @@ function workspace() {
     if (primary === "learn") return V.frontView("learn", secondary, learningPlanDraft, learningFormDraft);
     if (primary === "life") return V.frontView("life", secondary);
     if (primary === "memory") return assetsView(secondary, V.memoryView);
+    if (primary === "tools") return toolsView(externalCatalog, secondary);
     if (primary === "set") return secondary === "help" ? helpView() : V.setView();
     return V.homeAllView();
   }, tr("页面视图"));
@@ -361,6 +378,21 @@ function workspace() {
   if (primary === 'crew' || primary === 'memory') void refreshCapabilities();
   if (primary === 'memory' && secondary === 'knowledge') void refreshVaultStatus();
   if (primary === "set") { void refreshOllamaStatus(); void refreshReminderStatus(); void refreshCodexStatus(); void refreshVaultStatus(); }
+  if (primary === "tools") bindToolEditor();
+}
+
+function ensureExternalTools() {
+  if (externalCatalog || externalLoading) return;
+  externalLoading = true;
+  api("/api/external-tools").then((data) => {
+    externalCatalog = data;
+    externalLoading = false;
+    if (primary === "tools" && !toolDraft()) render();
+  }).catch((error) => {
+    externalCatalog = { error: error.message, tools: [] };
+    externalLoading = false;
+    if (primary === "tools" && !toolDraft()) render();
+  });
 }
 
 let capabilityRequest = null;
@@ -1362,6 +1394,55 @@ document.addEventListener("click", async (e) => {
     return;
   }
   if (a === "manage-records") openArchive(primary,reload);
+  if (a === "tool-launch") {
+    const card = act.closest(".tool-card");
+    const receipt = card?.querySelector(".tool-receipt");
+    act.disabled = true;
+    try {
+      const result = await api(`/api/external-tools/${encodeURIComponent(act.dataset.toolId)}/launch`, { method: "POST", body: { actionId: act.dataset.actionId } });
+      if (receipt) receipt.textContent = result.executed ? tr("已请求本机打开。") : tr("已记录打开意图。当前系统不是 Windows，未执行命令。");
+    } catch (error) {
+      if (receipt) receipt.textContent = tr("打开失败：") + error.message;
+    } finally {
+      act.disabled = false;
+    }
+    return;
+  }
+  if (a === "tool-edit") {
+    const tool = (externalCatalog?.tools || []).find((item) => item.id === act.dataset.toolId);
+    if (!tool || !externalCatalog) return;
+    editTool(tool, externalCatalog.revision);
+    render();
+    document.getElementById("tool-editor")?.scrollIntoView({ block: "nearest" });
+    return;
+  }
+  if (a === "tool-add-action") { addToolAction(); render(); return; }
+  if (a === "tool-cancel") { clearToolDraft(); render(); return; }
+  if (a === "tool-save") {
+    const form = document.getElementById("tool-editor");
+    if (!form) return;
+    try {
+      externalCatalog = await api("/api/external-tools", { method: "POST", body: readToolForm(form) });
+      clearToolDraft();
+      render();
+    } catch (error) {
+      const note = form.querySelector(".tool-form-error") || form.appendChild(document.createElement("p"));
+      note.className = "tool-form-error";
+      note.textContent = tr("保存失败：") + error.message;
+    }
+    return;
+  }
+  if (a === "tool-delete") {
+    if (!window.confirm(tr("从本机清单移除这项工具？种子条目可以再显示。"))) return;
+    try {
+      externalCatalog = await api(`/api/external-tools/${encodeURIComponent(act.dataset.toolId)}`, { method: "DELETE", body: { expectedRevision: externalCatalog?.revision } });
+      clearToolDraft();
+      render();
+    } catch (error) {
+      window.alert(tr("保存失败：") + error.message);
+    }
+    return;
+  }
   if (a === "save-language") { await api("/api/meta",{method:"PATCH",body:{language:$("language-select").value}}); await reload(); }
   if (a === "save-reminder") await saveReminder();
   if (a === "agenda-toggle") await toggleAgenda(act.dataset.id);

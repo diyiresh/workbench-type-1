@@ -27,6 +27,7 @@ const { reportSystemPrompt, modelReportDraft } = require("./lib/agenda-report");
 const { dueImportantReminders, buildReminderPayload } = require("./lib/agenda-reminders");
 const { importLegacyDailyPlanReminder } = require("./lib/legacy-reminder");
 const { openInExplorer } = require("./lib/local-opener");
+const externalTools = require("./lib/external-tools");
 const workspace = require("./lib/workspace");
 const agentDispatch = require("./lib/agent-dispatch");
 const superagentIntake = require("./lib/superagent-intake");
@@ -1510,6 +1511,27 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
       return sendJson(res, 200, removed);
     }
     if (method === "GET") return sendJson(res, 200, list[idx]);
+  }
+
+  if (p === "/api/external-tools" || p.startsWith("/api/external-tools/")) {
+    try {
+      if (method === "GET" && p === "/api/external-tools") return sendJson(res, 200, externalTools.loadCatalog(DATA));
+      if (!isLoopback(req)) return sendJson(res, 403, { error: "external_tools_local_only" });
+      if (method === "POST" && p === "/api/external-tools") return sendJson(res, 200, externalTools.saveTool(DATA, await readBody(req) || {}));
+      const toolLaunch = p.match(/^\/api\/external-tools\/([^/]+)\/launch$/);
+      if (toolLaunch && method === "POST") {
+        const body = await readBody(req) || {};
+        return sendJson(res, 200, await externalTools.launch(DATA, decodeURIComponent(toolLaunch[1]), String(body.actionId || "")));
+      }
+      const toolItem = p.match(/^\/api\/external-tools\/([^/]+)$/);
+      if (toolItem && method === "DELETE") {
+        const body = await readBody(req) || {};
+        return sendJson(res, 200, externalTools.removeTool(DATA, decodeURIComponent(toolItem[1]), body.expectedRevision));
+      }
+      return sendJson(res, 405, { error: "external_tools_method_not_allowed" });
+    } catch (error) {
+      return sendJson(res, error.status || 400, { error: error.message });
+    }
   }
 
   return false;
