@@ -29,10 +29,10 @@ const server=createServer({reportExecute:async(agent,prompt,context)=>{
     const selector=page.locator('#agenda-report-agent'),generate=page.locator('[data-act="agenda-report-draft"]');
     assert.deepEqual(await selector.locator('option').evaluateAll(options=>options.map(o=>o.value)),['codex','cursor','workbuddy']);
     assert.equal(await selector.getAttribute('multiple'),null);
-    assert.match(await page.locator('.agenda-report-cta').innerText(),/SiliconFlow 已暂停/);
-    await page.locator('.agenda-report-cta').screenshot({path:path.join(root,'report-selector-cn.png')});
+    assert.match(await page.locator('.agenda-report-cta:not(.saved-review-report-cta)').innerText(),/SiliconFlow 已暂停/);
+    await page.locator('.agenda-report-cta:not(.saved-review-report-cta)').screenshot({path:path.join(root,'report-selector-cn.png')});
     const reportsBefore=readStore().reports.length;
-    await generate.click();await page.evaluate(()=>document.querySelector('[data-act="agenda-report-draft"]').click());
+    await page.evaluate(()=>{const button=document.querySelector('[data-act="agenda-report-draft"]');button.click();button.click();});
     await page.locator('#agenda-report-body').waitFor();assert.deepEqual(calls,['codex']);
     assert.equal(readStore().reports.length,reportsBefore);
     await page.locator('#agenda-report-body').fill('# 人工修改后的月报\n保留完整修改。');
@@ -62,7 +62,7 @@ const server=createServer({reportExecute:async(agent,prompt,context)=>{
     await page.request.patch(base+'/api/meta',{data:{language:'en'}});await page.reload();
     await page.setViewportSize({width:390,height:844});
     assert(await page.getByLabel('Report member',{exact:true}).isVisible());assert.equal(await selector.inputValue(),'workbuddy');
-    await page.locator('.agenda-report-cta').screenshot({path:path.join(root,'report-selector-en-mobile.png')});
+    await page.locator('.agenda-report-cta:not(.saved-review-report-cta)').screenshot({path:path.join(root,'report-selector-en-mobile.png')});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     await page.route('**/api/codex/status',route=>route.fulfill({json:{ok:true,authenticated:true,version:'fixture'}}));
     await page.route('**/api/vault/status',route=>route.fulfill({json:{enabled:false}}));

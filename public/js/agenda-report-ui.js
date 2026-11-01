@@ -33,6 +33,7 @@ function paint() {
   }
 }
 function accept(key, job) {
+  if (job.workType === 'review-note' || job.sourceMode === 'saved-reviews') return;
   saveState(key, { job, submitting: false });
   if (config?.key !== key) return;
   paint();
@@ -62,7 +63,7 @@ export function mountAgendaReports(options) {
   selector.onchange = () => { selected = selector.value; try { localStorage.setItem('wb-report-member',selected); } catch {} };
   let state = states.get(key), id = state?.job?.id;
   if (!id) {
-    const candidate = options.jobs.find(j => identity(j.view,j.anchorDate) === key && !j.archived && !options.savedJobIds.includes(j.id));
+    const candidate = options.jobs.find(j => j.workType !== 'review-note' && j.sourceMode !== 'saved-reviews' && identity(j.view,j.anchorDate) === key && !j.archived && !options.savedJobIds.includes(j.id));
     id = candidate?.id;
     if (!id) try { id = localStorage.getItem('wb-report-job:' + key); } catch {}
   }

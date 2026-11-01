@@ -1,6 +1,7 @@
 import { esc } from './core.js';
 import { t as tr, ui } from './i18n.js';
 import { bindSaveCleanup, bindManagerCleanup, versionCaption } from './agenda-note-cleanup-ui.js';
+import { mountNoteMembers } from './review-note-members-ui.js';
 let suggestion = null, requestId = 0;
 const model = () => document.getElementById('modal');
 const errorText = error => { try { return JSON.parse(error.message).error || error.message; } catch { return error.message; } };
@@ -42,6 +43,11 @@ export function openReviewNote(item, api, reload) {
   const modal = model(); modal.hidden = false;
   modal.innerHTML = ui`<div class="sheet review-note-editor"><h2>行程复盘与笔记</h2><p>${esc(item.date)} · ${esc(item.title)}</p><label>原始复盘<textarea id="review-note-original" rows="6">${esc(item.review || '')}</textarea></label><p>保存复盘后生成可编辑摘要，确认后写入 Obsidian。</p>${item.done ? '' : ui`<p>请先完成行程，再生成复盘笔记。</p>`}<div class="actions"><button type="button" class="solid" data-note-draft ${item.done ? '' : 'disabled'}>保存复盘并生成摘要</button><button type="button" class="ghost" data-note-load>载入已保存笔记</button><button type="button" class="ghost" data-note-review-only>仅保存复盘</button><button type="button" class="ghost" data-note-close>关闭</button></div><p data-note-message role="status"></p><div data-note-preview hidden><label>摘要（可编辑）<textarea id="review-note-summary" rows="10"></textarea></label><p>在草稿中补充回复后，点击“整合补充并更新摘要”；确认保存只写入当前文本。重新生成会替换草稿。</p><label>关联关键词（机构、人物、主题）<input id="review-note-keywords" /></label><div class="actions"><button type="button" class="ghost" data-note-refine>整合补充并更新摘要</button><button type="button" class="solid" data-note-save>确认保存 Markdown 笔记</button></div><details data-note-before hidden><summary>对照整合前草稿</summary><pre class="report" data-note-before-text></pre><button type="button" class="ghost" data-note-undo>恢复整合前草稿</button></details></div></div>`;
   const panel = modal.firstElementChild;
+  const memberPanel = document.createElement('div'); memberPanel.dataset.noteMemberPanel = ''; panel.querySelector('.actions').before(memberPanel);
+  if (!item.done) {
+    const hint = document.createElement('p'); hint.className = 'note-completion-hint'; hint.textContent = tr('当前行程未完成：可以仅保存复盘；请先勾选完成，再生成摘要。'); memberPanel.before(hint);
+    panel.querySelector('[data-note-draft]').title = hint.textContent;
+  }
   const cleanup = bindSaveCleanup(panel, item.id, api);
   const original = panel.querySelector('#review-note-original'), message = panel.querySelector('[data-note-message]'), preview = panel.querySelector('[data-note-preview]');
   const summary = panel.querySelector('#review-note-summary'), tags = panel.querySelector('#review-note-keywords'), comparison = panel.querySelector('[data-note-before]');
@@ -58,6 +64,14 @@ export function openReviewNote(item, api, reload) {
   const paintDraft = value => {
     draft = value; summary.value = value.summary; tags.value = value.keywords.join(', '); preview.hidden = false;
   };
+  const members = mountNoteMembers(panel, item, api, value => {
+    if (busy) { message.textContent = tr('正在保存或生成，请稍后恢复。'); return; }
+    if (original.value.trim() !== value.original.trim()) { message.textContent = tr('原始复盘已修改，成员草稿未覆盖当前内容。'); return; }
+    previous = draft ? { ...draft, summary: summary.value, keywords: tags.value } : null;
+    paintDraft(value);
+    if (previous) { panel.querySelector('[data-note-before-text]').textContent = previous.summary; comparison.hidden = false; }
+    controls(); message.textContent = tr('已恢复成员草稿，请审阅后确认保存。');
+  });
   const run = async action => {
     if (busy) return; busy = true;
     controls();
@@ -80,8 +94,8 @@ export function openReviewNote(item, api, reload) {
   panel.querySelector('[data-note-draft]').onclick = () => run(async () => {
     const priorSummary = summary.value;
     await saveReview(); message.textContent = tr('正在生成复盘摘要…');
-    const result = await api(`/api/agendas/${encodeURIComponent(item.id)}/review-note/draft`, { method: 'POST', body: {} });
-    if (!attached()) return;
+    const result = await members.generate('draft', {});
+    if (!result || !attached()) return;
     if (original.value.trim() !== result.original.trim() || summary.value !== priorSummary) { message.textContent = tr('生成期间内容已修改，已保留当前草稿，请重试。'); return; }
     previous = null; comparison.hidden = true; paintDraft(result);
     await cleanup.load();
@@ -101,8 +115,8 @@ export function openReviewNote(item, api, reload) {
     if (!currentDraft()) return;
     const snapshot = { ...draft, summary: summary.value, keywords: tags.value }, originalSnapshot = original.value;
     message.textContent = tr('正在整合补充回复，原草稿已保留…');
-    const result = await api(`/api/agendas/${encodeURIComponent(item.id)}/review-note/refine`, { method: 'POST', body: snapshot });
-    if (!attached()) return;
+    const result = await members.generate('refine', snapshot);
+    if (!result || !attached()) return;
     if (summary.value !== snapshot.summary || original.value !== originalSnapshot) { message.textContent = tr('生成期间内容已修改，已保留当前草稿，请重试。'); return; }
     previous = snapshot;
     const currentKeywords = tags.value;
