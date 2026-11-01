@@ -27,7 +27,7 @@ const {createServer,readStore}=require('../server'); const server=createServer()
     });
     page.on('request',r=>{if(r.method()!=='GET')writes.push(r.url());});
     const open=async hash=>{await page.goto(base+'/'+hash);await page.locator('#ws-head h1').waitFor();};
-    await open('#home/all');assert.equal(await page.locator('#rail > [data-primary]').count(),10);
+    await open('#home/all');assert.equal(await page.locator('#rail > [data-primary]').count(),11);
     assert.equal(await page.locator('.overview-stat[data-overview-filter="risks"] b').textContent(),'1');
     await page.locator('[data-primary="deck"]').click();assert.equal(new URL(page.url()).hash,'#home/decisions');
     assert.equal(await page.locator('.stats .stat').last().locator('b').textContent(),'1');
@@ -55,13 +55,13 @@ const {createServer,readStore}=require('../server'); const server=createServer()
       await open('#assets/skills');await page.reload();await page.waitForFunction(theme=>document.documentElement.dataset.theme===theme,theme);await page.setViewportSize({width:390,height:844});
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
       assert.equal(await page.locator('html').getAttribute('data-theme'),theme);
-      assert.equal(await page.locator('#rail > [data-primary]').count(),10);
+      assert.equal(await page.locator('#rail > [data-primary]').count(),11);
       await page.setViewportSize({width:1440,height:1000});
     }
     const permitted=writes.filter(url=>!url.endsWith('/api/meta')&&!url.endsWith('/api/crew/sync'));
     assert.deepEqual(permitted,[]);assert.deepEqual(errors,[]);
     for(const key of ['tasks','modules','agents','departmentRuns','inbox'])assert.deepEqual(readStore()[key],before[key]);
     const proof=path.join(root,'centers-en.png');await page.screenshot({path:proof,fullPage:false});console.log('Screenshot: '+proof);
-    console.log('Ten sections, legacy routes, project identity, chat draft, real status labels, knowledge isolation, four themes and two languages passed.');
+    console.log('Navigation sections, legacy routes, project identity, chat draft, real status labels, knowledge isolation, four themes and two languages passed.');
   } finally { await browser.close(); }
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>server.close());

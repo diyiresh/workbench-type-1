@@ -2,7 +2,7 @@
 export const NAVIGATION = [
   ['home', '工作首页'], ['projects', '项目中心'], ['agents', '成员中心'],
   ['agenda', '每日行程'], ['briefs', '简报中心'], ['reports', '我的关注'],
-  ['assets', '资产中心'], ['learn', '学习成长'], ['life', '生活管理'], ['set', '系统设置'],
+  ['assets', '资产中心'], ['learn', '学习成长'], ['life', '生活管理'], ['tools', '外部工具'], ['set', '系统设置'],
 ].map(([id, name]) => ({ id, name }));
 
 export const FOCUS_CATEGORIES = [
@@ -43,7 +43,7 @@ export function resolveRoute(value, modules = []) {
   }
   if (p === 'ops' && s === 'today') { p = 'agenda'; s = 'all'; }
   if (p === 'ops' && s === 'all') s = 'pain';
-  if (!['home','deck','work','department','crew','ops','memory','agenda','briefs','learn','life','set'].includes(p)) { p='home'; s='all'; }
+  if (!['home','deck','work','department','crew','ops','memory','agenda','briefs','learn','life','tools','set'].includes(p)) { p='home'; s='all'; }
   const section = sectionFor(p);
   const token = p === 'deck' ? 'decisions' : p === 'work' ? (s === 'all' ? 'business' : 'mod:' + s)
     : p === 'department' ? (['all','new'].includes(s) ? s : 'run:' + s) : s;
