@@ -37,6 +37,28 @@ Type 1 维护**一份本机台账**。Cursor、Codex、WorkBuddy 以及其他 Ag
 
 本机私人秘书：你是董事长。打开先看三份自动简报，再进入 Slack 式三栏指挥台。新项目 = 新模块，可拖拽改首页顺序。底部指令台随时向各部门下达，不必进部门页面。
 
+## v2 部门协作（第一切片）
+
+新建项目时勾选「v2 部门协作」，或调用 `POST /api/departments/runs` 并传 `v2: true`。台账仍是这一条 `departmentRuns` 记录：上面叠一层董事长 → 主管 → 执行房间，四个阶段的领取、复核和整合继续走原来的接口。不勾选时行为与以前相同。
+
+本地试一条（服务已在 `http://127.0.0.1:3780`）：
+
+```bash
+curl -s -X POST http://127.0.0.1:3780/api/departments/runs \
+  -H 'Content-Type: application/json' \
+  -d '{"goal":"试一条 v2 部门协作","context":"不外发","v2":true,"delivery":{"mode":"text"}}'
+```
+
+然后打开返回的项目房间，或 `GET /api/departments/runs/<runId>/org`。主管封印交接：
+
+```bash
+curl -s -X POST http://127.0.0.1:3780/api/departments/runs/<runId>/handoff \
+  -H 'Content-Type: application/json' \
+  -d '{"itemId":"<主管阶段 id>","summary":"方案已可交给执行房间","decisions":["先做最小切片"],"openQuestions":["验收命令是否只跑 npm test"]}'
+```
+
+同一输入第 4 次尝试会被阻断，房间上出现「同一输入已达三次」。细则见 [docs/SPEC-v2-department-collab.md](docs/SPEC-v2-department-collab.md)。
+
 ## v0.8 新增 · 虚拟部门
 
 - **一个目标，一条工作链**：在左侧「虚拟部门」输入一次目标，自动建立部门主管、主执行人、独立复核人、整合秘书四阶段。

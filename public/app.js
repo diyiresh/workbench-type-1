@@ -932,6 +932,30 @@ function bindDepartment() {
     try { await api(`/api/departments/runs/${encodeURIComponent(button.dataset.runId)}/chat-jobs/${encodeURIComponent(button.dataset.chatRetry)}/retry`, {method:'POST',body:{}}); await reload(); }
     catch (err) { window.alert('回复未能重试：'+err.message); button.disabled=false; }
   }; });
+  document.querySelectorAll("form[data-handoff-form]").forEach((sealForm) => {
+    sealForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const data = new FormData(sealForm);
+      const button = sealForm.querySelector("button[type=submit]");
+      if (button) button.disabled = true;
+      try {
+        await api(`/api/departments/runs/${encodeURIComponent(sealForm.dataset.handoffForm)}/handoff`, {
+          method: "POST",
+          body: {
+            itemId: String(data.get("itemId") || ""),
+            summary: String(data.get("summary") || "").trim(),
+            decisions: String(data.get("decisions") || ""),
+            openQuestions: String(data.get("openQuestions") || ""),
+            nextAction: String(data.get("nextAction") || ""),
+          },
+        });
+        await reload();
+      } catch (err) {
+        window.alert(tr("交接未能封印：") + (err.message || err));
+        if (button) button.disabled = false;
+      }
+    };
+  });
   const form = $("department-goal-form");
   if (!form) return;
   const capture = () => {
@@ -946,7 +970,7 @@ function bindDepartment() {
     const goal = String(data.get("goal") || "").trim();
     if (!goal) return;
     const participantAgentIds = data.getAll("participantAgentIds").map((value) => String(value));
-    const run = await api("/api/departments/runs", { method: "POST", body: { goal, context: String(data.get("context") || "").trim(), participantAgentIds, delivery: { mode: data.get("deliveryProfile") === "text" ? "text" : "files", profile: data.get("deliveryProfile") } } });
+    const run = await api("/api/departments/runs", { method: "POST", body: { goal, context: String(data.get("context") || "").trim(), participantAgentIds, v2: data.get("v2") === "1", delivery: { mode: data.get("deliveryProfile") === "text" ? "text" : "files", profile: data.get("deliveryProfile") } } });
     clearDepartmentGoalDraft();
     await reload();
     go("department", run.id);
