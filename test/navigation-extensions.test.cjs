@@ -20,7 +20,9 @@ const server = createServer();
   const bytes=fs.readFileSync(file);const observed=require('../lib/extensions').workbuddyAutomation(file);assert.equal(observed.state,'paused');assert.deepEqual(fs.readFileSync(file),bytes);
   assert.equal(require('../lib/extensions').workbuddyAutomation(path.join(root,'missing.db')),null);
   const { resolveRoute, NAVIGATION } = await import('../public/js/navigation.mjs');
-  assert.equal(NAVIGATION.length,10);
+  assert.equal(NAVIGATION.length,11);
+  assert.equal(NAVIGATION.find((item) => item.id === "tools").name, "外部工具");
+  assert.equal(resolveRoute("#tools/audio").hash, "#tools/audio");
   const checks = [
     ['#deck/all','deck','all','#home/decisions'],['#work/example','work','example','#projects/mod:example'],
     ['#department/example','department','example','#projects/run:example'],['#projects/business','work','all','#projects/business'],

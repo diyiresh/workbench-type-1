@@ -331,6 +331,15 @@ table.deck{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .lv-hero-art{position:absolute;right:250px;bottom:-6px;width:150px;height:auto;pointer-events:none;opacity:.95}
 .lively :is(.brief-hero,.front-hero,.focus-hero,.agenda-hero) .lv-hero-art{right:16px;opacity:.35}
 @media(max-width:1180px){.lv-hero-art{display:none}}
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:13px}
+.tool-card .tool-path{font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.45;word-break:break-all;color:var(--ink)}
+.tool-card .tool-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.tool-card .tool-receipt{min-height:1.2em;margin:8px 0 0;color:var(--muted);font-size:12px}
+.tool-editor{margin-top:16px}
+.tool-editor .action-row{display:grid;grid-template-columns:minmax(120px,160px) minmax(140px,180px) minmax(0,1fr);gap:8px;margin:8px 0}
+.tool-editor .tool-form-error{color:var(--warn)}
+.chip.pending{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,var(--line));background:var(--warn-bg)}
+@media(max-width:720px){.tool-editor .action-row{grid-template-columns:1fr}}
 .lv-empty{display:flex;align-items:center;gap:8px}
 .lv-empty-art{font-size:20px;line-height:1}
 .lively #ws-head{display:flex;align-items:center;gap:10px}
