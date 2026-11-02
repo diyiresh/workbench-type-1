@@ -23,6 +23,7 @@ import { feedFor, assetSnapshot } from './js/focus.mjs';
 import { businessProjectsView, assetsView, setCapabilities } from './js/centers.js';
 import { syncPet, previewGreeting } from './js/pet.js';
 import { mountSkillStudio, bindSkillSources } from './js/skill-studio-ui.js';
+import { mountDiskSkills, rescanDiskSkills } from './js/disk-skills-ui.js';
 import { mountExecution, bindConversion } from './js/execution-ui.js';
 import { bindCompactLayout, mountCompactLayout } from './js/compact-layout.js';
 import { mountLively } from './js/lively.js';
@@ -371,6 +372,7 @@ function workspace() {
   bindLearningPlan();
   bindDepartment();
   mountSkillStudio();
+  mountDiskSkills();
   mountExecution();
   mountCompactLayout();
   syncPet(getStore().meta?.companion);
@@ -1386,7 +1388,12 @@ document.addEventListener("click", async (e) => {
   if (a === "save-theme") await saveTheme();
   if (a === "save-companion") return saveCompanion();
   if (a === "preview-greeting") return previewGreeting();
-  if (a === "asset-rescan") return reload();
+  if (a === "asset-rescan") {
+    if (document.querySelector("[data-asset-workspace]")) {
+      try { await rescanDiskSkills(); } catch (error) { window.alert(error.message); }
+    }
+    return reload();
+  }
   if (a === "open-system") {
     const url = act.dataset.url || "";
     if (window.benchShell?.openExternal) await window.benchShell.openExternal(url);

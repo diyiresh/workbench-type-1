@@ -66,7 +66,7 @@ function assetChrome(secondary, snap) {
   return ui`<div class="asset-workspace" data-asset-workspace>
     <header class="asset-hero"><div><div class="asset-kicker">YOUR PERSONAL WORKSPACE</div><h2>资产中心</h2><p>${esc(assetDate())}</p></div>${create}</header>
     <section class="asset-stats">
-      <a class="asset-stat" href="#assets/skills"><b>${esc(String(snap.counts.skills))}</b><span>技能</span><small>技能工作室条目</small></a>
+      <a class="asset-stat" data-asset-count="skills" href="#assets/skills"><b>${esc(String(snap.counts.skills))}</b><span>技能</span><small>技能工作室条目</small></a>
       <a class="asset-stat" href="#assets/atoms"><b>${esc(String(snap.counts.atoms))}</b><span>知识原子</span><small>台账记忆</small></a>
       <a class="asset-stat" href="#assets/lessons"><b>${esc(String(snap.counts.lessons))}</b><span>教训</span><small>经验与教训</small></a>
       <a class="asset-stat" href="#assets/prompts"><b>${esc(String(snap.counts.prompts))}</b><span>提示词</span><small>可复用提示词</small></a>
@@ -77,7 +77,7 @@ function assetChrome(secondary, snap) {
     </div>
     <nav class="asset-chips" aria-label="资产分类">
       <a class="asset-chip ${mark('all')}" href="#assets/all">总览</a>
-      <a class="asset-chip ${mark('skills')}" href="#assets/skills">技能 <small>${esc(String(snap.counts.skills))}</small></a>
+      <a class="asset-chip ${mark('skills')}" data-asset-count="skills-chip" href="#assets/skills">技能 <small>${esc(String(snap.counts.skills))}</small></a>
       <a class="asset-chip ${mark('atoms')}" href="#assets/atoms">知识原子 <small>${esc(String(snap.counts.atoms))}</small></a>
       <a class="asset-chip ${mark('materials')}" href="#assets/materials">内容原料 <small>${esc(String(snap.counts.materials))}</small></a>
       <a class="asset-chip ${mark('lessons')}" href="#assets/lessons">教训 <small>${esc(String(snap.counts.lessons))}</small></a>
@@ -108,7 +108,7 @@ export function assetsView(secondary, legacyView) {
   else if (secondary === 'skills') {
     const legacy = snap.skills.map((skill) => `<article class="msg" data-asset-text="${esc(`${skill.name || ''} ${skill.summary || ''}`)}" data-skill-record="${esc(skill.id)}"><b>${esc(skill.name)}</b><p>${esc(skill.summary)}</p><span class="chip">${tr('技能说明，未绑定文件')}</span></article>`).join('');
     const cards = libraryCards(snap);
-    body = skillStudioView() + (cards || ui`<p class="asset-empty">技能工作室里还没有草稿或已发布技能。</p>`) + ui`<section class="card"><h2>已有技能说明</h2><p>以下是旧版说明记录，不代表已发布技能文件。</p><a class="tiny" href="#assets/lessons">查看经验与教训</a></section>${legacy}`;
+    body = ui`<div class="asset-split"><div class="asset-list"><div id="disk-skill-list"></div>` + skillStudioView() + (cards || ui`<p class="asset-empty">技能工作室里还没有草稿或已发布技能。</p>`) + ui`<section class="card"><h2>已有技能说明</h2><p>以下是旧版说明记录，不代表已发布技能文件。</p><a class="tiny" href="#assets/lessons">查看经验与教训</a></section>${legacy}</div><aside id="disk-skill-panel" class="disk-skill-panel" aria-label="技能详情"></aside></div>`;
   } else if (secondary === 'materials') {
     body = snap.artifacts.map((item) => `<article class="asset-card" data-asset-text="${esc(`${item.name || ''} ${item.title || ''} ${item.path || ''}`)}"><b>${esc(item.name || item.title || item.id)}</b><p>${esc(item.path || '')}</p>${item.reviewStatus ? `<span class="chip">${esc(item.reviewStatus)}</span>` : ''}</article>`).join('') || ui`<p class="asset-empty">台账里还没有内容原料。项目成果登记后会出现在这里。</p>`;
   } else if (secondary === 'pending') {
