@@ -55,10 +55,19 @@ function fakeSpawn(store) {
   assert.equal(byId["ollama-native"].actions.length, 0);
   assert.equal(byId["ollama-native"].status, "pending");
   assert.match(byId["ollama-native"].note, /可能已卸/);
-  for (const id of ["meetily", "mimouse", "doubao", "coze", "cc-switch", "obsidian", "blender", "capcut", "markitdown", "poppler", "wb-migrate", "cost-quality", "deepseek-harness"]) {
+  for (const id of ["meetily", "mimouse", "doubao", "coze", "cc-switch", "obsidian", "blender", "capcut", "markitdown", "poppler", "wb-migrate", "cost-quality"]) {
     assert.equal(byId[id].actions.length, 0, id);
     assert.equal(byId[id].status, "pending", id);
   }
+  assert.equal(byId["deepseek-harness"].category, "dev");
+  assert.equal(byId["deepseek-harness"].confidence, "high");
+  assert.equal(byId["deepseek-harness"].status, "ready");
+  assert.equal(byId["deepseek-harness"].location, "C:\\Users\\Benjamin\\deepseek-harness");
+  assert.deepEqual(byId["deepseek-harness"].actions.map((action) => [action.kind, action.target]), [
+    ["open-folder", "C:\\Users\\Benjamin\\deepseek-harness"],
+    ["start-file", "C:\\Users\\Benjamin\\deepseek-harness\\start-webui.bat"],
+  ]);
+  assert.match(byId["deepseek-harness"].note, /@deepseek-ai\/dsh/);
   assert.ok(byId.remotion.actions.some((action) => action.command === "npm-run-dev"));
   assert.equal(byId.remotion.status, "review");
 
