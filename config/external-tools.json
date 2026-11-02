@@ -264,9 +264,11 @@
       "confidence": "high",
       "status": "ready",
       "location": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\SJZZ",
-      "note": "只打开仓库目录。启动命令以该仓 README 为准，这里不猜。",
+      "note": "start-dev.bat 启动 API :8000 和界面 :5173。打开界面需要程序已经在运行。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\SJZZ" }
+        { "id": "folder", "kind": "open-folder", "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\SJZZ" },
+        { "id": "start", "kind": "start-file", "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\SJZZ\\scripts\\start-dev.bat" },
+        { "id": "ui", "kind": "open-url", "target": "http://127.0.0.1:5173" }
       ]
     },
     {
