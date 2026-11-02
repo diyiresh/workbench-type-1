@@ -427,11 +427,14 @@
       "id": "deepseek-harness",
       "name": "deepseek-harness",
       "category": "dev",
-      "confidence": "low",
-      "status": "pending",
-      "location": "",
-      "note": "待核。旧记录里有目录和 start-webui.bat，未复核，不写入启动器。",
-      "actions": []
+      "confidence": "high",
+      "status": "ready",
+      "location": "C:\\Users\\Benjamin\\deepseek-harness",
+      "note": "依赖 WorkBuddy 自带的 node 和 @deepseek-ai/dsh。start-webui.bat 会自己找到它们。",
+      "actions": [
+        { "id": "folder", "kind": "open-folder", "target": "C:\\Users\\Benjamin\\deepseek-harness" },
+        { "id": "start", "kind": "start-file", "target": "C:\\Users\\Benjamin\\deepseek-harness\\start-webui.bat" }
+      ]
     }
   ]
 }
