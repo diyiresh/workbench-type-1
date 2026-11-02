@@ -1,0 +1,13 @@
+/* Shared ivory companion: desktop and browser. */
+button.jarvis-orb,button.companion-robot{position:relative;display:inline-grid;place-items:center;width:76px;height:78px;padding:0;border:1px solid #fff9;border-radius:46% 46% 43% 43%;background:radial-gradient(ellipse at 32% 16%,#fffefa 0%,#eeeae3 53%,#bdbab4 100%);box-shadow:inset 2px 3px 5px #fff,inset -3px -5px 7px #8d8c8940,0 7px 12px #142c292b;color:#89f9cc;cursor:grab;touch-action:none;user-select:none;letter-spacing:normal;animation:companion-arrive .35s ease-out;transition:filter .18s,box-shadow .18s}
+button.jarvis-orb:hover,button.companion-robot:hover{filter:brightness(1.04);box-shadow:inset 2px 3px 5px #fff,inset -3px -5px 7px #8d8c8940,0 9px 16px #142c2938}
+button.jarvis-orb:active,button.companion-robot:active{cursor:grabbing}
+button.jarvis-orb:focus-visible,button.companion-robot:focus-visible{outline:3px solid #18845f;outline-offset:4px}
+.companion-face{display:flex;align-items:center;justify-content:center;gap:20px;width:60px;height:44px;margin-top:6px;border-radius:45% 45% 40% 40%;background:radial-gradient(ellipse at 40% 0%,#374340,#111c1b 75%);box-shadow:inset 0 1px 2px #000a,0 1px 1px #fff9;pointer-events:none}
+.companion-eye{width:8px;height:19px;border-radius:9px;background:linear-gradient(#b9ffe0,#71eac1);box-shadow:0 0 8px #80ffcb48;animation:companion-blink 7s infinite;pointer-events:none}
+#jarvis .jarvis-menu{background:#faf9f6;color:#253b34;border:1px solid #d8e2db;border-radius:16px;box-shadow:0 12px 32px #122b2526;bottom:90px;z-index:1}
+#jarvis .jarvis-menu button{color:#253b34;cursor:pointer;border-radius:9px}
+#jarvis .jarvis-menu button:hover,#jarvis .jarvis-menu button:focus-visible{background:#e2f2e9;outline-color:#18845f}
+@keyframes companion-blink{0%,44%,48%,100%{transform:scaleY(1)}46%{transform:scaleY(.12)}}
+@keyframes companion-arrive{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.companion-eye,button.jarvis-orb,button.companion-robot{animation:none;transition:none}}

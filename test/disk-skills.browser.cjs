@@ -1,0 +1,61 @@
+'use strict';
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { chromium } = require('playwright');
+
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bench-disk-skill-ui-'));
+const skills = path.join(root, 'skills');
+const alpha = path.join(skills, 'alpha');
+fs.mkdirSync(alpha, { recursive: true });
+fs.mkdirSync(path.join(skills, '.cursor', 'skills-cursor', 'locked'), { recursive: true });
+fs.mkdirSync(path.join(skills, 'node_modules', 'secret'), { recursive: true });
+const file = path.join(alpha, 'SKILL.md');
+fs.writeFileSync(file, '---\nname: alpha-skill\ndescription: "Keep the ledger local"\n---\n\nRead the file.\n');
+fs.writeFileSync(path.join(skills, '.cursor', 'skills-cursor', 'locked', 'SKILL.md'), '---\nname: locked-skill\ndescription: built in\n---\n\nLocked.\n');
+fs.writeFileSync(path.join(skills, 'node_modules', 'secret', 'SKILL.md'), '---\nname: hidden-skill\ndescription: hidden\n---\n\nHidden.\n');
+process.env.BENCH_DATA_DIR = root;
+process.env.BENCH_DISK_SKILL_ROOTS = skills;
+fs.writeFileSync(path.join(root, 'store.json'), JSON.stringify(require('../lib/default-store').buildDefaultStore()));
+const { createServer } = require('../server');
+const server = createServer();
+
+(async () => {
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = 'http://127.0.0.1:' + server.address().port;
+  const browser = await chromium.launch({ channel: 'msedge', headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.route('**/api/briefings', route => route.fulfill({ json: { items: [] } }));
+    await page.goto(base + '/#assets/skills');
+    await page.locator('[data-disk-skill]', { hasText: 'alpha-skill' }).click();
+    const editor = page.locator('[data-disk-editor] textarea');
+    await editor.waitFor();
+    assert.match(await editor.inputValue(), /Read the file/);
+    assert.equal(await page.locator('[data-disk-skill]', { hasText: 'hidden-skill' }).count(), 0);
+    await page.locator('[data-disk-skill]', { hasText: 'locked-skill' }).click();
+    await page.locator('[data-disk-editor] button[type="submit"]').waitFor();
+    assert.equal(await page.locator('[data-disk-editor] button[type="submit"]').isDisabled(), true);
+    await page.locator('[data-disk-skill]', { hasText: 'alpha-skill' }).click();
+    await editor.fill(await editor.inputValue() + '\nExtra line.');
+    await page.locator('[data-disk-action="preview"]').click();
+    assert.match(await page.locator('[data-disk-preview]').innerText(), /Extra line/);
+    await page.locator('[data-disk-editor] button[type="submit"]').click();
+    await page.getByText('文件已保存。', { exact: true }).waitFor();
+    assert.match(fs.readFileSync(file, 'utf8'), /Extra line/);
+    await page.locator('[data-act="asset-rescan"]').click();
+    await page.locator('[data-disk-skill]', { hasText: 'alpha-skill' }).waitFor();
+    await page.request.patch(base + '/api/meta', { data: { language: 'en' } });
+    await page.reload();
+    await page.getByText('Select a skill to read, edit, and push it to GitHub.', { exact: true }).waitFor();
+    await page.locator('[data-disk-skill]', { hasText: 'alpha-skill' }).click();
+    await page.getByRole('button', { name: 'Push to GitHub' }).waitFor();
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 2));
+    assert.deepEqual(errors, []);
+    console.log('Disk skill browser: list, read-only lock, preview, save, rescan, English and narrow layout passed.');
+  } finally { await browser.close(); }
+})().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => server.close());

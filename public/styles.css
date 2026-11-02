@@ -234,6 +234,17 @@ table.deck{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .asset-tools input{flex:1;background:#071426;color:#e7f2ff;border:1px solid #24507a}
 .asset-card{background:#0e2240;border:1px solid #1d426c;border-radius:14px;padding:14px 16px;margin:8px 0;color:#e7f2ff}
 .asset-card p{color:#b7cbe0}
+.asset-split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,420px);gap:14px;align-items:start}
+.asset-list{min-width:0}
+.asset-list button.asset-card{display:block;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.asset-card.active{border-color:#3ec6ff}
+.disk-skill-panel{position:sticky;top:0;max-height:calc(100vh - 150px);overflow:auto;background:#0e2240;border:1px solid #1d4e89;border-radius:16px;padding:14px 16px}
+.disk-skill-panel p,.disk-skill-panel li{color:#b7cbe0}
+.disk-skill-panel textarea,.disk-skill-panel input{width:100%;box-sizing:border-box;background:#071426;color:#e7f2ff;border:1px solid #24507a}
+.disk-skill-panel textarea{min-height:220px;font-family:ui-monospace,Consolas,monospace}
+.disk-skill-files{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.disk-skill-files span{border:1px solid #24507a;border-radius:999px;padding:2px 8px;color:#9ec9e6}
+@media(max-width:900px){.asset-split{grid-template-columns:minmax(0,1fr)}.disk-skill-panel{position:static;max-height:none}}
 .asset-tag{background:#0b6fbe;color:#fff;border-radius:8px;padding:3px 8px;font-size:11px}
 .asset-note,.asset-empty{color:#9ec9e6}
 #jarvis{position:fixed;right:22px;bottom:108px;z-index:40}

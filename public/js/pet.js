@@ -24,13 +24,17 @@ export function syncPet(settings = {}) {
   if (!host) return;
   if (!mounted) {
     mounted = true;
-    host.innerHTML = ui`<button type="button" class="jarvis-orb" data-pet="toggle" aria-label="Jarvis">BEN</button><div class="jarvis-menu" hidden><button type="button" data-pet="home">打开工作台</button><button type="button" data-pet="focus">我的关注</button><button type="button" data-pet="mute">静音今日</button><button type="button" data-pet="close">关闭宠物</button></div>`;
+    if(!document.getElementById("companion-style")) {
+      const style=document.createElement("link");style.id="companion-style";style.rel="stylesheet";style.href="/companion.css";document.head.append(style);
+    }
+    host.innerHTML = ui`<button type="button" class="jarvis-orb" data-pet="toggle" aria-label="Jarvis" aria-expanded="false"><span class="companion-face" aria-hidden="true"><span class="companion-eye"></span><span class="companion-eye"></span></span></button><div class="jarvis-menu" hidden><button type="button" data-pet="home">打开工作台</button><button type="button" data-pet="focus">我的关注</button><button type="button" data-pet="mute">静音今日</button><button type="button" data-pet="close">关闭宠物</button></div>`;
     host.addEventListener("click", async (event) => {
       const action = event.target.closest("[data-pet]")?.dataset.pet;
       if (!action) return;
       if (action === "toggle") {
         const menu = host.querySelector(".jarvis-menu");
         menu.hidden = !menu.hidden;
+        host.querySelector(".jarvis-orb").setAttribute("aria-expanded", String(!menu.hidden));
         return;
       }
       host.querySelector(".jarvis-menu").hidden = true;

@@ -11,6 +11,7 @@ const { chat } = require("./lib/llm");
 const vault = require('./lib/vault');
 const extensions = require('./lib/extensions');
 const skillStudio = require('./lib/skill-studio');
+const diskSkills = require('./lib/disk-skills');
 const governance = require('./lib/execution-governance');
 const executionCommands = require('./lib/execution-commands');
 const agendaNotes = require('./lib/agenda-notes');
@@ -57,6 +58,7 @@ const STORE = path.join(DATA, "store.json");
 const SKILL_ROOT = path.join(DATA, 'skill-library');
 governance.configure({skillRoot:SKILL_ROOT,channelState:()=>process.env.BENCH_DATA_DIR ? {state:'test-isolated'} : extensions.workbuddyAutomation()});
 const skillManager = skillStudio.createManager({ readStore, writeStore, root:SKILL_ROOT });
+const diskCatalog = diskSkills.createCatalog({ dataDir: DATA });
 const BACKUP = path.join(DATA, "backups");
 const externalRuntime = createRuntime({ readStore, writeStore, artifactRoot: path.join(DATA,"agent-results") });
 const deliveryManager = delivery.createManager({ readStore, writeStore, root: path.join(DATA, "deliveries"), reviewExecute: async (agentId, prompt, cwd, context) => {
@@ -305,6 +307,27 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
   const method = req.method;
   const p = url.pathname;
   let store = readStore();
+
+  if (p === '/api/disk-skills' || p.startsWith('/api/disk-skills/')) {
+    try {
+      if (method === 'GET' && p === '/api/disk-skills') return sendJson(res, 200, await diskCatalog.list());
+      if (method === 'POST' && p === '/api/disk-skills/rescan') {
+        if (!isLoopback(req)) return sendJson(res, 403, { error: 'disk_skill_local_only' });
+        return sendJson(res, 200, await diskCatalog.rescan());
+      }
+      const match = p.match(/^\/api\/disk-skills\/([a-f0-9]{32})(?:\/(save|push))?$/);
+      if (!match) return sendJson(res, 404, { error: 'disk_skill_missing' });
+      if (method === 'GET' && !match[2]) return sendJson(res, 200, await diskCatalog.detail(match[1]));
+      if (method !== 'POST' || !match[2]) return sendJson(res, 405, { error: 'disk_skill_method_not_allowed' });
+      if (!isLoopback(req)) return sendJson(res, 403, { error: 'disk_skill_local_only' });
+      const body = await readBody(req) || {};
+      const result = match[2] === 'save' ? await diskCatalog.save(match[1], body) : await diskCatalog.push(match[1], body);
+      return sendJson(res, 200, result);
+    } catch (error) {
+      const code = error.message === 'disk_skill_missing' ? 404 : error.message === 'disk_skill_local_only' ? 403 : 409;
+      return sendJson(res, code, { error: error.message, detail: error.detail || '' });
+    }
+  }
 
   if (p === '/api/skill-library' || p.startsWith('/api/skill-library/')) {
     try {

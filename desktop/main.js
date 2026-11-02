@@ -5,11 +5,20 @@ const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
 const focus = require("../lib/focus");
+const { SIZE: PET_SIZE, fitPosition } = require("./pet-position");
+let petDrag = null;
+function petPositionPath() { return path.join(app.getPath("userData"), "companion-position.json"); }
+function placePet(position) { return fitPosition(position, [screen.getPrimaryDisplay(), ...screen.getAllDisplays().filter(d => d.id !== screen.getPrimaryDisplay().id)].map(d => d.workArea), petWin?.getBounds() || PET_SIZE); }
+function rememberPet() {
+  if (!petWin || petWin.isDestroyed()) return;
+  try { fs.mkdirSync(app.getPath("userData"), { recursive:true }); const {x,y}=petWin.getBounds();fs.writeFileSync(petPositionPath(),JSON.stringify({x,y})); } catch (error) { console.warn("Companion position could not be saved:",error.message); }
+}
 
 const PORT = Number(process.env.PORT || 3780);
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 const ROOT = path.join(__dirname, "..");
 
+let quitting = false;
 let serverChild = null;
 let win = null;
 let mainView = null;
@@ -70,11 +79,19 @@ function closePane() {
 }
 
 function showMain(hash) {
-  if (win) { win.show(); win.focus(); }
   const target = hash && String(hash).startsWith("#") ? hash : "#home/all";
-  const script = `location.hash = ${JSON.stringify(target)}`;
-  if (mainView.webContents.getURL().startsWith(ORIGIN)) mainView.webContents.executeJavaScript(script);
-  else mainView.webContents.loadURL(ORIGIN + "/" + target);
+  if (!win || win.isDestroyed() || !mainView || mainView.webContents.isDestroyed()) {
+    createMainWindow(target).catch(error => console.error("Workbench reopen failed:", error));
+    return;
+  }
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+  const contents = mainView.webContents;
+  const navigation = contents.getURL().startsWith(ORIGIN)
+    ? contents.executeJavaScript(`location.hash = ${JSON.stringify(target)}`)
+    : contents.loadURL(ORIGIN + "/" + target);
+  navigation.catch(error => console.error("Workbench navigation failed:", error));
 }
 
 function hardenMain(contents) {
@@ -111,13 +128,14 @@ function hardenPane(contents) {
 }
 
 function ensurePet() {
-  if (petWin) { petWin.show(); return; }
-  const area = screen.getPrimaryDisplay().workArea;
+  if (petWin) { petWin.showInactive(); return; }
+  let saved;
+  try { saved=JSON.parse(fs.readFileSync(petPositionPath(),"utf8")); } catch {}
+  const position=placePet(saved);
   petWin = new BrowserWindow({
-    width: 220,
-    height: 280,
-    x: area.x + area.width - 240,
-    y: area.y + area.height - 320,
+    show: false,
+    ...PET_SIZE,
+    ...position,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -127,8 +145,9 @@ function ensurePet() {
     webPreferences: prefs(path.join(__dirname, "preload-pet.js")),
   });
   petWin.setAlwaysOnTop(true, "floating");
+  petWin.once("ready-to-show", () => petWin?.showInactive());
   petWin.loadFile(path.join(__dirname, "pet.html"));
-  petWin.on("closed", () => { petWin = null; });
+  petWin.on("closed", () => { petDrag = null; petWin = null; });
 }
 
 function speak(text) {
@@ -177,7 +196,28 @@ function wireIpc() {
     const decision = focus.routeLink(paneUrl, { pageOrigin: ORIGIN, explicitSystem: true });
     if (decision.action === "system") shell.openExternal(decision.url);
   });
-  ipcMain.on("pet-action", (_event, action) => {
+  ipcMain.on("pet-drag", (event, phase) => {
+    if (!petWin || event.sender !== petWin.webContents) return;
+    if (phase === "start") petDrag={cursor:screen.getCursorScreenPoint(), bounds:petWin.getBounds()};
+    else if (phase === "move" && petDrag) {
+      const cursor=screen.getCursorScreenPoint();
+      const next=placePet({x:petDrag.bounds.x+cursor.x-petDrag.cursor.x,y:petDrag.bounds.y+cursor.y-petDrag.cursor.y});
+      petWin.setPosition(next.x,next.y);
+    } else if (phase === "end") { petDrag=null; rememberPet(); }
+  });
+  ipcMain.on("pet-action", (event, action) => {
+    if (!petWin || event.sender !== petWin.webContents) return;
+    if (action === "menu") {
+      Menu.buildFromTemplate([
+        {label:"打开工作台",click:()=>showMain("#home/all")},
+        {label:"我的关注",click:()=>showMain("#reports/pain")},
+        {label:"静音今日",click:()=>{fetch(ORIGIN+"/api/meta",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({companion:{mutedDate:today()}})}).catch(()=>{});}},
+        {type:"separator"},
+        {label:"隐藏伙伴",click:()=>petWin?.hide()},
+        {label:"退出桌面工作台",click:()=>app.quit()},
+      ]).popup({window:petWin});
+      return;
+    }
     if (action === "home") showMain("#home/all");
     else if (action === "focus") showMain("#reports/pain");
     else if (action === "close" && petWin) petWin.hide();
@@ -189,6 +229,45 @@ function wireIpc() {
       }).catch(() => {});
     }
   });
+}
+
+async function createMainWindow(hash = "#home/all") {
+  win = new BaseWindow({ width: 1280, height: 840, minWidth: 960, minHeight: 640, title: "统筹工作台", backgroundColor: "#071426", show: false });
+  mainView = new WebContentsView({ webPreferences: prefs(path.join(__dirname, "preload-shell.js")) });
+  paneBar = new WebContentsView({ webPreferences: prefs(path.join(__dirname, "preload-pane.js")) });
+  paneView = new WebContentsView({ webPreferences: { ...prefs(path.join(__dirname, "preload-shell.js")), partition: "persist:bench-side" } });
+  win.contentView.addChildView(mainView);
+  win.contentView.addChildView(paneBar);
+  win.contentView.addChildView(paneView);
+  hardenMain(mainView.webContents);
+  hardenPane(paneView.webContents);
+  paneBar.webContents.loadFile(path.join(__dirname, "pane-bar.html"));
+  win.on("resize", layout);
+  closePane();
+  const currentWindow = win;
+  const views = [mainView, paneBar, paneView];
+  // Keep editable drafts alive when the user closes the main window, as long as
+  // the independent companion is still running. Explicit Exit must still quit.
+  currentWindow.on("close", event => {
+    if (!quitting && petWin && !petWin.isDestroyed()) {
+      event.preventDefault();
+      currentWindow.hide();
+    }
+  });
+  currentWindow.on("closed", () => {
+    for (const view of views) {
+      if (!view.webContents.isDestroyed()) view.webContents.close();
+    }
+    if (win === currentWindow) {
+      win = null; mainView = null; paneBar = null; paneView = null;
+      paneOpen = false; paneUrl = "";
+    }
+  });
+  mainView.webContents.once("did-finish-load", () => {
+    if (!currentWindow.isDestroyed() && !quitting) currentWindow.show();
+  });
+  await mainView.webContents.loadURL(ORIGIN + "/" + hash);
+
 }
 
 async function boot() {
@@ -212,20 +291,7 @@ async function boot() {
   });
   if (started.child) serverChild = started.child;
 
-  win = new BaseWindow({ width: 1280, height: 840, minWidth: 960, minHeight: 640, title: "统筹工作台", backgroundColor: "#071426", show: false });
-  mainView = new WebContentsView({ webPreferences: prefs(path.join(__dirname, "preload-shell.js")) });
-  paneBar = new WebContentsView({ webPreferences: prefs(path.join(__dirname, "preload-pane.js")) });
-  paneView = new WebContentsView({ webPreferences: { ...prefs(path.join(__dirname, "preload-shell.js")), partition: "persist:bench-side" } });
-  win.contentView.addChildView(mainView);
-  win.contentView.addChildView(paneBar);
-  win.contentView.addChildView(paneView);
-  hardenMain(mainView.webContents);
-  hardenPane(paneView.webContents);
-  paneBar.webContents.loadFile(path.join(__dirname, "pane-bar.html"));
-  win.on("resize", layout);
-  closePane();
-  mainView.webContents.once("did-finish-load", () => win.show());
-  await mainView.webContents.loadURL(ORIGIN + "/");
+  await createMainWindow();
 
   const settings = await readCompanion();
   try { app.setLoginItemSettings({ openAtLogin: settings.autostart }); } catch { /* platform */ }
@@ -241,15 +307,19 @@ if (!locked) app.quit();
 else {
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     { label: "工作台", submenu: [
-      { label: "重新加载", click: () => mainView && mainView.webContents.reload() },
+      { label: "显示桌面伙伴", click: () => ensurePet() },
+      { label: "重新加载", click: () => { if (mainView && !mainView.webContents.isDestroyed()) mainView.webContents.reload(); else showMain(); } },
       { label: "用系统浏览器打开侧栏", click: () => { if (paneUrl) shell.openExternal(paneUrl); } },
     ] },
   ]));
-  app.on("second-instance", () => { if (win) { win.show(); win.focus(); } });
-  app.whenReady().then(() => { wireIpc(); return boot(); }).catch((error) => {
+  app.on("second-instance", () => showMain());
+  app.whenReady().then(() => {
+    const reposition=()=>{if(petWin){const p=placePet(petWin.getBounds());petWin.setPosition(p.x,p.y);rememberPet();}};
+    screen.on("display-removed",reposition);screen.on("display-metrics-changed",reposition);
+    wireIpc(); return boot(); }).catch((error) => {
     console.error(error);
     app.quit();
   });
   app.on("window-all-closed", () => app.quit());
-  app.on("before-quit", () => { if (serverChild && !serverChild.killed) serverChild.kill(); });
+  app.on("before-quit", () => { quitting = true; if (serverChild && !serverChild.killed) serverChild.kill(); });
 }
