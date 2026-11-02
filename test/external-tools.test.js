@@ -46,8 +46,17 @@ function fakeSpawn(store) {
   assert.deepEqual(byId.codex.actions[0], { id: "folder", kind: "open-folder", target: "%LOCALAPPDATA%\\OpenAI\\Codex" });
   assert.ok(byId.workbench.actions.some((action) => action.target.endsWith("\\start.bat")));
   assert.ok(byId.workbench.actions.some((action) => action.target === "http://127.0.0.1:3780"));
-  assert.equal(byId.sjzz.actions.length, 1);
-  assert.equal(byId.sjzz.actions[0].kind, "open-folder");
+  assert.equal(byId.sjzz.confidence, "high");
+  assert.equal(byId.sjzz.status, "ready");
+  assert.match(byId.sjzz.note, /start-dev\.bat/);
+  assert.match(byId.sjzz.note, /8000/);
+  assert.match(byId.sjzz.note, /5173/);
+  assert.match(byId.sjzz.note, /已经在运行/);
+  assert.deepEqual(byId.sjzz.actions.map((action) => [action.id, action.kind, action.target]), [
+    ["folder", "open-folder", "D:\\OneDrive\\Desktop\\Ben_My_Agent\\SJZZ"],
+    ["start", "start-file", "D:\\OneDrive\\Desktop\\Ben_My_Agent\\SJZZ\\scripts\\start-dev.bat"],
+    ["ui", "open-url", "http://127.0.0.1:5173"],
+  ]);
   assert.equal(byId.retellloop.actions.length, 1);
   assert.equal(byId.retellloop.actions[0].target, "http://127.0.0.1:43123");
   assert.match(byId.retellloop.location, /Happy-family-happy-English/);
@@ -133,6 +142,16 @@ function fakeSpawn(store) {
   await tools.launch(root, "sjzz", "folder", { platform: "win32", spawn: fakeSpawn(calls) });
   assert.equal(calls[0].command, "explorer.exe");
   assert.deepEqual(calls[0].args, ["D:\\OneDrive\\Desktop\\Ben_My_Agent\\SJZZ"]);
+
+  calls.length = 0;
+  const sjzzStart = await tools.launch(root, "sjzz", "start", { platform: "win32", spawn: fakeSpawn(calls) });
+  assert.equal(sjzzStart.executed, true);
+  assert.equal(calls[0].args.at(-1), 'start "" "D:\\OneDrive\\Desktop\\Ben_My_Agent\\SJZZ\\scripts\\start-dev.bat"');
+
+  calls.length = 0;
+  const sjzzUi = await tools.launch(root, "sjzz", "ui", { platform: "win32", spawn: fakeSpawn(calls) });
+  assert.equal(sjzzUi.executed, true);
+  assert.equal(calls[0].args.at(-1), 'start "" "http://127.0.0.1:5173"');
 
   calls.length = 0;
   await tools.launch(root, "paperclip", "dev", { platform: "win32", spawn: fakeSpawn(calls) });
