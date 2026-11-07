@@ -43,7 +43,7 @@ export function resolveRoute(value, modules = []) {
   }
   if (p === 'ops' && s === 'today') { p = 'agenda'; s = 'all'; }
   if (p === 'ops' && s === 'all') s = 'pain';
-  if (!['home','deck','work','department','crew','ops','memory','agenda','briefs','learn','life','tools','set'].includes(p)) { p='home'; s='all'; }
+  if (!['home','deck','work','department','crew','ops','memory','agenda','briefs','learn','life','tools','set','reflections'].includes(p)) { p='home'; s='all'; }
   const section = sectionFor(p);
   const token = p === 'deck' ? 'decisions' : p === 'work' ? (s === 'all' ? 'business' : 'mod:' + s)
     : p === 'department' ? (['all','new'].includes(s) ? s : 'run:' + s) : s;

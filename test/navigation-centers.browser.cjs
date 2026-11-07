@@ -29,7 +29,7 @@ const {createServer,readStore}=require('../server'); const server=createServer()
     const open=async hash=>{await page.goto(base+'/'+hash);await page.locator('#ws-head h1').waitFor();};
     await open('#home/all');assert.equal(await page.locator('#rail > [data-primary]').count(),11);
     assert.equal(await page.locator('.overview-stat[data-overview-filter="risks"] b').textContent(),'1');
-    await page.locator('[data-primary="deck"]').click();assert.equal(new URL(page.url()).hash,'#home/decisions');
+    await page.locator('.v8-subnav a[href="#home/decisions"]').click();assert.equal(new URL(page.url()).hash,'#home/decisions');
     assert.equal(await page.locator('.stats .stat').last().locator('b').textContent(),'1');
     assert.equal(await page.locator('table.deck tbody tr').count(),1);
     await open('#work/same');assert.equal(new URL(page.url()).hash,'#projects/mod:same');assert.match(await page.locator('#ws-body').textContent(),/业务原文/);assert.equal(await page.locator('#ws-body .msg .row b').filter({hasText:'项目原文'}).count(),1);
@@ -37,7 +37,7 @@ const {createServer,readStore}=require('../server'); const server=createServer()
     const input=page.locator('.room-composer textarea');await input.fill('保留草稿');await page.evaluate(()=>window.dispatchEvent(new Event('hashchange')));assert.equal(await input.inputValue(),'保留草稿');
     await page.reload();await page.locator('[data-room-form="same"]').waitFor();
     await open('#projects/business');assert.equal(await page.locator('#ws-body [data-mod]').count(),1);
-    await page.locator('#channels a[href="#projects/all"]').click();await page.locator('#rail [data-primary="assets"]').click();await page.goBack();await page.waitForURL('**/#projects/all');assert.equal(await page.locator('#rail [data-primary="projects"].active').count(),1);await page.goForward();await page.waitForURL('**/#assets/all');
+    await page.locator('.v8-subnav a[href="#projects/all"]').click();await page.locator('#v8-nav>a[href="#assets/all"]').click();await page.goBack();await page.waitForURL('**/#projects/all');assert.equal(await page.locator('#rail [data-primary="projects"].active').count(),1);await page.goForward();await page.waitForURL('**/#assets/all');
     await open('#ops/today');assert.equal(new URL(page.url()).hash,'#agenda/all');
     await open('#ops/weekly');assert.equal(new URL(page.url()).hash,'#reports/weekly');assert.equal(await page.locator('#ws-body #agenda-date').count(),0);
     await open('#crew/workbuddy');await page.locator('[data-agent-state="paused"]').waitFor();

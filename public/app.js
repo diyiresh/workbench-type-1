@@ -9,6 +9,7 @@ import {
 } from "./js/core.js";
 import { renderCard, renderDetail, manifestFor } from "./modules/index.js";
 import * as V from "./js/views.js";
+import { mountStudio, todayView, reflectionsView, studioEnabled, useSavedClassicTheme } from "./js/v8-studio.js";
 import { t as tr, ui, systemFragment } from "./js/i18n.js";
 import { bindDelivery } from './js/delivery-ui.js';
 import { bindNoteSuggestion, openReviewNote, openNotesManager, resetSuggestion } from './js/agenda-notes-ui.js';
@@ -219,6 +220,8 @@ function channels() {
       if (!items.length) continue;
       html += `<div class="sec">${tr(label)}</div>` + items.map(run => `<div class="project-nav-row"><a class="ch ${primary === "department" && secondary === run.id ? "active" : ""}" href="${resolveRoute("department/" + encodeURIComponent(run.id)).hash}">${esc(run.title)}</a>${V.projectMenu(run)}</div>`).join("");
     }
+  } else if (primary === "reflections") {
+    html += `<div class="sec">${document.documentElement.lang === "en" ? "Reflections" : "思考"}</div><a class="ch" href="#reflections/all">${document.documentElement.lang === "en" ? "Schedule reflections" : "行程复盘"}</a><a class="ch" href="#reports/business">${document.documentElement.lang === "en" ? "Reports" : "全部报告"}</a>`;
   } else if (primary === "agenda") {
     html += ui`<div class="sec">每日行程</div>${channelBtn("all", tr("时间轴 / 周计划"))}`;
   } else if (primary === "briefs") {
@@ -283,6 +286,7 @@ function workspace() {
   if (reportEditor && agendaReportDraft && (!agendaReportDraft.sourceJobId || reportEditor.dataset.sourceJobId === agendaReportDraft.sourceJobId)) agendaReportDraft.body = reportEditor.value;
   const m = currentModule();
   const titleMap = {
+    reflections: document.documentElement.lang === "en" ? "Reflections" : "思考",
     home: secondary === "all" ? tr("工作首页") : (m || {}).title || "",
     deck: tr("风险与决策"),
     department: ["all","new"].includes(secondary) ? tr("项目中心") : ((getStore().departmentRuns || []).find((run) => run.id === secondary) || {}).title || tr("项目中心"),
@@ -298,6 +302,7 @@ function workspace() {
     set: tr("系统设置"),
   };
   const ledeMap = {
+    reflections: document.documentElement.lang === "en" ? "Your original reflections, kept in full." : "保留每一次思考的原文与脉络。",
     home: tr("今日重点、跨模块入口与待决策事项。"),
     deck: tr("总控指标 + 风险雷达 + 全项目决策表。会议记录在这里拆成待办。"),
     department: tr("只说一次目标，由主管、执行人、独立复核人与整合秘书接力完成。"),
@@ -317,7 +322,8 @@ function workspace() {
   $("ws-head").innerHTML = `<div class="workspace-heading"><div class="workspace-title"><h1>${esc(["home","department","briefs","crew","work"].includes(primary) && secondary!=="all" ? titleMap[primary] : tr(titleMap[primary] || ""))}</h1><p>${esc(ledeMap[primary] || "")}</p></div></div>${manage}`;
 
   const body = safe(() => {
-    if (primary === "home") return secondary === "all" ? V.homeAllView(overviewFilter) : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
+    if (primary === "reflections") return reflectionsView();
+    if (primary === "home") return secondary === "all" ? ((studioEnabled() && overviewFilter === "all" ? todayView() : "") + V.homeAllView(overviewFilter)) : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
     if (primary === "deck") return V.deckView();
     if (primary === "department") return V.departmentView(secondary, departmentGoalDraft);
     if (primary === "agenda") return V.agendaView(agendaDate, agendaMode, agendaReportDraft, agendaFilter, {exportPreview:agendaReportExportPreview,saveReceipt:agendaReportSaveReceipt,saving:agendaReportSaving});
@@ -460,6 +466,7 @@ function render() {
   rail();
   channels();
   workspace();
+  mountStudio(primary, secondary);
 }
 
 // ---------- 模块拖拽排序 ----------
@@ -723,6 +730,7 @@ async function saveLlm() {
 async function saveTheme() {
   const theme = $("theme-select").value;
   await api("/api/meta", { method: "PATCH", body: { theme } });
+  useSavedClassicTheme();
   await reload();
 }
 
