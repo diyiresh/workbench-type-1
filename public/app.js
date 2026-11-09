@@ -154,7 +154,34 @@ function go(p, s, nextBriefFilter = "all") {
 
 // ---------- 简报弹窗 ----------
 
+const BRIEFING_LOCAL_DISMISS_KEY = 'bench-briefing-dismissed-on-v1';
+function locallyDismissedBriefings() {
+  try { return localStorage.getItem(BRIEFING_LOCAL_DISMISS_KEY) === ymd(); }
+  catch { return false; }
+}
+async function dismissBriefings() {
+  // Leaving the overlay must not depend on a successful preference write.
+  $("briefing").hidden = true;
+  $("briefing").innerHTML = "";
+  let rememberedLocally = false;
+  try { localStorage.setItem(BRIEFING_LOCAL_DISMISS_KEY, ymd()); rememberedLocally = true; } catch { /* server persistence remains available */ }
+  try {
+    await api("/api/briefings/dismiss", { method: "POST", body: {} });
+    $("briefing-dismiss-notice")?.remove();
+  } catch {
+    let notice = $("briefing-dismiss-notice");
+    if (!notice) {
+      notice = document.createElement('p'); notice.id = 'briefing-dismiss-notice'; notice.className = 'card'; notice.setAttribute('role', 'status');
+      $("ws-body").prepend(notice);
+    }
+    const english = document.documentElement.lang === 'en';
+    notice.textContent = rememberedLocally
+      ? (english ? 'Reminder closed. The server preference could not be saved; hidden for today in this browser.' : '提醒已关闭。服务端未保存偏好，今日不再弹出已在本浏览器生效。')
+      : (english ? 'Reminder closed. The preference could not be saved; it may reappear after reloading.' : '提醒已关闭。“今日不再弹出”未能保存，刷新后可能再次出现。');
+  }
+}
 async function maybeBriefings() {
+  if (locallyDismissedBriefings()) return;
   const pack = await api("/api/briefings");
   briefs = pack.items || [];
   if (!briefs.length) return;
@@ -1332,15 +1359,11 @@ document.addEventListener("click", async (e) => {
   if (brief) {
     const act = brief.dataset.brief;
     if (act === "skip") {
-      await api("/api/briefings/dismiss", { method: "POST", body: {} });
-      $("briefing").hidden = true;
-      $("briefing").innerHTML = "";
+      await dismissBriefings();
     } else {
       briefIndex += 1;
       if (briefIndex >= briefs.length) {
-        await api("/api/briefings/dismiss", { method: "POST", body: {} });
-        $("briefing").hidden = true;
-        $("briefing").innerHTML = "";
+        await dismissBriefings();
       } else showBrief();
     }
     return;
