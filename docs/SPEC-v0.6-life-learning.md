@@ -1,5 +1,7 @@
 # SPEC v0.6：生活 / 学习双星系
 
+V9补充：program为cost-management-v9的八周计划仍存于同一learningPlans，但通过履职成长专用界面和修订检查更新。其40项分次记录在完成后全部保留，支持取消勾选；以下删除sessions的历史规则仅适用于原有通用学习计划。详见SPEC-v9-professional-growth.md。
+
 ## 目标
 
 在不复制日程、不污染既有 `agendas` 台账的前提下，形成生活与学习两条可执行战线：

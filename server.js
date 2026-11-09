@@ -37,6 +37,7 @@ const superagentModel = require("./lib/superagent-model");
 const superagentAsync = require("./lib/superagent-async");
 const { createRuntime } = require("./lib/external-runtime");
 const { lifeHabitsForDate, normalizeLearningDraft, adoptLearningPlan, completeLearningSession } = require("./lib/life-learning");
+const growth = require('./lib/growth');
 const { onlineCompatibleStatus } = require("./lib/model-status");
 const { ingestBrief, sourceSummaries } = require("./lib/brief-hub");
 const dropbox = require("./lib/dropbox");
@@ -307,6 +308,25 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
   const method = req.method;
   const p = url.pathname;
   let store = readStore();
+
+  if (p === '/api/growth' || p.startsWith('/api/growth/')) {
+    try {
+      if (method === 'GET' && p === '/api/growth') return sendJson(res, 200, growth.snapshot(store));
+      if (method === 'GET' && p === '/api/growth/weekly-draft') return sendJson(res, 200, growth.weeklyDraft(store, Number(url.searchParams.get('week'))));
+      if (!['POST', 'PATCH'].includes(method)) return sendJson(res, 405, { error: '不支持此操作。' });
+      if (!isLoopback(req) || (req.headers.origin && req.headers.origin !== `http://${req.headers.host}`)) return sendJson(res, 403, { error: '履职成长仅允许本机同源保存。' });
+      const input = await readBody(req) || {}; store = readStore();
+      let result;
+      const session = p.match(/^\/api\/growth\/sessions\/([^/]+)$/);
+      const card = p.match(/^\/api\/growth\/cards\/([^/]+)(\/archive)?$/);
+      if (method === 'POST' && p === '/api/growth/activate') result = growth.activate(store, input);
+      else if (method === 'PATCH' && session) result = growth.setSession(store, decodeURIComponent(session[1]), input);
+      else if (method === 'POST' && p === '/api/growth/cards') result = growth.saveCard(store, null, input);
+      else if (method === 'PATCH' && card) result = card[2] ? growth.archiveCard(store, decodeURIComponent(card[1]), input) : growth.saveCard(store, decodeURIComponent(card[1]), input);
+      else return sendJson(res, 404, { error: '成长功能入口不存在。' });
+      writeStore(store); return sendJson(res, 200, { result });
+    } catch (error) { return sendJson(res, error.status || 400, { error: error.message }); }
+  }
 
   if (p === '/api/disk-skills' || p.startsWith('/api/disk-skills/')) {
     try {
@@ -1459,6 +1479,7 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
 
   const learningSessionMatch = p.match(/^\/api\/learning\/plans\/([^/]+)\/sessions\/([^/]+)$/);
   if (learningSessionMatch && method === "PATCH") {
+    if ((store.lifeSystem?.learningPlans || []).some(plan => plan.id === learningSessionMatch[1] && plan.program === growth.PROGRAM)) return sendJson(res, 409, { error: '请通过履职成长入口更新学习安排，保留分次记录和修订检查。' });
     const body = await readBody(req) || {};
     const plan = completeLearningSession(store, learningSessionMatch[1], learningSessionMatch[2], body.done, nowIso());
     if (!plan) return notFound(res);

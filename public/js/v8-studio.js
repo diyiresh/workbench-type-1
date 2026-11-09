@@ -14,7 +14,7 @@ const links = {
   today: [['#home/all','总览','Overview'],['#agenda/all','行程','Schedule'],['#briefs/all','简报','Briefings'],['#life/all','生活','Life'],['#home/decisions','风险与决策','Decisions']],
   projects: [['#projects/business','业务项目','Business projects'],['#projects/all','协作任务','Collaboration'],['#agents/all','成员','Members'],['#projects/new','新建协作','New collaboration']],
   reflections: [['#reflections/all','行程思考','Schedule reflections'],['#reports/business','全部报告','Reports'],['#reports/monthly','月报','Monthly reports'],['#agenda/all','生成行程月报','Generate from schedule']],
-  library: [['#assets/all','资产','Assets'],['#assets/skills','技能','Skills'],['#assets/knowledge','知识来源','Sources'],['#learn/all','学习','Learning'],['#reports/pain','行业痛点','Industry'],['#reports/frontier','科技前沿','Frontier'],['#reports/ai-new','AI 上新','AI updates'],['#reports/construction','建筑报告','Construction'],['#reports/lab','本地实验','Experiments']],
+  library: [['#assets/all','资产','Assets'],['#assets/skills','技能','Skills'],['#assets/knowledge','知识来源','Sources'],['#learn/growth','履职成长 V9','Growth V9'],['#learn/all','学习','Learning'],['#reports/pain','行业痛点','Industry'],['#reports/frontier','科技前沿','Frontier'],['#reports/ai-new','AI 上新','AI updates'],['#reports/construction','建筑报告','Construction'],['#reports/lab','本地实验','Experiments']],
   settings: [['#set/all','系统设置','Settings'],['#tools/all','外部工具','External tools'],['#set/help','使用说明','Help']],
 };
 let saved = readPrefs(), preview = null;
@@ -60,15 +60,15 @@ export function reflectionsView() {
 export function mountStudio(primary,secondary) {
   appearance();
   let nav=document.getElementById('v8-nav');
-  if(!nav){nav=document.createElement('nav');nav.id='v8-nav';nav.setAttribute('aria-label','Workbench V8');document.getElementById('shell').prepend(nav);}
+  if(!nav){nav=document.createElement('nav');nav.id='v8-nav';nav.setAttribute('aria-label','Workbench V9');document.getElementById('shell').prepend(nav);}
   const active=parent(primary,secondary);
-  nav.innerHTML=`<a class="v8-brand" href="#home/all">BEN<small>WORKBENCH · V8 PREVIEW</small></a><span class="v8-studio-label">PERSONAL STUDIO</span>${groups.map(([id,zh,en,url,icon])=>`<a href="${url}" ${id===active?'aria-current="page"':''}><span aria-hidden="true">${icon}</span>${text(zh,en)}</a>`).join('')}<div class="v8-nav-bottom"><button type="button" data-v8="details">${text('分类与搜索','Browse & search')}</button><button type="button" data-v8="appearance">${text('外观与主题','Appearance')}</button><a href="#set/all" ${active==='settings'?'aria-current="page"':''}>⚙ ${text('工具与设置','Tools & settings')}</a></div>`;
+  nav.innerHTML=`<a class="v8-brand" href="#home/all">BEN<small>WORKBENCH · V9 BETA</small></a><span class="v8-studio-label">PERSONAL STUDIO</span>${groups.map(([id,zh,en,url,icon])=>`<a href="${url}" ${id===active?'aria-current="page"':''}><span aria-hidden="true">${icon}</span>${text(zh,en)}</a>`).join('')}<div class="v8-nav-bottom"><button type="button" data-v8="details">${text('分类与搜索','Browse & search')}</button><button type="button" data-v8="appearance">${text('外观与主题','Appearance')}</button><a href="#set/all" ${active==='settings'?'aria-current="page"':''}>⚙ ${text('工具与设置','Tools & settings')}</a></div>`;
   document.querySelector('.v8-subnav')?.remove();
   const tabs=document.createElement('nav');tabs.className='v8-subnav';tabs.setAttribute('aria-label',text('分类入口','Section navigation'));
   tabs.innerHTML=links[active].map(([url,zh,en])=>`<a href="${url}" ${location.hash===url?'aria-current="page"':''}>${text(zh,en)}</a>`).join('');
   document.getElementById('ws-head').after(tabs);
   if(!document.querySelector('#sidebar [data-v8=details]')){const close=document.createElement('button');close.type='button';close.dataset.v8='details';close.className='tiny';close.textContent=text('关闭分类 ×','Close navigation ×');document.querySelector('#sidebar .ws-name').append(close);}
-  document.title='BEN · Workbench V8';
+  document.title='BEN · Workbench V9';
   if(primary==='set'&&secondary!=='help'){
     const button=document.createElement('button');button.type='button';button.className='solid v8-appearance-entry';button.dataset.v8='appearance';button.textContent=text('打开 V8 外观画廊','Open V8 appearance gallery');document.getElementById('ws-body').prepend(button);
   }

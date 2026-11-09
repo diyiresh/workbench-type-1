@@ -575,6 +575,7 @@ function habitGalaxySection() {
 }
 
 function learningPlanCard(plan) {
+  if (plan.program === 'cost-management-v9') return `<article class="learning-plan-card"><h3>${esc(plan.title)}</h3><p>学习安排、理解证据和管理复盘集中在履职成长中保留。</p><a href="#learn/growth-plan">进入履职成长 V9 →</a></article>`;
   if (plan.status === "completed") {
     return `<article class="achievement-card"><div class="eyebrow">LEARNING ACHIEVEMENT</div><b>🏆 ${esc(plan.achievement || ui`已完成对《${plan.title}》的学习，你真棒！`)}</b><p>${esc(plan.completedAt ? ui`完成于 ${fmt(plan.completedAt)} · 共 ${plan.completedSessions || 0} 个学习时段` : "")}</p></article>`;
   }
