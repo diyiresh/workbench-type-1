@@ -78,10 +78,13 @@
 /* The old agenda hero assumed a dark backdrop. Give V8 controls explicit
    semantic surfaces and text instead of inheriting its translucent whites. */
 :root[data-v8="true"] .agenda-hero-controls{padding:12px;gap:16px;background:var(--paper);border:1px solid var(--line);border-radius:10px;color:var(--ink)}
-:root[data-v8="true"] .agenda-view-switch{background:var(--paper-soft);border:1px solid var(--muted);padding:4px;gap:4px}
-:root[data-v8="true"] .agenda-view-switch button{color:var(--ink);background:transparent;min-height:36px;border:1px solid transparent;padding:7px 13px}
-:root[data-v8="true"] .agenda-view-switch button:hover{background:var(--accent-soft);text-decoration:underline;text-underline-offset:4px}
-:root[data-v8="true"] .agenda-view-switch button.active{background:var(--ink);color:var(--paper);border-color:var(--ink);box-shadow:0 1px 3px #0002;text-decoration:none}
+:root[data-v8="true"] .agenda-view-switch{background:#fcf3f3;border:1px solid #dbc0c4;padding:4px;gap:4px}
+:root[data-v8="true"] .agenda-view-switch button{color:#73474c;background:transparent;min-height:36px;border:1px solid transparent;padding:7px 13px}
+:root[data-v8="true"] .agenda-view-switch button:hover{background:#f7e5e8;text-decoration:underline;text-underline-offset:4px}
+:root[data-v8="true"] .agenda-view-switch button.active{background:#f1d5d9;color:#713b43;border-color:#c88993;box-shadow:none;text-decoration:none}
+:root[data-v8="true"][data-studio-palette="moonlit"] .agenda-view-switch{background:#36292d;border-color:#8c666e}
+:root[data-v8="true"][data-studio-palette="moonlit"] .agenda-view-switch button:not(.active){color:#f1d5d9}
+:root[data-v8="true"][data-studio-palette="moonlit"] .agenda-view-switch button:not(.active):hover{background:#503940}
 :root[data-v8="true"] .agenda-hero .date-picker{color:var(--ink);display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600}
 :root[data-v8="true"] .agenda-hero #agenda-date{background:var(--paper);color:var(--ink);border:1px solid var(--muted);min-height:38px;box-sizing:border-box}
 :root[data-v8="true"] .agenda-view-switch button:focus-visible,:root[data-v8="true"] #agenda-date:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
