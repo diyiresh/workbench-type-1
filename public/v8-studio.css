@@ -74,3 +74,15 @@
 :root[data-v8="true"][data-studio-palette="porcelain"] .v8-landscape{filter:hue-rotate(65deg) saturate(.65)}
 :root[data-v8="true"][data-studio-palette="autumn"] .v8-landscape{filter:sepia(.45) saturate(1.2)}
 :root[data-v8="true"] .overview-stat .lv-stat-chip{background:var(--accent-soft);color:var(--accent-deep)}
+
+/* The old agenda hero assumed a dark backdrop. Give V8 controls explicit
+   semantic surfaces and text instead of inheriting its translucent whites. */
+:root[data-v8="true"] .agenda-hero-controls{padding:12px;gap:16px;background:var(--paper);border:1px solid var(--line);border-radius:10px;color:var(--ink)}
+:root[data-v8="true"] .agenda-view-switch{background:var(--paper-soft);border:1px solid var(--muted);padding:4px;gap:4px}
+:root[data-v8="true"] .agenda-view-switch button{color:var(--ink);background:transparent;min-height:36px;border:1px solid transparent;padding:7px 13px}
+:root[data-v8="true"] .agenda-view-switch button:hover{background:var(--accent-soft);text-decoration:underline;text-underline-offset:4px}
+:root[data-v8="true"] .agenda-view-switch button.active{background:var(--ink);color:var(--paper);border-color:var(--ink);box-shadow:0 1px 3px #0002;text-decoration:none}
+:root[data-v8="true"] .agenda-hero .date-picker{color:var(--ink);display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600}
+:root[data-v8="true"] .agenda-hero #agenda-date{background:var(--paper);color:var(--ink);border:1px solid var(--muted);min-height:38px;box-sizing:border-box}
+:root[data-v8="true"] .agenda-view-switch button:focus-visible,:root[data-v8="true"] #agenda-date:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+@media(max-width:720px){:root[data-v8="true"] .agenda-hero-controls{width:100%;box-sizing:border-box;align-items:stretch;gap:12px;margin-top:16px}:root[data-v8="true"] .agenda-view-switch{flex:1}:root[data-v8="true"] .agenda-view-switch button{flex:1;white-space:nowrap}:root[data-v8="true"] .agenda-hero .date-picker{flex:1;min-width:150px}}
