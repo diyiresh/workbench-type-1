@@ -1,5 +1,16 @@
 # 其他 Agent 接入说明
 
+## 文件转 Markdown：指定工具（2026-11-16 用户要求）
+
+Codex、Cursor、WorkBuddy 在本工作台及相关工作中遇到文件转 Markdown（.md）任务时，优先使用用户日常使用的 **Markitdown_tao**：
+
+- 启动入口：`C:\Users\Benjamin\Markitdown_tao\markitdown.bat`；工作目录：`C:\Users\Benjamin\Markitdown_tao`。
+- 工作台「外部工具」的 `markitdown` 条目指向此入口，不是另装的通用 markitdown 命令或旧待核条目。
+- 已核对批处理执行 `python main.py`，打开图形界面；批处理不接收待转换文件参数。启动后通过界面选择文件或批量目录并执行转换，不要编造 CLI 参数，不把成功启动当作转换完成。
+- 输出目录以工具当前界面/配置为准；完成后核对实际 .md 文件存在、内容可读及输出路径，再报告交付。原文、表格、图片或 OCR 缺失须说明，不把复制未支持的原文件当作成功转成 Markdown。
+- 工具不可用或格式不支持时先说明原因，不静默换用其他转换器；需要替代工具时取得用户同意。此规则不授权自动上传原文件、覆盖源文件或发布到 Obsidian。
+- 本通知只是确定以后使用的工具，不要求立即转换文件，也不改变成员执行、领取、暂停与正式写作门禁。
+
 工作台是本机唯一台账。Cursor、Codex、豆包、WorkBuddy、DeepSeek、Docker、Ollama 都可以读、写，不要各记一份进度。
 
 默认根地址：`http://127.0.0.1:3780`
