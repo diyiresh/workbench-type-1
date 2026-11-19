@@ -76,6 +76,7 @@ function assetChrome(secondary, snap) {
       <p class="asset-banner">${tr('已发布技能')} <b>${esc(String(snap.published))}</b> · ${tr('技能测试记录')} <b>${esc(String(snap.skillRuns))}</b> · ${tr('旧版技能说明')} <b>${esc(String(snap.legacySkills))}</b></p>
     </div>
     <nav class="asset-chips" aria-label="资产分类">
+      <a class="asset-chip" href="#assets/papers">${tr("论文")}</a>
       <a class="asset-chip ${mark('all')}" href="#assets/all">总览</a>
       <a class="asset-chip ${mark('skills')}" data-asset-count="skills-chip" href="#assets/skills">技能 <small>${esc(String(snap.counts.skills))}</small></a>
       <a class="asset-chip ${mark('atoms')}" href="#assets/atoms">知识原子 <small>${esc(String(snap.counts.atoms))}</small></a>

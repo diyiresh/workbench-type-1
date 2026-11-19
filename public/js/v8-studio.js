@@ -14,7 +14,7 @@ const links = {
   today: [['#home/all','总览','Overview'],['#agenda/all','行程','Schedule'],['#briefs/all','简报','Briefings'],['#life/all','生活','Life'],['#home/decisions','风险与决策','Decisions']],
   projects: [['#projects/business','业务项目','Business projects'],['#projects/all','协作任务','Collaboration'],['#agents/all','成员','Members'],['#projects/new','新建协作','New collaboration']],
   reflections: [['#reflections/all','行程思考','Schedule reflections'],['#reports/business','全部报告','Reports'],['#reports/monthly','月报','Monthly reports'],['#agenda/all','生成行程月报','Generate from schedule']],
-  library: [['#assets/all','资产','Assets'],['#assets/skills','技能','Skills'],['#assets/knowledge','知识来源','Sources'],['#learn/all','学习','Learning'],['#reports/pain','行业痛点','Industry'],['#reports/frontier','科技前沿','Frontier'],['#reports/ai-new','AI 上新','AI updates'],['#reports/construction','建筑报告','Construction'],['#reports/lab','本地实验','Experiments']],
+  library: [['#assets/papers','论文','Papers'],['#assets/all','资产','Assets'],['#assets/skills','技能','Skills'],['#assets/knowledge','知识来源','Sources'],['#learn/all','学习','Learning'],['#reports/pain','行业痛点','Industry'],['#reports/frontier','科技前沿','Frontier'],['#reports/ai-new','AI 上新','AI updates'],['#reports/construction','建筑报告','Construction'],['#reports/lab','本地实验','Experiments']],
   settings: [['#set/all','系统设置','Settings'],['#tools/all','外部工具','External tools'],['#set/help','使用说明','Help']],
 };
 let saved = readPrefs(), preview = null;

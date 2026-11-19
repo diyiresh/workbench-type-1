@@ -29,6 +29,7 @@ const { dueImportantReminders, buildReminderPayload } = require("./lib/agenda-re
 const { importLegacyDailyPlanReminder } = require("./lib/legacy-reminder");
 const { openInExplorer } = require("./lib/local-opener");
 const externalTools = require("./lib/external-tools");
+const papers = require('./lib/paper-library');
 const workspace = require("./lib/workspace");
 const agentDispatch = require("./lib/agent-dispatch");
 const superagentIntake = require("./lib/superagent-intake");
@@ -60,6 +61,7 @@ governance.configure({skillRoot:SKILL_ROOT,channelState:()=>process.env.BENCH_DA
 const skillManager = skillStudio.createManager({ readStore, writeStore, root:SKILL_ROOT });
 const diskCatalog = diskSkills.createCatalog({ dataDir: DATA });
 const BACKUP = path.join(DATA, "backups");
+const paperLibrary = papers.createLibrary({readStore,writeStore,dataDir:DATA});
 const externalRuntime = createRuntime({ readStore, writeStore, artifactRoot: path.join(DATA,"agent-results") });
 const deliveryManager = delivery.createManager({ readStore, writeStore, root: path.join(DATA, "deliveries"), reviewExecute: async (agentId, prompt, cwd, context) => {
   if (agentId === "codex") return (await require("./lib/codex").generate(prompt,{onStart:context.onStart,onBeforeStart:context.onBeforeStart})).text;
@@ -303,7 +305,7 @@ async function openAgendaMaterial(store, agendaId, materialIndex) {
   }
 }
 
-async function handleApi(req, res, url, reportManager = agendaReportManager) {
+async function handleApi(req, res, url, reportManager = agendaReportManager, paperManager = paperLibrary) {
   const method = req.method;
   const p = url.pathname;
   let store = readStore();
@@ -1536,6 +1538,30 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
     if (method === "GET") return sendJson(res, 200, list[idx]);
   }
 
+  if (p === '/api/papers' || p.startsWith('/api/papers/')) {
+    try {
+      if (!isLoopback(req)) return sendJson(res,403,{error:'paper_library_local_only'});
+      const origin=req.headers.origin;
+      if (req.headers['sec-fetch-site']==='cross-site' || (origin && origin!==`http://${req.headers.host}`)) return sendJson(res,403,{error:'paper_library_origin_rejected'});
+      if (method==='GET' && p==='/api/papers') return sendJson(res,200,paperManager.list());
+      if (method==='POST' && p==='/api/papers/import') return sendJson(res,200,await paperManager.import());
+      const match=p.match(/^\/api\/papers\/(paper-[a-f0-9]{24})(?:\/(download|file|folder))?$/);
+      if (!match) return sendJson(res,404,{error:'paper_route_not_found'});
+      const [,paperId,action]=match;
+      if (method==='PATCH' && !action) return sendJson(res,200,paperManager.patch(paperId,await readBody(req)));
+      if (method==='POST' && action==='download') return sendJson(res,202,paperManager.download(paperId));
+      if (method==='GET' && action==='file') {
+        const file=paperManager.file(paperId);
+        res.writeHead(200,{'Content-Type':'application/pdf','Content-Length':file.bytes.length,'Content-Disposition':`inline; filename="${paperId}.pdf"`,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
+        return res.end(file.bytes);
+      }
+      if (method==='POST' && action==='folder') {
+        const file=paperManager.file(paperId);await openInExplorer(file.file,false);return sendJson(res,200,{opened:true});
+      }
+      return sendJson(res,405,{error:'paper_method_not_allowed'});
+    } catch(error) { return sendJson(res,error.status||400,{error:error.message}); }
+  }
+
   if (p === "/api/external-tools" || p.startsWith("/api/external-tools/")) {
     try {
       if (method === "GET" && p === "/api/external-tools") return sendJson(res, 200, externalTools.loadCatalog(DATA));
@@ -1560,14 +1586,15 @@ async function handleApi(req, res, url, reportManager = agendaReportManager) {
   return false;
 }
 
-function createServer({ reportExecute } = {}) {
+function createServer({ reportExecute, paperFetchBytes } = {}) {
   ensureDirs();
   const reportManager = reportExecute ? reportJobs.createManager({readStore,writeStore,execute:reportExecute}) : agendaReportManager;
+  const paperManager = paperFetchBytes ? papers.createLibrary({readStore,writeStore,dataDir:DATA,fetchBytes:paperFetchBytes}) : paperLibrary;
   return http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, `http://${HOST}:${PORT}`);
       if (url.pathname.startsWith("/api/")) {
-        const handled = await handleApi(req, res, url, reportManager);
+        const handled = await handleApi(req, res, url, reportManager, paperManager);
         if (handled === false) notFound(res);
         return;
       }

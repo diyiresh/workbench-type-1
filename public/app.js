@@ -9,6 +9,7 @@ import {
 } from "./js/core.js";
 import { renderCard, renderDetail, manifestFor } from "./modules/index.js";
 import * as V from "./js/views.js";
+import { papersView, mountPapers } from "./js/paper-library-ui.js";
 import { mountStudio, todayView, reflectionsView, studioEnabled, useSavedClassicTheme } from "./js/v8-studio.js";
 import { t as tr, ui, systemFragment } from "./js/i18n.js";
 import { bindDelivery } from './js/delivery-ui.js';
@@ -258,7 +259,7 @@ function channels() {
     html += ui`<div class="sec">生活管理</div>${channelBtn("all", tr("繁星与银河"), todayRuns.length ? ui`${todayRuns.length} 项今日习惯` : "")}`;
   } else if (primary === "memory") {
     const snap = assetSnapshot(getStore());
-    html += ui`<div class="sec">资产中心</div>${channelBtn("all", tr("总览"))}${channelBtn("skills", tr("技能"), String(snap.counts.skills))}${channelBtn("atoms", tr("知识原子"), String(snap.counts.atoms))}${channelBtn("materials", tr("内容原料"), String(snap.counts.materials))}${channelBtn("lessons", tr("教训"), String(snap.counts.lessons))}${channelBtn("prompts", tr("提示词"), String(snap.counts.prompts))}${channelBtn("pending", tr("待整理"), String(snap.counts.pending))}${channelBtn("knowledge", tr("知识来源"))}${channelBtn("extensions", tr("扩展能力"))}`;
+    html += ui`<div class="sec">资产中心</div>${channelBtn("all", tr("总览"))}${channelBtn("papers", document.documentElement.lang === "en" ? "Papers" : "论文")}${channelBtn("skills", tr("技能"), String(snap.counts.skills))}${channelBtn("atoms", tr("知识原子"), String(snap.counts.atoms))}${channelBtn("materials", tr("内容原料"), String(snap.counts.materials))}${channelBtn("lessons", tr("教训"), String(snap.counts.lessons))}${channelBtn("prompts", tr("提示词"), String(snap.counts.prompts))}${channelBtn("pending", tr("待整理"), String(snap.counts.pending))}${channelBtn("knowledge", tr("知识来源"))}${channelBtn("extensions", tr("扩展能力"))}`;
   } else if (primary === "tools") {
     const tools = externalCatalog?.tools || [];
     const count = (id) => id === "all" ? tools.length : id === "pending" ? tools.filter((tool) => tool.confidence === "low" || tool.status === "pending" || tool.status === "review").length : tools.filter((tool) => tool.category === id).length;
@@ -297,7 +298,7 @@ function workspace() {
     work: secondary === "all" ? tr("项目中心") : (m || {}).title || "",
     learn: tr("学习成长"),
     life: tr("生活管理"),
-    memory: tr("资产中心"),
+    memory: secondary === "papers" ? tr("论文") : tr("资产中心"),
     tools: tr("外部工具"),
     set: tr("系统设置"),
   };
@@ -317,7 +318,7 @@ function workspace() {
     tools: tr("从这里打开本机辅助工具。没有登记启动方式的条目不显示按钮。"),
     set: tr("简报自动化、指令规则与导出。"),
   };
-  $("workspace").classList.toggle("asset-mode", primary === "memory");
+  $("workspace").classList.toggle("asset-mode", primary === "memory" && secondary !== "papers");
   const manage = primary === "tools" ? "" : `<button type="button" class="ghost" data-act="manage-records">${tr(tr("管理与归档"))}</button>`;
   $("ws-head").innerHTML = `<div class="workspace-heading"><div class="workspace-title"><h1>${esc(["home","department","briefs","crew","work"].includes(primary) && secondary!=="all" ? titleMap[primary] : tr(titleMap[primary] || ""))}</h1><p>${esc(ledeMap[primary] || "")}</p></div></div>${manage}`;
 
@@ -333,7 +334,7 @@ function workspace() {
     if (primary === "crew") return secondary === "all" ? V.crewAllView() : V.agentDetailView(agent(secondary));
     if (primary === "learn") return V.frontView("learn", secondary, learningPlanDraft, learningFormDraft);
     if (primary === "life") return V.frontView("life", secondary);
-    if (primary === "memory") return assetsView(secondary, V.memoryView);
+    if (primary === "memory") return secondary === "papers" ? papersView() : assetsView(secondary, V.memoryView);
     if (primary === "tools") return toolsView(externalCatalog, secondary);
     if (primary === "set") return secondary === "help" ? helpView() : V.setView();
     return V.homeAllView();
@@ -467,6 +468,7 @@ function render() {
   channels();
   workspace();
   mountStudio(primary, secondary);
+  mountPapers();
 }
 
 // ---------- 模块拖拽排序 ----------

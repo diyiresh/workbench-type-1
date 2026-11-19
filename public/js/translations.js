@@ -1,5 +1,6 @@
 // Keys are developer-authored UI text. Business data is never a translation key.
 export const EN = {
+  '论文':'Papers',
   '返回内容有遗漏，已保留待核对': 'Some sections are missing. The returned text was kept for review',
   '服务尚未加载详细思考规则，请稍后刷新再试。': 'The service has not loaded detailed reflection rules yet. Refresh and try again shortly.',
   '月度思考与反思（逐项详细整理）': 'Monthly thoughts and reflections — detailed appointment review',

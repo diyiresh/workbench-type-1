@@ -13,7 +13,8 @@
     "build:assets": "node scripts/build-assets.cjs",
     "prestart": "npm run build:assets",
     "test:ui": "node test/workbench-v010.browser.cjs && node test/chat-timeline.browser.cjs && node test/delivery.browser.cjs && node test/report-draft-visibility.browser.cjs && node test/saved-review-report.browser.cjs && node test/agenda-report-members.browser.cjs && node test/agenda-report-export.browser.cjs && node test/agenda-filter.browser.cjs && node test/agenda-reschedule.browser.cjs && node test/brief-filters.browser.cjs && node test/review-note-members.browser.cjs && node test/agenda-review-draft.browser.cjs && node test/agenda-notes.browser.cjs && node test/overview-filter.browser.cjs && node test/navigation-centers.browser.cjs && node test/skill-studio.browser.cjs && node test/disk-skills.browser.cjs && node test/execution.browser.cjs && node test/compact-layout.browser.cjs && node test/sidebar-resize.browser.cjs && node test/v3-bold-workspace.browser.cjs && node test/external-tools.browser.cjs",
-    "test:skills": "node test/skill-studio.test.cjs && node test/disk-skills.test.cjs && node test/skill-studio.browser.cjs && node test/disk-skills.browser.cjs"
+    "test:skills": "node test/skill-studio.test.cjs && node test/disk-skills.test.cjs && node test/skill-studio.browser.cjs && node test/disk-skills.browser.cjs",
+    "test:papers": "node test/paper-library.test.cjs && node test/paper-library.browser.cjs"
   },
   "dependencies": {
     "adm-zip": "0.6.1",
