@@ -18,6 +18,7 @@ function contrast(foreground,background){
 (async()=>{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+server.address().port;
  const browser=await chromium.launch({channel:'msedge',headless:true});
+ require('./helpers/classic-layout.cjs')(browser);
  try{
   const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[],writes=[],remote=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()!=='GET')writes.push(r.url());if(!r.url().startsWith(base))remote.push(r.url());});
@@ -76,7 +77,10 @@ function contrast(foreground,background){
    await page.setViewportSize({width:1440,height:1000});await handle.waitFor();
   }
   const noStorage=await browser.newPage({viewport:{width:1440,height:1000}});noStorage.on('pageerror',e=>errors.push(e.message));await noStorage.addInitScript(()=>{Object.defineProperty(window,'localStorage',{get(){throw new DOMException('Storage unavailable','SecurityError');}});});
-  await noStorage.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));await noStorage.goto(base);await noStorage.locator('#sidebar-resizer').waitFor();await noStorage.locator('#sidebar-resizer').press('ArrowRight');assert.equal(await noStorage.locator('#sidebar').evaluate(e=>e.offsetWidth),244);await noStorage.close();
+  await noStorage.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));await noStorage.goto(base);
+  // Without storage the V8 default applies; switch this session to the classic layout through the appearance dialog.
+  await noStorage.locator('#v8-nav [data-v8="appearance"]').click();await noStorage.selectOption('#v8-layout','classic');await noStorage.locator('[data-v8="apply"]').click();await noStorage.evaluate(()=>window.dispatchEvent(new Event('hashchange')));
+  await noStorage.locator('#sidebar-resizer').waitFor();await noStorage.locator('#sidebar-resizer').press('ArrowRight');assert.equal(await noStorage.locator('#sidebar').evaluate(e=>e.offsetWidth),244);await noStorage.close();
   const invalid=await browser.newPage({viewport:{width:1440,height:1000}});await invalid.addInitScript(()=>localStorage.setItem('bench-secondary-sidebar-width-v1','99999'));await invalid.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));await invalid.goto(base);await invalid.locator('#sidebar-resizer').waitFor();assert.equal(await invalid.locator('#sidebar').evaluate(e=>e.offsetWidth),236);await invalid.close();
   assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);assert.deepEqual(remote,[]);
   const after=readStore();for(const key of Object.keys(original).filter(key=>!['meta','events'].includes(key)))assert.deepEqual(after[key],original[key],key);

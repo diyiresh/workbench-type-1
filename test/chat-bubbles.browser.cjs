@@ -7,7 +7,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
   const browser = await chromium.launch({ channel:'msedge', headless:true });
   try {
     const page = await browser.newPage({ viewport:{ width:1440,height:1000 } });
-    await page.route('**/api/state', route => route.fulfill({ json:state }));
+    await page.route('**/api/state*', route => route.fulfill({ json:state }));
     await page.goto('http://127.0.0.1:3780/#department/'+runId);
     await page.locator('.chat-message').first().waitFor();
     await page.evaluate(() => { document.querySelector('#briefing').hidden = true; });

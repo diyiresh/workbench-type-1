@@ -8,7 +8,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
   try {
     const page = await browser.newPage();
     let saved;
-    await page.route('**/api/state', route => route.fulfill({ json: state }));
+    await page.route('**/api/state*', route => route.fulfill({ json: state }));
     await page.route('**/api/agendas**', async route => {
       assert.equal(route.request().method(), 'PATCH');
       assert(route.request().url().endsWith('/edit-test'));

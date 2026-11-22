@@ -57,9 +57,9 @@ function fakeSpawn(store) {
     ["start", "start-file", "D:\\OneDrive\\Desktop\\Ben_My_Agent\\SJZZ\\scripts\\start-dev.bat"],
     ["ui", "open-url", "http://127.0.0.1:5173"],
   ]);
-  assert.equal(byId.retellloop.actions.length, 1);
-  assert.equal(byId.retellloop.actions[0].target, "http://127.0.0.1:43123");
-  assert.match(byId.retellloop.location, /Happy-family-happy-English/);
+  // Local catalogs may add launch and folder actions; the shared UI entry remains required.
+  assert.ok(byId.retellloop.actions.some((action) => action.id === "ui" && action.kind === "open-url"));
+  assert.equal(byId.retellloop.actions.find((action) => action.id === "ui").target, "http://127.0.0.1:43123");
   assert.equal(byId.vaultrag.actions[0].target, "http://127.0.0.1:48731");
   assert.equal(byId["ollama-native"].actions.length, 0);
   assert.equal(byId["ollama-native"].status, "pending");
@@ -163,7 +163,7 @@ function fakeSpawn(store) {
   const restored = tools.saveTool(root, { ...byId.meetily, expectedRevision: removed.revision, actions: [] });
   assert.equal(restored.tools.some((tool) => tool.id === "meetily"), true);
 
-  const server = createServer();
+  const server = createServer({ externalLaunch: { platform: "linux" } });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   try {
     const base = `http://127.0.0.1:${server.address().port}`;

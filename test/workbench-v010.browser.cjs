@@ -17,6 +17,7 @@ const server=createServer();
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+server.address().port;
   const browser=await chromium.launch({channel:'msedge',headless:true});
+  require('./helpers/classic-layout.cjs')(browser);
   try{
     const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];
     page.on('pageerror',error=>errors.push(error.message));

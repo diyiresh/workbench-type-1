@@ -18,6 +18,35 @@ const {createServer}=require('../server');const server=createServer();
  await page.goto(base);await page.locator('#v8-nav .v8-brand').waitFor();
  assert.equal(await page.locator('#v8-nav>a').count(),5);
  await page.screenshot({path:path.join(root,'v8-today.png'),fullPage:true});
+ // Decisions waiting on the chairman: compact on Today, full list on its own tab, links only.
+ await page.waitForFunction(()=>{const h=document.querySelector('[data-decision-inbox="compact"]');return h&&!h.textContent.includes('正在读取');});
+ await page.goto(base+'/#home/decisions');await page.locator('[data-decision-inbox="full"] h2').waitFor();
+ assert.equal(await page.locator('[data-decision-inbox="full"] h2').textContent(),'待你决定');
+ assert.ok(await page.locator('[data-decision-inbox="full"] .decision-row').evaluateAll(rows=>rows.every(a=>a.getAttribute('href').startsWith('#'))));
+ await page.goto(base);await page.locator('#v8-nav .v8-brand').waitFor();
+ // One home: Today plus overview filters, no second module board; the board has its own tab.
+ assert.equal(await page.locator('.v8-welcome').count(),1);
+ assert.equal(await page.locator('.overview-stat').count(),4);
+ assert.equal(await page.locator('#overview-results').count(),0);
+ assert.equal(await page.locator('.command-hero').count(),0);
+ await page.locator('.overview-stat[data-overview-filter="today"]').click();
+ assert.equal(await page.locator('#overview-results').getAttribute('data-overview-view'),'today');
+ await page.getByRole('button',{name:'清除筛选',exact:true}).click();assert.equal(await page.locator('#overview-results').count(),0);
+ await page.locator('.v8-subnav a[href="#home/modules"]').click();await page.locator('#overview-results.mods').waitFor();
+ assert.equal(await page.locator('#ws-body [data-act="add-module"]').count(),1);
+ // Composer opens on demand and stays docked on member pages.
+ await page.goto(base+'/#reflections/all');await page.locator('#v8-reflection-filter').waitFor();
+ assert.equal(await page.locator('#composer').isVisible(),false);
+ await page.goto(base+'/#agents/codex');await page.locator('#v8-nav').waitFor();
+ assert.equal(await page.locator('#composer').isVisible(),true);
+ // Command palette: Ctrl+K, filter, keyboard selection, Escape.
+ await page.keyboard.press('Control+k');await page.locator('#v8-palette input').waitFor();
+ await page.locator('#v8-palette input').fill('行程思考');await page.keyboard.press('Enter');
+ await page.waitForFunction(()=>location.hash==='#reflections/all');await page.locator('#v8-palette').waitFor({state:'detached'});
+ await page.keyboard.press('Control+k');await page.locator('#v8-palette input').fill('V8 fixture');
+ assert.match(await page.locator('#v8-palette [role=option]').first().textContent(),/V8 fixture reflection/);
+ await page.keyboard.press('Escape');await page.locator('#v8-palette').waitFor({state:'detached'});
+ assert.equal(await page.locator('.v8-subnav a[href="#agenda/all"]').count(),0,'Reflections no longer duplicates the schedule entrance: '+await page.evaluate(()=>location.hash+' '+[...document.querySelectorAll('.v8-subnav a')].map(a=>a.getAttribute('href')).join(',')));
  for(const hash of ['#projects/all','#agents/all','#assets/skills','#learn/all','#life/all','#reports/pain','#set/all','#tools/all','#agenda/all']){
   await page.evaluate(hash=>{location.hash=hash;},hash);await page.waitForTimeout(120);
   assert.ok(await page.locator('.v8-subnav a').count());
@@ -26,6 +55,7 @@ const {createServer}=require('../server');const server=createServer();
  assert.equal(await page.locator('[data-v8-reflection]').count(),1);
  await page.fill('#v8-reflection-filter','nothing matched');assert.equal(await page.locator('#v8-reflection-empty').isVisible(),true);
  await page.fill('#v8-reflection-filter','judgment');assert.equal(await page.locator('[data-v8-reflection]').isVisible(),true);
+ await page.locator('#v8-nav [data-v8="composer"]').click();
  await page.locator('#cmd-body').fill('Unsaved command fixture');
  await page.locator('[data-v8="appearance"]').first().click();
  for(const palette of ['moonlit','porcelain','autumn','studio']){
@@ -42,16 +72,31 @@ const {createServer}=require('../server');const server=createServer();
  assert.equal(await page.locator('html').getAttribute('data-studio-density'),'compact');
  assert.equal(await page.locator('html').getAttribute('data-studio-artwork'),'false');
  await page.locator('[data-v8="appearance"]').first().click();assert.equal(await page.locator('#v8-classic option').count(),25);
+ assert.equal(await page.locator('.v8-classic-drawer').evaluate(node=>node.open),false,'Classic themes stay collapsed behind the V8 palettes');
+ await page.locator('.v8-classic-drawer summary').click();
  await page.selectOption('#v8-classic','night');await page.locator('[data-v8="apply"]').click();await page.reload();await page.locator('#v8-nav').waitFor();
  assert.equal(await page.locator('html').getAttribute('data-theme'),'night');
  await page.locator('[data-v8="appearance"]').first().click();await page.selectOption('#v8-layout','classic');await page.locator('[data-v8="apply"]').click();
  assert.equal(await page.locator('html').getAttribute('data-v8'),'false');
  await page.goto(base+'/#set/all');await page.locator('.v8-appearance-entry').click();await page.selectOption('#v8-layout','studio');await page.locator('[data-v8-palette="studio"]').click();await page.locator('[data-v8="apply"]').click();
+ // Hidden features leave navigation and the palette, and come back when re-enabled; no business writes.
+ await page.goto(base+'/#assets/all');await page.locator('.v8-subnav a[href="#assets/papers"]').waitFor();
+ await page.locator('#v8-nav [data-v8="appearance"]').click();await page.locator('.v8-feature-drawer summary').click();
+ await page.locator('[data-v8-feature="papers"]').uncheck();await page.locator('[data-v8="apply"]').click();
+ assert.equal(await page.locator('.v8-subnav a[href="#assets/papers"]').count(),0,'hidden feature leaves the tabs');
+ await page.keyboard.press('Control+k');await page.locator('#v8-palette input').fill('论文');
+ assert.equal(await page.locator('#v8-palette [role=option]', { hasText: '论文' }).count(),0,'hidden feature leaves the palette');
+ await page.keyboard.press('Escape');await page.locator('#v8-palette').waitFor({state:'detached'});
+ await page.reload();await page.locator('.v8-subnav').waitFor();
+ assert.equal(await page.locator('.v8-subnav a[href="#assets/papers"]').count(),0,'hidden feature persists');
+ await page.locator('#v8-nav [data-v8="appearance"]').click();await page.locator('.v8-feature-drawer summary').click();
+ await page.locator('[data-v8-feature="papers"]').check();await page.locator('[data-v8="apply"]').click();
+ await page.locator('.v8-subnav a[href="#assets/papers"]').waitFor();
  await page.setViewportSize({width:390,height:844});await page.goto(base+'/#home/all');await page.locator('#v8-nav').waitFor();
  assert.equal(await page.locator('#v8-nav').isVisible(),true);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await page.screenshot({path:path.join(root,'v8-mobile.png'),fullPage:true});
  assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);
- console.log('V8 grouping, legacy destinations, reflection search, theme preview/cancel/apply/reload, classic themes/layout fallback, mobile width and draft preservation passed; zero business writes. Screenshots: '+root);
+ console.log('V8 grouping, legacy destinations, reflection search, theme preview/cancel/apply/reload, classic themes/layout fallback, feature hiding, mobile width and draft preservation passed; zero business writes. Screenshots: '+root);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>server.close());

@@ -54,7 +54,20 @@ export function executionState(a) {
   return { waiting: tr("等待领取"), claimed: tr("已领取，未取得开始证据"), running: a.startedEvidence?.source === "member-self-report" ? tr("成员自报开始，尚非独立执行证明") : a.startedEvidence ? tr("执行器已启动") : tr("已发起调用，尚无进程启动证据"), returned: tr("成果已返回，交付按原流程验收"), failed: tr("执行失败"), held: tr("迟到成果已保留，未推进阶段"), uncertain: tr("结果待核对"), interrupted: tr("重启中断，尚未发起调用"), cancelled: tr("已核对，不采纳旧尝试") }[a.state] || a.state;
 }
 export function executionPanel(run) {
-  return ui`<section class="card execution-panel" data-execution-run="${esc(run.id)}"><h2>执行记录与技能</h2><p>领取、开始回执、成果返回与最终验收分别记录。刷新不会发起执行。</p><div data-execution-control></div><p data-execution-feedback role="status"></p><div data-execution-skills></div><div data-execution-timeline></div></section>`;
+  return ui`<section class="card execution-panel" data-execution-run="${esc(run.id)}"><h2>执行记录与技能</h2><p>领取、开始回执、成果返回与最终验收分别记录。刷新不会发起执行。</p><div data-execution-control></div><p data-execution-feedback role="status"></p><div data-execution-activity></div><div data-execution-skills></div><div data-execution-timeline></div></section>`;
+}
+const ACTIVITY = {
+  goal: "目标", stage_started: "阶段开始", stage_done: "阶段完成", attempt_waiting: "登记执行", attempt_claimed: "领取",
+  attempt_running: "开始", attempt_returned: "成果返回", attempt_failed: "失败", attempt_held: "迟到保留", attempt_uncertain: "待核对",
+  attempt_interrupted: "中断", attempt_cancelled: "不采纳", review_pass: "复核通过", review_reject: "复核退回",
+  delivery_configured: "交付要求", delivery_generated: "文件生成", delivery_pass: "文件复核通过", delivery_reject: "文件复核退回", handoff: "交接",
+};
+function drawActivity(ctx, data) {
+  const rows = [...(data?.entries || [])].reverse();
+  const item = (e) => `<li class="activity-${esc(e.kind.split("_")[0])}"><time>${fmt(e.at)}</time><b>${esc(e.agentId || "—")}</b><span class="chip">${esc(tr(ACTIVITY[e.kind] || e.kind))}</span><span>${esc(e.text)}</span></li>`;
+  ctx.host.querySelector("[data-execution-activity]").innerHTML = ui`<h3>成员活动</h3>` + (rows.length
+    ? `<ol class="activity-feed">${rows.slice(0, 12).map(item).join("")}</ol>${rows.length > 12 ? `<details><summary>${tr("更早的活动")} · ${rows.length - 12}</summary><ol class="activity-feed">${rows.slice(12).map(item).join("")}</ol></details>` : ""}`
+    : ui`<p>尚无成员活动。</p>`);
 }
 function alive(ctx) {
   return mounted === ctx && ctx.host.isConnected;
@@ -84,10 +97,14 @@ function drawTimeline(ctx) {
   ctx.host.querySelector("[data-execution-timeline]").innerHTML = ui`<h3>执行时间线</h3>${m.attempts.slice(0, ctx.limit).map((a) => ui`<article class="msg execution-attempt" data-execution-attempt="${esc(a.id)}"><div class="row"><b>${esc(a.agentId)} · ${executionState(a)}</b><small>${fmt(a.createdAt)}</small></div><p>${esc(a.purpose)} · ${esc(a.id)}</p>${a.blockerCode ? `<p>${esc(executionReason(a.blockerCode))}</p>` : ""}<p>${tr("实际采用")}：${tr("未知，需结合输出判断")}</p><details><summary>执行证据与技能版本</summary><p>${tr("领取有效期")} · ${fmt(a.leaseExpiresAt)}</p><p>${tr("输入快照")} · <code>${esc(a.inputHash)}</code></p>${(a.skillBindings || []).map((b) => `<p>${esc(b.skillId)} · ${esc(b.versionId)}<br><code>${esc(b.contentHash)}</code></p>`).join("")}${(a.events || []).map((e) => `<p>${fmt(e.at)} · ${esc(e.state)} · ${esc(e.source)}</p>`).join("")}</details><div class="actions"><button type="button" class="ghost" data-execution-action="result" data-attempt="${esc(a.id)}">查看返回内容</button>${["uncertain", "held", "failed", "interrupted"].includes(a.state) || Date.parse(a.leaseExpiresAt) < Date.now() && ["waiting", "claimed", "running"].includes(a.state) ? `<button type="button" class="ghost" data-execution-action="reconcile" data-attempt="${esc(a.id)}">${tr("核对旧执行")}</button>` : ""}${a.purpose === "stage" && ["failed", "interrupted", "cancelled"].includes(a.state) ? `<button type="button" class="ghost" data-execution-action="retry" data-attempt="${esc(a.id)}" ${m.run.automationPaused ? "disabled" : ""}>${tr("明确重新发起一次")}</button>` : ""}</div><div data-execution-result="${esc(a.id)}"></div></article>`).join("") || ui`<p>尚无新协议执行记录；历史任务不会因此重跑。</p>`}${m.attempts.length > ctx.limit ? ui`<button type="button" class="ghost" data-execution-action="more">显示更多执行记录</button>` : ""}${m.legacyJobs.length ? ui`<details><summary>历史执行记录（细分状态未核实）</summary>${m.legacyJobs.map((j) => `<p>${esc(j.agentId || "codex")} · ${esc(j.status)} · ${fmt(j.createdAt)}</p>`).join("")}</details>` : ""}`;
 }
 async function refresh(ctx, initial = false) {
-  const model = await api(`/api/departments/runs/${encodeURIComponent(ctx.runId)}/execution`);
+  const [model, activity] = await Promise.all([
+    api(`/api/departments/runs/${encodeURIComponent(ctx.runId)}/execution`),
+    api(`/api/departments/runs/${encodeURIComponent(ctx.runId)}/timeline`).catch(() => null),
+  ]);
   if (!alive(ctx)) return;
   ctx.model = model;
   drawControls(ctx);
+  drawActivity(ctx, activity);
   if (initial) drawSkills(ctx);
   drawTimeline(ctx);
 }

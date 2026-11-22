@@ -8,23 +8,18 @@ const { generateReport, KIND_LABEL } = require("./lib/report");
 const { ensureV2, ymd } = require("./lib/migrate");
 const { buildBriefings, crewDigest } = require("./lib/briefing");
 const { chat } = require("./lib/llm");
-const vault = require('./lib/vault');
+const { MIME, send, sendJson, notFound, isLoopback, crossSiteWrite, readBody } = require("./lib/http");
+const { createRouter } = require("./lib/router");
+const { createLedger } = require("./lib/ledger-store");
 const extensions = require('./lib/extensions');
 const skillStudio = require('./lib/skill-studio');
 const diskSkills = require('./lib/disk-skills');
 const governance = require('./lib/execution-governance');
 const executionCommands = require('./lib/execution-commands');
-const agendaNotes = require('./lib/agenda-notes');
-const agendaNoteCleanup = require('./lib/agenda-note-cleanup');
-const providerPolicy = require('./lib/provider-policy');
 const reportJobs = require('./lib/agenda-report-jobs');
-const reportExport = require('./lib/agenda-report-export');
 const agendaReportManager = reportJobs.createManager({ readStore, writeStore });
-const codex = require("./lib/codex");
 const { createManager } = require("./lib/codex-jobs");
 const codexManager = createManager({ readStore, writeStore });
-const { buildAgendaReportSeed } = require("./lib/agenda-utils");
-const { reportSystemPrompt, modelReportDraft } = require("./lib/agenda-report");
 const { dueImportantReminders, buildReminderPayload } = require("./lib/agenda-reminders");
 const { importLegacyDailyPlanReminder } = require("./lib/legacy-reminder");
 const { openInExplorer } = require("./lib/local-opener");
@@ -32,16 +27,9 @@ const externalTools = require("./lib/external-tools");
 const papers = require('./lib/paper-library');
 const workspace = require("./lib/workspace");
 const agentDispatch = require("./lib/agent-dispatch");
-const superagentIntake = require("./lib/superagent-intake");
-const superagentWatchdog = require("./lib/superagent-watchdog");
-const superagentModel = require("./lib/superagent-model");
-const superagentAsync = require("./lib/superagent-async");
 const { createRuntime } = require("./lib/external-runtime");
-const { lifeHabitsForDate, normalizeLearningDraft, adoptLearningPlan, completeLearningSession } = require("./lib/life-learning");
-const { onlineCompatibleStatus } = require("./lib/model-status");
-const { ingestBrief, sourceSummaries } = require("./lib/brief-hub");
 const dropbox = require("./lib/dropbox");
-const { inactive, operationalStore, changeArchive } = require("./lib/archive");
+const { inactive, changeArchive } = require("./lib/archive");
 const delivery = require("./lib/delivery");
 const { ensureCollaboration, postMessage, addArtifact, messagesFor, artifactsFor } = require("./lib/collaboration");
 const { applyCompanion } = require("./lib/focus");
@@ -70,6 +58,8 @@ const deliveryManager = delivery.createManager({ readStore, writeStore, root: pa
 } });
 const preparationFlow = require('./lib/preparation-flow').createPreparationFlow({ readStore, writeStore });
 const projectChat = require('./lib/project-chat').createChat({ readStore, writeStore });
+// Domain route modules, checked in order before the core ledger routes below (see routes/index.js).
+const domainRoutes = createRouter(require("./routes")({ readStore, writeStore, DATA, SKILL_ROOT, diskCatalog, skillManager, codexManager }));
 // 默认只绑本机；需要手机等局域网设备访问时，用 start-lan.bat 启动（HOST=0.0.0.0）
 const HOST = process.env.HOST || "127.0.0.1";
 const PORT = Number(process.env.PORT || 3780);
@@ -80,136 +70,82 @@ function ensureDirs() {
   }
 }
 
+const ledger = createLedger({ file: STORE, backupDir: BACKUP });
+
+// Per-read checks that depend on files outside the ledger or on derived assignments.
+function refreshDerived(store) {
+  const deliveryBefore = JSON.stringify((store.departmentRuns || []).map(r => [r.status, r.delivery, r.items?.map(i => i.status)]));
+  for (const run of store.departmentRuns || []) delivery.refresh(store, run);
+  const deliveryChanged = deliveryBefore !== JSON.stringify((store.departmentRuns || []).map(r => [r.status, r.delivery, r.items?.map(i => i.status)]));
+  return agentDispatch.syncAssignments(store) || deliveryChanged;
+}
+
 function readStore() {
   let store;
-  if (!fs.existsSync(STORE)) {
+  if (!ledger.exists()) {
     store = ensureV2(buildDefaultStore());
     ensureCollaboration(store);
     writeStore(store, { backup: false });
     return store;
   }
-  store = JSON.parse(fs.readFileSync(STORE, "utf8"));
+  const day = ymd();
+  store = ledger.cached(day);
+  if (store) {
+    if (refreshDerived(store)) writeStore(store);
+    return store;
+  }
+  store = ledger.load();
   const before = (store.meta && store.meta.version) || "";
   const focusBefore = Array.isArray(store.focusCategories) && store.focusCategories.length >= 6;
   const lifeBefore = JSON.stringify(store.lifeSystem || null);
   const collaborationBefore = Array.isArray(store.projectMessages) && Array.isArray(store.artifacts);
   store = ensureV2(store);
   ensureCollaboration(store);
-  const deliveryBefore = JSON.stringify((store.departmentRuns || []).map(r => [r.status, r.delivery, r.items?.map(i => i.status)]));
-  for (const run of store.departmentRuns || []) delivery.refresh(store, run);
-  if (deliveryBefore !== JSON.stringify((store.departmentRuns || []).map(r => [r.status, r.delivery, r.items?.map(i => i.status)]))) writeStore(store);
-  if (agentDispatch.syncAssignments(store)) writeStore(store);
+  if (refreshDerived(store)) writeStore(store);
   if ((store.meta.version || "") !== before || JSON.stringify(store.lifeSystem || null) !== lifeBefore || !collaborationBefore || !focusBefore) writeStore(store, { backup: true });
+  ledger.remember(store, day);
   return store;
 }
 
 function writeStore(store, { backup = true } = {}) {
-  if(fs.existsSync(STORE))governance.observeControls(store,JSON.parse(fs.readFileSync(STORE,'utf8')));
-  agentDispatch.syncAssignments(store);
-  store.meta = store.meta || {};
-  store.meta.updatedAt = nowIso();
-  const json = JSON.stringify(store, null, 2);
-  const tmp = STORE + ".tmp";
-  fs.writeFileSync(tmp, json, "utf8");
-  try {
-    fs.renameSync(tmp, STORE);
-  } catch {
-    fs.copyFileSync(tmp, STORE);
-    fs.unlinkSync(tmp);
-  }
-  if (backup) {
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    fs.writeFileSync(path.join(BACKUP, `store-${stamp}.json`), json, "utf8");
-    const files = fs
-      .readdirSync(BACKUP)
-      .filter((f) => f.startsWith("store-") && f.endsWith(".json"))
-      .sort();
-    while (files.length > 12) {
-      const old = files.shift();
-      fs.unlinkSync(path.join(BACKUP, old));
-    }
-  }
-}
-
-const MIME = {
-  ".html": "text/html; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".js": "application/javascript; charset=utf-8",
-  ".mjs": "application/javascript; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".svg": "image/svg+xml",
-  ".ico": "image/x-icon",
-  ".md": "text/markdown; charset=utf-8",
-};
-
-function send(res, code, body, headers) {
-  let payload;
-  if (Buffer.isBuffer(body)) payload = body;
-  else if (typeof body === "string") payload = Buffer.from(body);
-  else payload = Buffer.from(JSON.stringify(body));
-  res.writeHead(code, {
-    "Content-Length": payload.length,
-    "Cache-Control": "no-store",
-    ...headers,
+  ledger.write(store, {
+    backup,
+    prepare(next, previous) {
+      if (previous) governance.observeControls(next, previous);
+      agentDispatch.syncAssignments(next);
+      next.meta = next.meta || {};
+      next.meta.updatedAt = nowIso();
+    },
   });
-  res.end(payload);
 }
 
-function sendJson(res, code, obj) {
-  send(res, code, obj, { "Content-Type": "application/json; charset=utf-8" });
+function publicState(store) {
+  const remote = store.remote || {};
+  const llm = remote.llm || {};
+  const reminder = remote.reminder || {};
+  return {
+    ...store,
+    remote: {
+      ...remote,
+      llm: { ...llm, apiKey: llm.apiKey ? "__SET__" : "", hasKey: Boolean(llm.apiKey) },
+      reminder: { ...reminder, token: reminder.token ? "__SET__" : "", hasToken: Boolean(reminder.token) },
+    },
+  };
 }
 
-function notFound(res) {
-  sendJson(res, 404, { error: "not_found" });
-}
-
-function isLoopback(req) {
-  const address = String((req.socket && req.socket.remoteAddress) || "").toLowerCase();
-  return address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1";
-}
-
-async function ollamaStatus(store) {
-  const cfg = (store.remote && store.remote.llm) || {};
-  if (cfg.provider === "openai") return onlineCompatibleStatus(cfg, { paused: providerPolicy.paused(store, cfg) });
-  const baseUrl = (cfg.baseUrl || "http://127.0.0.1:11434").replace(/\/$/, "");
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 6000);
-  try {
-    const [versionRes, tagsRes] = await Promise.all([
-      fetch(baseUrl + "/api/version", { signal: ctrl.signal }),
-      fetch(baseUrl + "/api/tags", { signal: ctrl.signal }),
-    ]);
-    if (!versionRes.ok || !tagsRes.ok) throw new Error("服务返回 " + versionRes.status + "/" + tagsRes.status);
-    const version = await versionRes.json();
-    const tags = await tagsRes.json();
-    return {
-      ok: true,
-      baseUrl,
-      version: version.version || "",
-      models: (tags.models || []).map((m) => ({ name: m.name, size: m.size, modifiedAt: m.modified_at })),
-    };
-  } catch (err) {
-    return { ok: false, baseUrl, error: String((err && err.message) || err) };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    req.on("data", (c) => chunks.push(c));
-    req.on("end", () => {
-      const raw = Buffer.concat(chunks).toString("utf8");
-      if (!raw) return resolve(null);
-      try {
-        resolve(JSON.parse(raw));
-      } catch (err) {
-        reject(err);
-      }
-    });
-    req.on("error", reject);
-  });
+// The browser view: member result bodies and discussion text are read through their own routes,
+// so the page load leaves them out. Never written back: PUT /api/state takes a full ledger only.
+const DISCUSSION_PREVIEW = 280;
+function uiState(state) {
+  return {
+    ...state,
+    meta: { ...state.meta, slice: "ui" },
+    externalJobs: (state.externalJobs || []).map(({ output, ...job }) => ({ ...job, outputChars: String(output || "").length })),
+    departmentRuns: (state.departmentRuns || []).map(run => ({
+      ...run,
+      discussion: (run.discussion || []).map(entry => String(entry.text || "").length > DISCUSSION_PREVIEW ? { ...entry, text: entry.text.slice(0, DISCUSSION_PREVIEW) + "…", truncated: true } : entry),
+    })),
+  };
 }
 
 function serveStatic(req, res, url) {
@@ -235,17 +171,6 @@ function touch(store, collection, item) {
   if (idx >= 0) list[idx] = { ...list[idx], ...item };
   else list.unshift(item);
   return item;
-}
-
-function reminderPublicConfig(store) {
-  const cfg = (store.remote && store.remote.reminder) || {};
-  return {
-    provider: cfg.provider || "pushplus",
-    enabled: Boolean(cfg.enabled),
-    hasToken: Boolean(cfg.token),
-    importedFrom: cfg.importedFrom || "",
-    migratedAt: cfg.migratedAt || "",
-  };
 }
 
 async function sendAgendaReminder(store, item) {
@@ -289,75 +214,13 @@ async function dispatchDueAgendaReminders() {
   return { checked: due.length, sent: due.filter((item) => item.reminderSentAt).length };
 }
 
-async function openAgendaMaterial(store, agendaId, materialIndex) {
-  const agenda = (store.agendas || []).find((item) => item.id === agendaId);
-  const material = agenda && Array.isArray(agenda.materials) ? agenda.materials[Number(materialIndex)] : null;
-  const registeredPath = typeof material === "string" ? material : material && material.path;
-  if (!registeredPath) return { ok: false, error: "material_not_found" };
-  const target = path.resolve(String(registeredPath));
-  if (!fs.existsSync(target)) return { ok: false, error: "path_not_found" };
-  const isDirectory = fs.statSync(target).isDirectory();
-  try {
-    await openInExplorer(target, isDirectory);
-    return { ok: true, kind: isDirectory ? "directory" : "file" };
-  } catch (err) {
-    return { ok: false, error: "explorer_failed", detail: String((err && err.message) || err).slice(0, 180) };
-  }
-}
-
-async function handleApi(req, res, url, reportManager = agendaReportManager, paperManager = paperLibrary) {
+async function handleApi(req, res, url, reportManager = agendaReportManager, paperManager = paperLibrary, launchDeps = {}) {
   const method = req.method;
   const p = url.pathname;
   let store = readStore();
 
-  if (p === '/api/disk-skills' || p.startsWith('/api/disk-skills/')) {
-    try {
-      if (method === 'GET' && p === '/api/disk-skills') return sendJson(res, 200, await diskCatalog.list());
-      if (method === 'POST' && p === '/api/disk-skills/rescan') {
-        if (!isLoopback(req)) return sendJson(res, 403, { error: 'disk_skill_local_only' });
-        return sendJson(res, 200, await diskCatalog.rescan());
-      }
-      const match = p.match(/^\/api\/disk-skills\/([a-f0-9]{32})(?:\/(save|push))?$/);
-      if (!match) return sendJson(res, 404, { error: 'disk_skill_missing' });
-      if (method === 'GET' && !match[2]) return sendJson(res, 200, await diskCatalog.detail(match[1]));
-      if (method !== 'POST' || !match[2]) return sendJson(res, 405, { error: 'disk_skill_method_not_allowed' });
-      if (!isLoopback(req)) return sendJson(res, 403, { error: 'disk_skill_local_only' });
-      const body = await readBody(req) || {};
-      const result = match[2] === 'save' ? await diskCatalog.save(match[1], body) : await diskCatalog.push(match[1], body);
-      return sendJson(res, 200, result);
-    } catch (error) {
-      const code = error.message === 'disk_skill_missing' ? 404 : error.message === 'disk_skill_local_only' ? 403 : 409;
-      return sendJson(res, code, { error: error.message, detail: error.detail || '' });
-    }
-  }
+  if (await domainRoutes({ req, res, url, p, method, store, reportManager, paperManager, launchDeps })) return true;
 
-  if (p === '/api/skill-library' || p.startsWith('/api/skill-library/')) {
-    try {
-      if (method === 'GET' && p === '/api/skill-library') return sendJson(res,200,{skills:(store.skillLibrary || []).map(s => ({id:s.id,state:s.state,name:s.draft.name,description:s.draft.description,revision:s.revision,currentVersionId:s.currentVersionId,versions:s.versions.length,archived:!!s.archived}))});
-      if (method === 'GET' && p === '/api/skill-library/sources') return sendJson(res,200,{sources:skillStudio.sources(store)});
-      const match = p.match(/^\/api\/skill-library\/([^/]+)(?:\/(draft|publish|restore|state|cases|run|evaluate))?$/);
-      if (method === 'GET' && match && !match[2]) return sendJson(res,200,skillStudio.detail(store,SKILL_ROOT,match[1]));
-      if (method !== 'POST') return sendJson(res,405,{error:'skill_method_not_allowed'});
-      if (!isLoopback(req)) return sendJson(res,403,{error:'skill_local_only'});
-      const body = await readBody(req) || {}; store = readStore();
-      let result;
-      if (p === '/api/skill-library') result = skillStudio.create(store,body);
-      else if (match?.[2] === 'run') return sendJson(res,202,skillManager.start({...body,skillId:match[1]}));
-      else if (match?.[2] === 'evaluate') return sendJson(res,200,skillManager.evaluate(match[1],body));
-      else if (match?.[2]) result = skillStudio.mutate(store,SKILL_ROOT,match[1],match[2],body);
-      else return sendJson(res,404,{error:'skill_route_not_found'});
-      if (!result.duplicate) writeStore(store);
-      return sendJson(res,200,result);
-    } catch (error) { return sendJson(res,409,{error:error.message}); }
-  }
-
-  if (method === "GET" && p === "/api/codex/status") return sendJson(res, 200, await codex.status());
-  if (method === "GET" && p === "/api/codex/jobs") return sendJson(res, 200, { jobs: store.codexJobs || [] });
-  if (method === "POST" && p === "/api/codex/jobs") {
-    const body = await readBody(req) || {};
-    try { return sendJson(res, 202, { job: codexManager.start({ runId: body.runId, role: body.role, test: body.test === true,idempotencyKey:body.idempotencyKey }) }); }
-    catch (err) { return sendJson(res, 409, { error: err.message }); }
-  }
   const lockedRun = p.match(/^\/api\/departments\/runs\/([^/]+)\//);
   const executionRoute=p.match(/^\/api\/departments\/runs\/([^/]+)\/execution(?:\/(control|skills|reconcile|retry|result|started))?$/);
   if(executionRoute){
@@ -447,7 +310,11 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
   }
   if (method === "POST" && lockedRun && codexManager.busy(lockedRun[1])) return sendJson(res, 409, { error: "Codex 正在处理此项目，请等待完成。" });
 
-  if (method === "GET" && p === "/api/state") return sendJson(res, 200, store);
+  if (method === "GET" && p === "/api/state") {
+    const slice = url.searchParams.get("slice");
+    if (slice && slice !== "ui") return sendJson(res, 400, { error: "unknown_state_slice" });
+    return sendJson(res, 200, slice === "ui" ? uiState(publicState(store)) : publicState(store));
+  }
   if(method==='POST'&&['/api/archive','/api/archive/preview'].includes(p)){
     if(!isLoopback(req))return sendJson(res,403,{error:'archive_local_only'});
     try{const body=await readBody(req)||{};const result=changeArchive(store,body,{preview:p.endsWith('/preview')});
@@ -455,166 +322,6 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
     }catch(error){return sendJson(res,409,{error:error.message})}
   }
   if(method==='GET'&&p==='/api/help/logic')return send(res,200,fs.readFileSync(path.join(ROOT,'docs',url.searchParams.get('language')==='en'?'workbench-logic-type1.en.md':'工作台全图-类型1.md'),'utf8'),{'Content-Type':MIME['.md']});
-
-  // Super-agent Phase1+2: intake, subscriptions, direct fan-out, async start/stop, watchdog
-  if (method === "GET" && p === "/api/superagent/config") {
-    const sa = superagentIntake.ensureSuperagent(store);
-    return sendJson(res, 200, {
-      intake: sa.intake,
-      channels: sa.channels,
-      watchdog: sa.watchdog,
-      subscriptionCount: (sa.subscriptions || []).length,
-      asyncRunCount: (sa.asyncRuns || []).length,
-      aliases: superagentModel.describeAssignmentAlias(store),
-    });
-  }
-  if (method === "GET" && p === "/api/superagent/subscriptions") {
-    return sendJson(res, 200, { subscriptions: superagentIntake.listSubscriptions(store) });
-  }
-  if (method === "POST" && p === "/api/superagent/subscriptions") {
-    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_subscriptions_local_only" });
-    try {
-      const body = await readBody(req) || {};
-      const fresh = readStore();
-      const subscription = superagentIntake.upsertSubscription(fresh, body);
-      writeStore(fresh);
-      return sendJson(res, 200, { subscription });
-    } catch (err) {
-      return sendJson(res, 400, { error: err.message });
-    }
-  }
-  const superSubMatch = p.match(/^\/api\/superagent\/subscriptions\/([^/]+)$/);
-  if (superSubMatch && method === "DELETE") {
-    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_subscriptions_local_only" });
-    const fresh = readStore();
-    const result = superagentIntake.removeSubscription(fresh, decodeURIComponent(superSubMatch[1]));
-    writeStore(fresh);
-    return sendJson(res, 200, result);
-  }
-  if (method === "POST" && p === "/api/superagent/filter/preview") {
-    const body = await readBody(req) || {};
-    const result = superagentIntake.filterTrigger(store, body.trigger || body);
-    return sendJson(res, 200, result);
-  }
-  if (method === "POST" && p === "/api/superagent/fanout/preview") {
-    const body = await readBody(req) || {};
-    const event = body.event || body;
-    return sendJson(res, 200, superagentIntake.deliverFanOut(store, event, { dryRun: true, idempotencyKey: body.idempotencyKey || null }));
-  }
-  if (method === "POST" && p === "/api/superagent/fanout/deliver") {
-    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_fanout_local_only" });
-    try {
-      const body = await readBody(req) || {};
-      const fresh = readStore();
-      const delivery = superagentIntake.deliverFanOut(fresh, body.event || body, {
-        dryRun: false,
-        idempotencyKey: body.idempotencyKey || null,
-        bypassPause: body.bypassPause === true,
-      });
-      writeStore(fresh);
-      return sendJson(res, 200, delivery);
-    } catch (err) {
-      return sendJson(res, 400, { error: err.message });
-    }
-  }
-  if (method === "POST" && p === "/api/superagent/ingest") {
-    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_ingest_local_only" });
-    try {
-      const body = await readBody(req) || {};
-      const fresh = readStore();
-      const result = superagentIntake.ingestAndDeliver(fresh, body.event || body.trigger || body, {
-        forceDeliver: body.forceDeliver === true,
-        idempotencyKey: body.idempotencyKey || null,
-        bypassPause: body.bypassPause === true,
-      });
-      writeStore(fresh);
-      return sendJson(res, 200, result);
-    } catch (err) {
-      return sendJson(res, 400, { error: err.message });
-    }
-  }
-  if (method === "GET" && p === "/api/superagent/async") {
-    const status = url.searchParams.get("status");
-    return sendJson(res, 200, { runs: superagentAsync.listAsyncRuns(store, { status: status || null }) });
-  }
-  if (method === "POST" && p === "/api/superagent/async/start") {
-    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_async_local_only" });
-    try {
-      const body = await readBody(req) || {};
-      const fresh = readStore();
-      const result = superagentAsync.startAsync(fresh, body);
-      writeStore(fresh);
-      return sendJson(res, result.duplicate ? 200 : 201, result);
-    } catch (err) {
-      return sendJson(res, 400, { error: err.message });
-    }
-  }
-  const superAsyncMatch = p.match(/^\/api\/superagent\/async\/([^/]+)(?:\/(stop|heartbeat|complete))?$/);
-  if (superAsyncMatch && method === "GET" && !superAsyncMatch[2]) {
-    try {
-      return sendJson(res, 200, { run: superagentAsync.getAsyncRun(store, decodeURIComponent(superAsyncMatch[1])) });
-    } catch (err) {
-      return sendJson(res, 404, { error: err.message });
-    }
-  }
-  if (superAsyncMatch && method === "POST" && superAsyncMatch[2] === "stop") {
-    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_async_local_only" });
-    try {
-      const body = await readBody(req) || {};
-      const fresh = readStore();
-      const result = superagentAsync.stopAsync(fresh, decodeURIComponent(superAsyncMatch[1]), {
-        confirmed: body.confirmed === true,
-        reason: body.reason || "cooperative_stop",
-      });
-      writeStore(fresh);
-      return sendJson(res, 200, result);
-    } catch (err) {
-      return sendJson(res, 400, { error: err.message });
-    }
-  }
-  if (superAsyncMatch && method === "POST" && superAsyncMatch[2] === "heartbeat") {
-    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_async_local_only" });
-    try {
-      const body = await readBody(req) || {};
-      const fresh = readStore();
-      const result = superagentAsync.heartbeatAsync(fresh, decodeURIComponent(superAsyncMatch[1]), body);
-      writeStore(fresh);
-      return sendJson(res, 200, result);
-    } catch (err) {
-      return sendJson(res, 400, { error: err.message });
-    }
-  }
-  if (superAsyncMatch && method === "POST" && superAsyncMatch[2] === "complete") {
-    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_async_local_only" });
-    try {
-      const body = await readBody(req) || {};
-      const fresh = readStore();
-      const result = superagentAsync.completeAsync(fresh, decodeURIComponent(superAsyncMatch[1]), body);
-      writeStore(fresh);
-      return sendJson(res, 200, result);
-    } catch (err) {
-      return sendJson(res, 400, { error: err.message });
-    }
-  }
-  if (method === "GET" && p === "/api/superagent/watchdog/scan") {
-    return sendJson(res, 200, superagentWatchdog.scan(store));
-  }
-  if (method === "POST" && p === "/api/superagent/watchdog/apply") {
-    if (!isLoopback(req)) return sendJson(res, 403, { error: "superagent_watchdog_local_only" });
-    try {
-      const body = await readBody(req) || {};
-      const fresh = readStore();
-      const scanned = superagentWatchdog.scan(fresh);
-      const applied = superagentWatchdog.applySafePauses(fresh, scanned, {
-        confirmed: body.confirmed === true,
-        attemptIds: Array.isArray(body.attemptIds) ? body.attemptIds : null,
-      });
-      writeStore(fresh);
-      return sendJson(res, 200, { scanned, applied });
-    } catch (err) {
-      return sendJson(res, 400, { error: err.message });
-    }
-  }
 
   if (method === "GET" && p === "/api/health") {
     return sendJson(res, 200, { ok: true, at: nowIso(), tasks: store.tasks.length });
@@ -625,6 +332,7 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
   }
 
   if (method === "PUT" && p === "/api/state") {
+    if (!isLoopback(req)) return sendJson(res, 403, { error: "state_local_only" });
     const body = await readBody(req);
     if (!body || typeof body !== "object") return sendJson(res, 400, { error: "invalid_store" });
     writeStore(body);
@@ -632,6 +340,7 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
   }
 
   if (method === "POST" && p === "/api/reset") {
+    if (!isLoopback(req)) return sendJson(res, 403, { error: "state_local_only" });
     const fresh = buildDefaultStore();
     writeStore(fresh);
     return sendJson(res, 200, fresh);
@@ -974,117 +683,6 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
     return sendJson(res, 200, report);
   }
 
-  const noteReview = p.match(/^\/api\/agendas\/([^/]+)\/review-note\/(draft|saved|refine|save|cleanup)$/);
-  if (p === '/api/agenda-notes/rename-preview' || p === '/api/agenda-notes/rename-apply') {
-    if (!isLoopback(req)) return sendJson(res,403,{error:'agenda_notes_local_only'});
-    try {
-      const renaming = require('./lib/agenda-note-rename');
-      if (p.endsWith('rename-preview') && method==='GET') return sendJson(res,200,renaming.preview(readStore()));
-      if (p.endsWith('rename-apply') && method==='POST') return sendJson(res,200,renaming.apply({readStore,writeStore,backupRoot:path.join(DATA,'backups','agenda-note-renames')},await readBody(req)||{}));
-      return sendJson(res,405,{error:'method_not_allowed'});
-    } catch(error) { return sendJson(res,409,{error:error.message}); }
-  }
-  const noteRestore = p.match(/^\/api\/agenda-notes\/trash\/([^/]+)\/restore$/);
-  const noteFile = p.match(/^\/api\/agenda-notes\/([^/]+)$/);
-  if (p === '/api/agenda-notes' || p === '/api/agenda-notes/config' || p === '/api/agenda-notes/suggest' || noteReview || noteFile || noteRestore) {
-    if (!isLoopback(req)) return sendJson(res, 403, { error: 'agenda_notes_local_only' });
-    try {
-      const body = ['POST', 'PUT', 'PATCH'].includes(method) ? await readBody(req) || {} : {};
-      const fresh = readStore();
-      if (p === '/api/agenda-notes/config' && method === 'GET') return sendJson(res, 200, agendaNotes.configured(fresh));
-      if (p === '/api/agenda-notes/config' && method === 'PUT') {
-        const cfg = agendaNotes.normalizeConfig(body);
-        agendaNotes.ensureDirectory({ remote: { agendaNotes: cfg } });
-        fresh.remote ||= {}; fresh.remote.agendaNotes = cfg; writeStore(fresh);
-        return sendJson(res, 200, agendaNotes.configured(fresh));
-      }
-      if (p === '/api/agenda-notes' && method === 'GET') {
-        const result = agendaNotes.list(fresh);
-        let recovery;
-        try { recovery = agendaNoteCleanup.listTrash(fresh); } catch (error) { recovery = { batches: [], ignored: [{ error: error.message }] }; }
-        return sendJson(res, 200, { directory: result.directory, ignored: result.ignored, recovery, notes: result.notes.map(note => { const { body, ...metadata } = agendaNotes.publicNote(note); return metadata; }) });
-      }
-      if (noteRestore && method === 'POST') return sendJson(res, 200, agendaNoteCleanup.restore(fresh, decodeURIComponent(noteRestore[1]), body));
-      if (noteReview && noteReview[2] === 'cleanup') {
-        if (method === 'GET') return sendJson(res, 200, agendaNoteCleanup.plan(fresh, noteReview[1]));
-        if (method === 'POST') return sendJson(res, 200, agendaNoteCleanup.moveOlder(fresh, noteReview[1], body));
-        return sendJson(res, 405, { error: 'method_not_allowed' });
-      }
-      if (noteReview && method === 'GET' && noteReview[2] === 'saved') return sendJson(res, 200, agendaNotes.savedDraft(fresh, noteReview[1]));
-      if (noteReview && method === 'POST' && noteReview[2] !== 'saved') {
-        const [, itemId, action] = noteReview;
-        if (action === 'draft' || action === 'refine') {
-          if (body.agentId) return sendJson(res, 202, { job: await reportManager.startNote(itemId, action, body) });
-          const draft = action === 'refine' ? await agendaNotes.refine(fresh, itemId, body, chat) : await agendaNotes.draft(fresh, itemId, chat);
-          const current = readStore(), item = agendaNotes.agenda(current, itemId);
-          if (agendaNotes.signature(item) !== draft.sourceHash || agendaNotes.hash(JSON.stringify(agendaNotes.config(current))) !== draft.configHash) return sendJson(res, 409, { error: '复盘已变化，请重新生成摘要。' });
-          agendaNotes.validateBaseNote(current, itemId, draft);
-          return sendJson(res, 200, draft);
-        }
-        const cleanupPlan = body.removeOlderVersions === true ? agendaNoteCleanup.validatePlan(fresh, itemId, { snapshot: body.cleanupSnapshot }) : null;
-        const saved = agendaNotes.save(fresh, itemId, body);
-        const item = agendaNotes.agenda(fresh, itemId);
-        item.reviewNote = { file: saved.note.file, path: saved.note.path, version: saved.note.version, sourceHash: body.sourceHash, savedAt: nowIso() };
-        writeStore(fresh);
-        if (cleanupPlan) {
-          try {
-            const preview = agendaNoteCleanup.plan(fresh, itemId), expectedOlder = saved.duplicate ? cleanupPlan.older : cleanupPlan.existing;
-            if (preview.latest?.file !== saved.note.file || preview.latest.sha256 !== saved.note.sha256 || JSON.stringify(preview.older) !== JSON.stringify(expectedOlder)) throw new Error('笔记保存后版本已变化，旧文件未移除，请重新查看版本清单。');
-            saved.cleanup = agendaNoteCleanup.moveOlder(fresh, itemId, preview);
-          }
-          catch (error) { saved.cleanup = { removedCount: 0, error: error.message }; }
-        }
-        return sendJson(res, 200, saved);
-      }
-      if (p === '/api/agenda-notes/suggest' && method === 'POST') {
-        const result = await agendaNotes.suggest(fresh, body, chat);
-        const current = readStore(), files = agendaNotes.list(current).notes;
-        if (agendaNotes.hash(JSON.stringify(agendaNotes.config(fresh))) !== agendaNotes.hash(JSON.stringify(agendaNotes.config(current)))) return sendJson(res, 409, { error: '笔记目录已变化，请重新获取建议。' });
-        for (const source of result.sources) {
-          const actual = files.find(note => note.file === source.file);
-          if (!actual || actual.sha256 !== source.sha256 || actual.status !== 'active' || files.some(note => note.agendaId === source.agendaId && note.version > source.version)) return sendJson(res, 409, { error: '笔记已变化，请重新获取建议。' });
-        }
-        return sendJson(res, 200, result);
-      }
-      if (noteFile && method === 'PATCH') return sendJson(res, 200, agendaNotes.setStatus(fresh, decodeURIComponent(noteFile[1]), body));
-      return sendJson(res, 405, { error: 'method_not_allowed' });
-    } catch (error) { return sendJson(res, error.status || 400, { error: error.message }); }
-  }
-
-  if (p === '/api/agenda/reports/review-sources' && method === 'GET') {
-    if (!isLoopback(req)) return sendJson(res,403,{error:'report_local_only'});
-    try {
-      const profile=url.searchParams.get('profile');if(profile&&profile!=='thoughts-v1')throw Error('报告类型无效。');
-      return sendJson(res,200,require(profile==='thoughts-v1'?'./lib/monthly-thought-report':'./lib/saved-review-report').preview(readStore(),url.searchParams.get('anchorDate')));
-    }
-    catch(error) { return sendJson(res,409,{error:error.message}); }
-  }
-  const reportJobRoute = p.match(/^\/api\/agenda\/reports\/jobs\/([a-zA-Z0-9-]+)(?:\/(started|retry|reconcile))?$/);
-  if (p === '/api/agenda/reports/draft' || reportJobRoute || p === '/api/agenda/reports/jobs') {
-    if (!isLoopback(req)) return sendJson(res,403,{error:'report_local_only'});
-    try {
-      if (method === 'GET' && p === '/api/agenda/reports/jobs') return sendJson(res,200,{jobs:(readStore().agendaReportJobs||[]).map(j=>reportManager.get(j.id))});
-      if (method === 'POST' && p === '/api/agenda/reports/draft') return sendJson(res,202,{job:reportManager.start(await readBody(req)||{})});
-      if (method === 'GET' && reportJobRoute && !reportJobRoute[2]) return sendJson(res,200,{job:reportManager.get(reportJobRoute[1])});
-      if (method === 'POST' && reportJobRoute?.[2]) return sendJson(res,200,{job:reportManager.action(reportJobRoute[1],reportJobRoute[2],await readBody(req)||{})});
-      return sendJson(res,405,{error:'method_not_allowed'});
-    } catch(err) { return sendJson(res,409,{error:err.code||err.message}); }
-  }
-
-  if (['/api/agenda/reports/export/config','/api/agenda/reports/export/preview','/api/agenda/reports/export/save'].includes(p)) {
-    if (!isLoopback(req)) return sendJson(res,403,{error:'report_export_local_only'});
-    try {
-      if (method==='GET' && p.endsWith('/config')) return sendJson(res,200,{directory:reportExport.directory(readStore()),folder:reportExport.FOLDER});
-      if (method!=='POST') return sendJson(res,405,{error:'method_not_allowed'});
-      const body=await readBody(req)||{},fresh=readStore();
-      if (p.endsWith('/preview')) return sendJson(res,200,reportExport.preview(fresh,body));
-      if (!p.endsWith('/save')) return sendJson(res,405,{error:'method_not_allowed'});
-      const exported=reportExport.save(fresh,body);
-      try { writeStore(fresh); } catch(error) { return sendJson(res,500,{error:'report_export_ledger_failed',message:'文件已写入，但台账登记失败；请保留草稿后重试。',file:exported.file}); }
-      return sendJson(res,200,{export:exported,report:fresh.reports.find(r=>r.id===exported.reportId)});
-    } catch(error) { return sendJson(res,409,{error:error.code||'report_export_failed',message:error.message}); }
-  }
-
   if (method === "POST" && p === "/api/remote/outbox") {
     const body = await readBody(req) || {};
     const item = {
@@ -1105,7 +703,7 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
     if (Object.hasOwn(body,'providerPauses')) return sendJson(res,400,{error:'use_provider_pause_endpoint'});
     store.remote = { ...store.remote, ...body, outbox: store.remote.outbox };
     writeStore(store);
-    return sendJson(res, 200, store.remote);
+    return sendJson(res, 200, publicState(store).remote);
   }
 
   if (method === "POST" && p === "/api/checkpoint") {
@@ -1127,67 +725,6 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
     });
     writeStore(store);
     return sendJson(res, 200, task);
-  }
-
-  if (method === "GET" && p === "/api/brief-runs") {
-    const sourceId = url.searchParams.get("sourceId") || "";
-    const unread = url.searchParams.get("unread");
-    const favorite = url.searchParams.get("favorite");
-    let runs = (store.briefRuns||[]).filter(run=>!run.archived);
-    if (sourceId) runs = runs.filter((item) => item.sourceId === sourceId);
-    if (unread === "true") runs = runs.filter((item) => item.unread !== false);
-    if (unread === "false") runs = runs.filter((item) => item.unread === false);
-    if (favorite === "true") runs = runs.filter((item) => item.favorite === true);
-    if (favorite === "false") runs = runs.filter((item) => item.favorite !== true);
-    return sendJson(res, 200, { sources: sourceSummaries(store), runs });
-  }
-
-  if (method === "POST" && (p === "/api/brief-runs" || p === "/api/briefs/intake")) {
-    if (!isLoopback(req)) return sendJson(res, 403, { error: "brief_intake_local_only" });
-    const body = await readBody(req) || {};
-    try {
-      const result = ingestBrief(store, body, { id, nowIso });
-      if (!result.duplicate) writeStore(store);
-      return sendJson(res, result.duplicate ? 200 : 201, result);
-    } catch (err) {
-      return sendJson(res, 400, { error: String((err && err.message) || err) });
-    }
-  }
-
-  const briefRunMatch = p.match(/^\/api\/brief-runs\/([^/]+)$/);
-  if (briefRunMatch && method === "PATCH") {
-    const body = await readBody(req) || {};
-    // Read after the request body: a parallel intake or archive must not be overwritten.
-    const current = readStore();
-    const run = (current.briefRuns || []).find((item) => item.id === briefRunMatch[1]);
-    if (!run) return notFound(res);
-    if (run.archived) return sendJson(res, 409, { error: "record_archived" });
-    for (const field of ["unread", "favorite"]) {
-      if (Object.hasOwn(body, field) && typeof body[field] !== "boolean") return sendJson(res, 400, { error: "invalid_brief_preferences" });
-    }
-    if (!Object.hasOwn(body, "unread") && !Object.hasOwn(body, "favorite")) return sendJson(res, 400, { error: "missing_brief_preferences" });
-    if (typeof body.unread === "boolean") run.unread = body.unread;
-    if (typeof body.favorite === "boolean") run.favorite = body.favorite;
-    writeStore(current);
-    return sendJson(res, 200, run);
-  }
-  if (briefRunMatch && method === "DELETE") {
-    if (!isLoopback(req)) return sendJson(res, 403, { error: "brief_delete_local_only" });
-    const index = (store.briefRuns || []).findIndex((item) => item.id === briefRunMatch[1]);
-    if (index < 0) return notFound(res);
-    const [removed] = store.briefRuns.splice(index, 1);
-    writeStore(store);
-    return sendJson(res, 200, removed);
-  }
-
-  if (method === "GET" && p === "/api/briefings") {
-    return sendJson(res, 200, { dismissedOn: store.meta.briefingDismissedOn || "", items: buildBriefings(store) });
-  }
-
-  if (method === "POST" && p === "/api/briefings/dismiss") {
-    store.meta.briefingDismissedOn = ymd();
-    writeStore(store);
-    return sendJson(res, 200, { dismissedOn: store.meta.briefingDismissedOn });
   }
 
   if (method === 'GET' && p === '/api/extensions') {
@@ -1312,187 +849,6 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
     return sendJson(res, 200, store.fronts);
   }
 
-  // ---------- Obsidian 资料库：统一索引服务 ----------
-  if (method === 'GET' && p === '/api/vault/config') {
-    return sendJson(res, 200, vault.config(store));
-  }
-  if (method === 'PUT' && p === '/api/vault/config') {
-    const body = await readBody(req) || {};
-    const next = { ...vault.config(store), enabled: Boolean(body.enabled), baseUrl: vault.localUrl(body.baseUrl), keyFile: String(body.keyFile || ''), vaultId: String(body.vaultId || vault.config(store).vaultId || '') };
-    if (next.enabled && (!path.isAbsolute(next.keyFile) || !fs.existsSync(next.keyFile))) return sendJson(res, 400, { error: '资料库凭据文件不存在。' });
-    store.remote ||= {}; store.remote.vault = next; writeStore(store);
-    return sendJson(res, 200, { ok: true });
-  }
-  if (method === 'GET' && p === '/api/vault/status') return sendJson(res, 200, await vault.request(store, '/v1/status'));
-  if (method === 'GET' && p === '/api/vault/files') return sendJson(res, 200, await vault.request(store, '/v1/files?status=' + encodeURIComponent(url.searchParams.get('status') || '') + '&limit=100'));
-  if (method === 'POST' && p === '/api/vault/sync') return sendJson(res, 202, await vault.request(store, '/v1/sync', {}));
-  if (method === 'POST' && p === '/api/vault/search') {
-    const body = await readBody(req) || {};
-    const evidence = await vault.request(store, '/v1/search', { query: body.query, k: 5, mode: body.mode || 'hybrid', client: 'workbench' });
-    const fresh = readStore(); fresh.remote.vault.lastRetrieval = vault.provenance(evidence); writeStore(fresh);
-    return sendJson(res, 200, evidence);
-  }
-
-  // ---------- 模型路由（本地 Ollama / 在线 OpenAI 兼容） ----------
-
-  if (method === "GET" && p === "/api/llm/config") {
-    const cfg = { ...((store.remote && store.remote.llm) || {}) };
-    cfg.hasKey = Boolean(cfg.apiKey);
-    delete cfg.apiKey; // 密钥不回传前端，只回传是否已设置
-    cfg.siliconflowPaused = !!store.remote?.providerPauses?.siliconflow?.paused;
-    return sendJson(res, 200, cfg);
-  }
-
-  if (method === "GET" && p === "/api/llm/status") {
-    return sendJson(res, 200, await ollamaStatus(store));
-  }
-
-  if (method === "PUT" && p === "/api/llm/config") {
-    const body = await readBody(req) || {};
-    store.remote = store.remote || {};
-    const prevKey = (store.remote.llm && store.remote.llm.apiKey) || "";
-    const next = { ...(store.remote.llm || {}), ...body };
-    if (!body.apiKey || body.apiKey === "__KEEP__") next.apiKey = prevKey;
-    delete next.siliconflowPaused;
-    if (providerPolicy.paused(store,next)) next.enabled = false;
-    store.remote.llm = next;
-    writeStore(store);
-    return sendJson(res, 200, { ok: true, hasKey: Boolean(next.apiKey) });
-  }
-
-  if (p === '/api/llm/provider-pause') {
-    if (!isLoopback(req)) return sendJson(res,403,{error:'provider_pause_local_only'});
-    if (method === 'GET') return sendJson(res,200,{provider:'siliconflow',paused:!!store.remote?.providerPauses?.siliconflow?.paused});
-    if (method === 'POST') {
-      try { const body=await readBody(req)||{},fresh=readStore();const result=providerPolicy.setPause(fresh,body);writeStore(fresh);return sendJson(res,200,result); }
-      catch(error) { return sendJson(res,400,{error:error.message}); }
-    }
-  }
-
-  if (method === "POST" && p === "/api/llm/test") {
-    try {
-      const text = await chat(store, { prompt: "收到请只回复四个字：连接成功", useVault: false });
-      store.remote.llm.lastTest = { ok: true, at: nowIso() };
-      writeStore(store);
-      return sendJson(res, 200, { ok: true, text: String(text).slice(0, 200) });
-    } catch (err) {
-      store.remote.llm.lastTest = { ok: false, at: nowIso() };
-      writeStore(store);
-      return sendJson(res, 500, { ok: false, error: String((err && err.message) || err) });
-    }
-  }
-
-  if (method === "POST" && p === "/api/llm/generate") {
-    const body = await readBody(req) || {};
-    if (!body.prompt && !Array.isArray(body.messages)) return sendJson(res, 400, { error: "need_prompt" });
-    try {
-      let evidence;
-      const text = await chat(store, { system: body.system, prompt: body.prompt, messages: body.messages, vaultQuery: body.vaultQuery, onEvidence: data => { evidence = data; } });
-      if (evidence) { const fresh = readStore(); fresh.remote.vault.lastRetrieval = evidence; writeStore(fresh); }
-      return sendJson(res, 200, { text, evidence });
-    } catch (err) {
-      return sendJson(res, 500, { error: String((err && err.message) || err) });
-    }
-  }
-
-  // ---------- v0.6 生活 / 学习双星系 ----------
-
-  if (method === "GET" && p === "/api/life/habits") {
-    const date = /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get("date") || "") ? url.searchParams.get("date") : ymd();
-    const before = JSON.stringify(store.lifeSystem || null);
-    const habits = lifeHabitsForDate(store, date);
-    if (JSON.stringify(store.lifeSystem || null) !== before) writeStore(store);
-    return sendJson(res, 200, { date, habits });
-  }
-
-  const habitRunMatch = p.match(/^\/api\/life\/habits\/([^/]+)$/);
-  if (habitRunMatch && method === "PATCH") {
-    const run = ((store.lifeSystem && store.lifeSystem.habitRuns) || []).find((item) => item.id === habitRunMatch[1]);
-    if (!run) return notFound(res);
-    const body = await readBody(req) || {};
-    if(inactive(run))return sendJson(res,409,{error:"record_paused_or_archived"});
-    if (typeof body.done === "boolean") run.done = body.done;
-    if (typeof body.skipped === "boolean") run.skipped = body.skipped;
-    if (typeof body.review === "string") run.review = body.review.slice(0, 1000);
-    run.updatedAt = nowIso();
-    writeStore(store);
-    return sendJson(res, 200, run);
-  }
-
-  if (method === "POST" && p === "/api/learning/plans/draft") {
-    const body = await readBody(req) || {};
-    const input = {
-      goal: String(body.goal || "").trim(),
-      content: String(body.content || "").trim(),
-      availability: String(body.availability || "").trim(),
-      deadline: String(body.deadline || "").trim(),
-      sessionMinutes: Number(body.sessionMinutes) || 45,
-    };
-    if (!input.goal || !input.content || !input.availability) {
-      return sendJson(res, 400, { error: "need_goal_content_availability" });
-    }
-    try {
-      const text = await chat(store, {
-        system: "你是学习规划助理。只能依据用户提供的学习目标、内容、可用时间和截止日期排计划；不得杜撰链接、书名、版本、视频、文档、课程、教程或任何事实。没有明确给出的材料时，只能安排概念梳理、用户自行练习、复盘和自测，不得要求观看视频或阅读文档。不要输出 JSON、Markdown 或解释，只输出如下行式协议：第一行 `TITLE: 计划标题`；后续每行严格为 `YYYY-MM-DD | HH:MM | 分钟数 | 本次学习主题 | 具体动作与完成标准`。sessions 只能安排今天至截止日期之间，最多 14 条；每条动作不超过 20 个汉字。",
-        prompt: `今天：${ymd()}\n学习目标：${input.goal}\n学习内容：${input.content}\n可投入时间：${input.availability}\n截止日期：${input.deadline || "未指定；请只排未来 7 天"}\n单次时长：${input.sessionMinutes} 分钟`,
-        temperature: 0.25,
-        maxTokens: 420,
-        timeoutMs: 120000,
-      });
-      const draft = normalizeLearningDraft(text, input, ymd());
-      return sendJson(res, 200, { ok: true, draft, notice: "这是本地模型的候选计划，尚未写入银河；请核对后再采纳。" });
-    } catch (err) {
-      return sendJson(res, 500, { error: String((err && err.message) || err) });
-    }
-  }
-
-  if (method === "POST" && p === "/api/learning/plans") {
-    const body = await readBody(req) || {};
-    try {
-      const draft = normalizeLearningDraft(body, body, ymd());
-      const plan = adoptLearningPlan(store, draft, { id: id("learn"), now: nowIso(), model: ((store.remote || {}).llm || {}).provider || "ollama" });
-      store.events.unshift({ id: id("ev"), type: "learning-plan", text: `采纳学习银河计划：${plan.title}`, agentId: "cursor", createdAt: nowIso() });
-      writeStore(store);
-      return sendJson(res, 200, plan);
-    } catch (err) {
-      return sendJson(res, 400, { error: String((err && err.message) || err) });
-    }
-  }
-
-  const learningSessionMatch = p.match(/^\/api\/learning\/plans\/([^/]+)\/sessions\/([^/]+)$/);
-  if (learningSessionMatch && method === "PATCH") {
-    const body = await readBody(req) || {};
-    const plan = completeLearningSession(store, learningSessionMatch[1], learningSessionMatch[2], body.done, nowIso());
-    if (!plan) return notFound(res);
-    if (plan.status === "completed") {
-      store.events.unshift({ id: id("ev"), type: "learning-complete", text: plan.achievement, agentId: "cursor", createdAt: nowIso() });
-    }
-    writeStore(store);
-    return sendJson(res, 200, plan);
-  }
-
-  if (method === "GET" && p === "/api/reminder/config") return sendJson(res, 200, reminderPublicConfig(store));
-
-  if (method === "PUT" && p === "/api/reminder/config") {
-    const body = await readBody(req) || {};
-    store.remote = store.remote || {};
-    const previous = store.remote.reminder || {};
-    const next = { ...previous };
-    if (["pushplus", "serverchan"].includes(body.provider)) next.provider = body.provider;
-    if (typeof body.enabled === "boolean") next.enabled = body.enabled;
-    if (typeof body.token === "string" && body.token && body.token !== "__KEEP__") next.token = body.token;
-    store.remote.reminder = next;
-    writeStore(store);
-    return sendJson(res, 200, reminderPublicConfig(store));
-  }
-
-  const openMaterial = p.match(/^\/api\/agendas\/([^/]+)\/open-material$/);
-  if (openMaterial && method === "POST") {
-    const body = await readBody(req) || {};
-    const result = await openAgendaMaterial(store, openMaterial[1], body.index);
-    return sendJson(res, result.ok ? 200 : 404, result);
-  }
-
   if (method === "PATCH" && p === "/api/meta") {
     const body = await readBody(req) || {};
     // 元数据只允许界面偏好字段，避免把整份台账暴露成任意写入口。
@@ -1531,6 +887,7 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
       return sendJson(res, 200, list[idx]);
     }
     if (method === "DELETE") {
+      if (!isLoopback(req)) return sendJson(res, 403, { error: "delete_local_only" });
       const [removed] = list.splice(idx, 1);
       writeStore(store);
       return sendJson(res, 200, removed);
@@ -1538,55 +895,10 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
     if (method === "GET") return sendJson(res, 200, list[idx]);
   }
 
-  if (p === '/api/papers' || p.startsWith('/api/papers/')) {
-    try {
-      if (!isLoopback(req)) return sendJson(res,403,{error:'paper_library_local_only'});
-      const origin=req.headers.origin;
-      if (req.headers['sec-fetch-site']==='cross-site' || (origin && origin!==`http://${req.headers.host}`)) return sendJson(res,403,{error:'paper_library_origin_rejected'});
-      if (method==='GET' && p==='/api/papers') return sendJson(res,200,paperManager.list());
-      if (method==='POST' && p==='/api/papers/import') return sendJson(res,200,await paperManager.import());
-      const match=p.match(/^\/api\/papers\/(paper-[a-f0-9]{24})(?:\/(download|file|folder))?$/);
-      if (!match) return sendJson(res,404,{error:'paper_route_not_found'});
-      const [,paperId,action]=match;
-      if (method==='PATCH' && !action) return sendJson(res,200,paperManager.patch(paperId,await readBody(req)));
-      if (method==='POST' && action==='download') return sendJson(res,202,paperManager.download(paperId));
-      if (method==='GET' && action==='file') {
-        const file=paperManager.file(paperId);
-        res.writeHead(200,{'Content-Type':'application/pdf','Content-Length':file.bytes.length,'Content-Disposition':`inline; filename="${paperId}.pdf"`,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
-        return res.end(file.bytes);
-      }
-      if (method==='POST' && action==='folder') {
-        const file=paperManager.file(paperId);await openInExplorer(file.file,false);return sendJson(res,200,{opened:true});
-      }
-      return sendJson(res,405,{error:'paper_method_not_allowed'});
-    } catch(error) { return sendJson(res,error.status||400,{error:error.message}); }
-  }
-
-  if (p === "/api/external-tools" || p.startsWith("/api/external-tools/")) {
-    try {
-      if (method === "GET" && p === "/api/external-tools") return sendJson(res, 200, externalTools.loadCatalog(DATA));
-      if (!isLoopback(req)) return sendJson(res, 403, { error: "external_tools_local_only" });
-      if (method === "POST" && p === "/api/external-tools") return sendJson(res, 200, externalTools.saveTool(DATA, await readBody(req) || {}));
-      const toolLaunch = p.match(/^\/api\/external-tools\/([^/]+)\/launch$/);
-      if (toolLaunch && method === "POST") {
-        const body = await readBody(req) || {};
-        return sendJson(res, 200, await externalTools.launch(DATA, decodeURIComponent(toolLaunch[1]), String(body.actionId || "")));
-      }
-      const toolItem = p.match(/^\/api\/external-tools\/([^/]+)$/);
-      if (toolItem && method === "DELETE") {
-        const body = await readBody(req) || {};
-        return sendJson(res, 200, externalTools.removeTool(DATA, decodeURIComponent(toolItem[1]), body.expectedRevision));
-      }
-      return sendJson(res, 405, { error: "external_tools_method_not_allowed" });
-    } catch (error) {
-      return sendJson(res, error.status || 400, { error: error.message });
-    }
-  }
-
   return false;
 }
 
-function createServer({ reportExecute, paperFetchBytes } = {}) {
+function createServer({ reportExecute, paperFetchBytes, externalLaunch = {} } = {}) {
   ensureDirs();
   const reportManager = reportExecute ? reportJobs.createManager({readStore,writeStore,execute:reportExecute}) : agendaReportManager;
   const paperManager = paperFetchBytes ? papers.createLibrary({readStore,writeStore,dataDir:DATA,fetchBytes:paperFetchBytes}) : paperLibrary;
@@ -1594,7 +906,8 @@ function createServer({ reportExecute, paperFetchBytes } = {}) {
     try {
       const url = new URL(req.url, `http://${HOST}:${PORT}`);
       if (url.pathname.startsWith("/api/")) {
-        const handled = await handleApi(req, res, url, reportManager, paperManager);
+        if (crossSiteWrite(req)) return sendJson(res, 403, { error: "cross_site_rejected" });
+        const handled = await handleApi(req, res, url, reportManager, paperManager, externalLaunch);
         if (handled === false) notFound(res);
         return;
       }

@@ -26,7 +26,7 @@ function percent(done, total) {
   return total ? Math.round((done / total) * 100) : 0;
 }
 
-export function homeAllView(filter = "all") {
+export function homeAllView(filter = "all", { board = true, hero = true, addModule = false } = {}) {
   const s = getStore();
   const tasks = activeTasks();
   const doingNow = tasks.filter((t) => t.status === "doing" || t.status === "review");
@@ -58,16 +58,21 @@ export function homeAllView(filter = "all") {
       return `<article role="listitem" data-overview-id="${esc(item.id)}">${content}</article>`;
     }).join('') || ui`<p class="agenda-empty">没有符合当前筛选条件的记录。</p>`;
   }
-  return ui`<section class="command-hero">
+  const stripOnly = !board && selected === 'all';
+  const heroBlock = hero && board ? ui`<section class="command-hero">
       <div>
         <div class="eyebrow">PERSONAL COMMAND OS · ${esc(tr(s.meta && s.meta.role || "董事长"))}</div>
         <h2>今天，先把注意力给最重要的事。</h2>
         <p>工作台把项目、部门与行程收在同一张本地台账里；AI 只在你确认后参与。</p>
       </div>
       <div class="hero-actions"><button type="button" class="solid" data-primary="agenda">打开每日行程</button><button type="button" class="ghost" data-primary="deck">查看风险雷达</button></div>
-    </section>
-    <section class="overview-stats" aria-label="今日概况">${stats}</section>
-    <div class="section-head"><div><div class="eyebrow">PRIORITY BOARD</div><h2>${labels[selected]}</h2>${selected !== 'all' ? `<p role="status">${tr('当前筛选：')} ${labels[selected]} · ${groups[selected].length} ${tr('条记录')}</p>` : ''}</div><button type="button" class="ghost" data-act="overview-filter" data-overview-filter="all">显示全部模块</button></div>
+    </section>` : '';
+  const statsBlock = `<section class="overview-stats" aria-label="${tr('今日概况')}">${stats}</section>`;
+  if (stripOnly) return heroBlock + statsBlock + ui`<p class="overview-filter-hint"><a href="#home/modules">打开模块看板 →</a></p>`;
+  const head = board
+    ? `<div class="section-head"><div><div class="eyebrow">PRIORITY BOARD</div><h2>${labels[selected]}</h2>${selected !== 'all' ? `<p role="status">${tr('当前筛选：')} ${labels[selected]} · ${groups[selected].length} ${tr('条记录')}</p>` : ''}</div><div class="actions">${addModule ? `<button type="button" class="ghost" data-act="add-module">${tr('+ 新模块 / 业务项目')}</button>` : ''}<button type="button" class="ghost" data-act="overview-filter" data-overview-filter="all">${tr('显示全部模块')}</button></div></div>`
+    : `<div class="section-head"><div><h2>${labels[selected]}</h2><p role="status">${tr('当前筛选：')} ${labels[selected]} · ${groups[selected].length} ${tr('条记录')}</p></div><button type="button" class="ghost" data-act="overview-filter" data-overview-filter="all">${tr('清除筛选')}</button></div>`;
+  return heroBlock + statsBlock + head + ui`
     ${selected === 'all' ? ui`<p class="overview-filter-hint">拖动卡片可调整关注顺序</p>` : selected === 'members' ? ui`<p class="overview-filter-hint">按台账状态展示，不代表实时在线。</p>` : ''}
     <section id="overview-results" class="${selected === 'all' ? 'mods' : 'overview-result-list'}" data-overview-view="${selected}" ${selected === 'all' ? '' : 'role="list"'}>${results}</section>`;
 }

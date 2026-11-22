@@ -67,6 +67,12 @@ WorkBuddy 调度遵从用户明确选择，不得擅自启停。2026-10-18 15:21
 
 消息接口增加 `chat:true` 后触发成员回复；省略该字段仍只保存留言。WorkBuddy 的讨论也通过 `scripts/workbuddy-queue.js` 原队列领取，无需逐次转发；领取脚本会区分群聊和业务任务，群聊不领取部门阶段。服务和 WorkBuddy 须持续运行，按现有每小时定时任务等待领取，可手动运行现有任务加速。失败在群聊中显示，可单独重试。详见 `docs/项目群聊接入与验收.md`。
 
+## MCP 接入与待决事项（V8）
+
+支持 MCP 的 Agent 可用 `node mcp/workbench-mcp.js`（stdio）代替手写 HTTP：工具为 brief、decisions、checkpoint、inbox、inbox_update、claim、submit、handoff，全部经本机 API，门禁不变。身份只取环境变量 `BENCH_AGENT_ID`；`BENCH_URL` 只能是本机地址。各 Agent 自行在自己的 MCP 配置中添加，不要改动他人或全局配置；示例见 `docs/RELEASE-NOTES-v8.md`。
+
+`GET /api/decisions` 列出等待董事长决定的事项，`GET /api/departments/runs/<id>/timeline` 给出项目活动时间线；二者只读，不能当作批准、重试或复核依据。
+
 ## 读接口
 
 ```

@@ -27,6 +27,10 @@ logs/
 # WorkBuddy local memory
 .workbuddy/
 
+# Local research leftovers (pickles, one-off analysis scripts). Kept on this machine only.
+archive/
+*.pkl
+
 # Local ledger, queues, installed CLIs, and other runtime state.
 # The server creates data/store.json on first start. Do not publish it:
 # it holds API keys and the private ledger.

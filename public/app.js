@@ -8,9 +8,11 @@ import {
   modulesSorted, STATUS, CMD_STATUS, OPS, safe, errorCard,
 } from "./js/core.js";
 import { renderCard, renderDetail, manifestFor } from "./modules/index.js";
+import { defineActions, runAction } from "./js/actions.js";
+import { decisionInboxShell, mountDecisionInbox } from "./js/decision-inbox.js";
 import * as V from "./js/views.js";
 import { papersView, mountPapers } from "./js/paper-library-ui.js";
-import { mountStudio, todayView, reflectionsView, studioEnabled, useSavedClassicTheme } from "./js/v8-studio.js";
+import { mountStudio, todayView, reflectionsView, studioEnabled, useSavedClassicTheme, openComposer } from "./js/v8-studio.js";
 import { t as tr, ui, systemFragment } from "./js/i18n.js";
 import { bindDelivery } from './js/delivery-ui.js';
 import { bindNoteSuggestion, openReviewNote, openNotesManager, resetSuggestion } from './js/agenda-notes-ui.js';
@@ -288,7 +290,7 @@ function workspace() {
   const m = currentModule();
   const titleMap = {
     reflections: document.documentElement.lang === "en" ? "Reflections" : "思考",
-    home: secondary === "all" ? tr("工作首页") : (m || {}).title || "",
+    home: secondary === "all" ? tr("工作首页") : secondary === "modules" ? tr("模块看板") : (m || {}).title || "",
     deck: tr("风险与决策"),
     department: ["all","new"].includes(secondary) ? tr("项目中心") : ((getStore().departmentRuns || []).find((run) => run.id === secondary) || {}).title || tr("项目中心"),
     agenda: tr("每日行程"),
@@ -324,8 +326,10 @@ function workspace() {
 
   const body = safe(() => {
     if (primary === "reflections") return reflectionsView();
-    if (primary === "home") return secondary === "all" ? ((studioEnabled() && overviewFilter === "all" ? todayView() : "") + V.homeAllView(overviewFilter)) : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
-    if (primary === "deck") return V.deckView();
+    if (primary === "home" && secondary === "all") return studioEnabled() ? todayView() + V.homeAllView(overviewFilter, { board: false }) : V.homeAllView(overviewFilter);
+    if (primary === "home" && secondary === "modules") return V.homeAllView(overviewFilter, { hero: false, addModule: true });
+    if (primary === "home") return V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
+    if (primary === "deck") return decisionInboxShell() + V.deckView();
     if (primary === "department") return V.departmentView(secondary, departmentGoalDraft);
     if (primary === "agenda") return V.agendaView(agendaDate, agendaMode, agendaReportDraft, agendaFilter, {exportPreview:agendaReportExportPreview,saveReceipt:agendaReportSaveReceipt,saving:agendaReportSaving});
     if (primary === "briefs") return V.briefHubView(secondary, briefFilter, briefPreferenceUpdates);
@@ -381,6 +385,7 @@ function workspace() {
   mountSkillStudio();
   mountDiskSkills();
   mountExecution();
+  void mountDecisionInbox();
   mountCompactLayout();
   syncPet(getStore().meta?.companion);
   syncComposer();
@@ -1327,6 +1332,209 @@ async function draftAgendaWithAi() {
 
 // ---------- 全局事件 ----------
 
+defineActions("workbench", {
+  "refresh-extensions": async (act, e) => { return refreshCapabilities(true); },
+  "close-modal": async (act, e) => { $("modal").hidden = true; },
+  "add-module": async (act, e) => { openAddModule(); },
+  "open-decompose": async (act, e) => { openDecompose(); },
+  "ai-decompose": async (act, e) => { aiDecompose(); },
+  "create-tasks": async (act, e) => { await createTasksFromDecompose(); },
+  "add-prompt": async (act, e) => { openAddPrompt(); },
+  "codex-test": async (act, e) => { await startCodex({ test: true }, act); },
+  "codex-run": async (act, e) => { await startCodex({ runId: act.dataset.runId, role: act.dataset.role }, act); },
+  "save-llm": async (act, e) => { await saveLlm(); },
+  "resume-siliconflow": async (act, e) => {
+    if (!window.confirm(tr('恢复后 SiliconFlow 请求可能产生费用，确认恢复？'))) return;
+    await api('/api/llm/provider-pause',{method:'POST',body:{provider:'siliconflow',paused:false,confirmed:true}}); await reload();
+  },
+  "save-vault": async (act, e) => { await saveVault(); },
+  "refresh-vault": async (act, e) => { await refreshVaultStatus(); },
+  "search-vault": async (act, e) => { await searchVault(); },
+  "vault-files": async (act, e) => { await showVaultFiles(); },
+  "sync-vault": async (act, e) => { try { await api('/api/vault/sync',{method:'POST',body:{}}); await refreshVaultStatus(); } catch(err) { $('vault-status').textContent=err.message; } },
+  "test-llm": async (act, e) => { await testLlm(); },
+  "enable-ollama": async (act, e) => { await enableOllama(); },
+  "save-theme": async (act, e) => { await saveTheme(); },
+  "save-companion": async (act, e) => { return saveCompanion(); },
+  "preview-greeting": async (act, e) => { return previewGreeting(); },
+  "asset-rescan": async (act, e) => {
+    if (document.querySelector("[data-asset-workspace]")) {
+      try { await rescanDiskSkills(); } catch (error) { window.alert(error.message); }
+    }
+    return reload();
+  },
+  "open-system": async (act, e) => {
+    const url = act.dataset.url || "";
+    if (window.benchShell?.openExternal) await window.benchShell.openExternal(url);
+    else window.open(url, "_blank", "noopener,noreferrer");
+    return;
+  },
+  "manage-records": async (act, e) => { openArchive(primary,reload); },
+  "tool-launch": async (act, e) => {
+    const card = act.closest(".tool-card");
+    const receipt = card?.querySelector(".tool-receipt");
+    act.disabled = true;
+    try {
+      const result = await api(`/api/external-tools/${encodeURIComponent(act.dataset.toolId)}/launch`, { method: "POST", body: { actionId: act.dataset.actionId } });
+      if (receipt) receipt.textContent = result.executed ? tr("已请求本机打开。") : tr("已记录打开意图。当前系统不是 Windows，未执行命令。");
+    } catch (error) {
+      if (receipt) receipt.textContent = tr("打开失败：") + error.message;
+    } finally {
+      act.disabled = false;
+    }
+    return;
+  },
+  "tool-edit": async (act, e) => {
+    const tool = (externalCatalog?.tools || []).find((item) => item.id === act.dataset.toolId);
+    if (!tool || !externalCatalog) return;
+    editTool(tool, externalCatalog.revision);
+    render();
+    document.getElementById("tool-editor")?.scrollIntoView({ block: "nearest" });
+    return;
+  },
+  "tool-add-action": async (act, e) => { addToolAction(); render(); return; },
+  "tool-cancel": async (act, e) => { clearToolDraft(); render(); return; },
+  "tool-save": async (act, e) => {
+    const form = document.getElementById("tool-editor");
+    if (!form) return;
+    try {
+      externalCatalog = await api("/api/external-tools", { method: "POST", body: readToolForm(form) });
+      clearToolDraft();
+      render();
+    } catch (error) {
+      const note = form.querySelector(".tool-form-error") || form.appendChild(document.createElement("p"));
+      note.className = "tool-form-error";
+      note.textContent = tr("保存失败：") + error.message;
+    }
+    return;
+  },
+  "tool-delete": async (act, e) => {
+    if (!window.confirm(tr("从本机清单移除这项工具？种子条目可以再显示。"))) return;
+    try {
+      externalCatalog = await api(`/api/external-tools/${encodeURIComponent(act.dataset.toolId)}`, { method: "DELETE", body: { expectedRevision: externalCatalog?.revision } });
+      clearToolDraft();
+      render();
+    } catch (error) {
+      window.alert(tr("保存失败：") + error.message);
+    }
+    return;
+  },
+  "save-language": async (act, e) => { await api("/api/meta",{method:"PATCH",body:{language:$("language-select").value}}); await reload(); },
+  "save-reminder": async (act, e) => { await saveReminder(); },
+  "agenda-toggle": async (act, e) => { await toggleAgenda(act.dataset.id); },
+  "agenda-materials": async (act, e) => { await editAgendaMaterials(act.dataset.id); },
+  "agenda-review": async (act, e) => { await reviewAgenda(act.dataset.id); },
+  "agenda-notes": async (act, e) => { await openNotesManager(getStore().agendas || [], api, reload); },
+  "agenda-delete": async (act, e) => { await deleteAgenda(act.dataset.id); },
+  "agenda-edit": async (act, e) => { editAgenda(act.dataset.id); },
+  "agenda-ai-draft": async (act, e) => { await draftAgendaWithAi(); },
+  "agenda-view": async (act, e) => { setAgendaView(act.dataset.view); },
+  "agenda-filter": async (act, e) => { setAgendaFilter(act.dataset.agendaFilter); },
+  "agenda-nav": async (act, e) => { shiftAgendaPeriod(Number(act.dataset.shift || 0)); },
+  "agenda-open-day": async (act, e) => { agendaDate = act.dataset.date || agendaDate; setAgendaView("day"); },
+  "agenda-open-material": async (act, e) => { await openAgendaMaterial(act.dataset.id, act.dataset.index); },
+  "agenda-report-draft": async (act, e) => { await draftAgendaReport(); },
+  "agenda-report-save": async (act, e) => { await saveAgendaReport(); },
+  "agenda-report-save-historical": async (act, e) => { await saveAgendaReport(true); },
+  "agenda-report-regenerate": async (act, e) => { if (agendaReportDraft?.sourceMode==='saved-reviews') await previewSavedReviewReport(); else await startAgendaReport({confirmedReplace:true}); },
+  "agenda-report-save-cancel": async (act, e) => { agendaReportExportPreview=null;render(); },
+  "agenda-report-discard": async (act, e) => { agendaReportDraft = null; render(); },
+  "habit-toggle": async (act, e) => { await toggleHabit(act.dataset.id); },
+  "learning-session-toggle": async (act, e) => { await toggleLearningSession(act.dataset.planId, act.dataset.sessionId); },
+  "learning-draft-adopt": async (act, e) => { await adoptLearningDraft(); },
+  "learning-draft-discard": async (act, e) => { learningPlanDraft = null; render(); },
+  "department-model-execute": async (act, e) => { await modelExecuteDepartment(act.dataset.runId, act.dataset.itemId, act); },
+  "department-auto-run": async (act, e) => { await autoRunDepartment(act.dataset.runId, act); },
+  "department-manual": async (act, e) => { openDepartmentManual(act.dataset.runId, act.dataset.itemId); },
+  "external-retry": async (act, e) => {
+    const runId = act.dataset.runId;
+    act.disabled = true;
+    act.textContent = tr("正在重试…");
+    try {
+      await api(`/api/departments/runs/${encodeURIComponent(runId)}/automation`, {method:"POST",body:{enabled:true,retry:true}});
+      await reload();
+      const latest = (getStore().externalJobs || []).find(job => job.runId === runId);
+      window.alert(latest?.status === 'failed' ? "重试未能启动：" + latest.error : tr("重试请求已提交，请查看成员自动执行状态。等待 WorkBuddy 领取时，也可手动运行其领取任务。"));
+    } catch (error) {
+      window.alert("重试失败：" + error.message);
+    } finally {
+      act.disabled = false;
+      act.textContent = tr("重试成员执行");
+    }
+  },
+  "agent-invitation": async (act, e) => {
+    const run = (getStore().departmentRuns || []).find(r => r.id === act.dataset.runId);
+    if (!run) return;
+    const root = tr("D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台");
+    const invitations = ["workbuddy", "cursor"].map(member => {
+      const item = run.items.find(stage => stage.ownerAgentId === member);
+      const text = ui`请接入正式项目 ${run.id}。先读取 ${root}\\docs\\Agent接入邀请与项目协作协议.md。你的阶段：${item ? item.role + " / " + item.id : tr("协作成员")}。在你的工具环境运行：\nnode "${root}\\agent-client.js" wait ${member} ${run.id}\n有任务返回后先读取目标、约束、主管方案和项目原件，再执行。无任务时检查依赖并再次运行 wait；不要生成模拟回执。结果按协议通过 submit 回写。报告完整写作仍遵守用户的 Start Writing 要求。`;
+      return `<h3>${member}</h3><textarea class="full" rows="8" readonly>${esc(text)}</textarea>`;
+    }).join("");
+    $("modal").innerHTML = ui`<div class="sheet"><h2>一次性成员接入邀请</h2><p>将对应邀请发到成员自己的会话。领取命令会等待最多50秒，不会自行启动该软件。</p>${invitations}<button type="button" class="ghost" data-act="close-modal">关闭</button></div>`;
+    $("modal").hidden = false;
+  },
+  "project-manage": async (act, e) => {
+    const run = (getStore().departmentRuns || []).find(r => r.id === act.dataset.runId);
+    if (!run) return;
+    const operation = act.dataset.operation;
+    let body = {};
+    if (operation === "delete") {
+      if (!window.confirm(ui`删除项目“${run.title}”？将删除工作台中的消息、阶段成果和成果登记，项目目录内的实际文件保留。`)) return;
+      await api(`/api/departments/runs/${encodeURIComponent(run.id)}`, { method: "DELETE" });
+    } else {
+      if (operation === "rename") {
+        const title = window.prompt(tr("项目名称"), run.title);
+        if (title === null || !title.trim()) return;
+        body.title = title.trim();
+      } else if (operation === "pin") body.pinned = !run.pinned;
+      else if (operation === "archive") { openArchive("department",reload,{collection:"departmentRuns",id:run.id}); return; }
+      await api(`/api/departments/runs/${encodeURIComponent(run.id)}`, { method: "PATCH", body });
+    }
+    await reload();
+    if (operation === "delete") go("department", "all");
+  },
+  "confirm-send": async (act, e) => {
+    $("modal").hidden = true;
+    await sendCommand();
+  },
+  "sync": async (act, e) => {
+    await api("/api/crew/sync", { method: "POST", body: {} });
+    await refreshCapabilities(true);
+  },
+  "gen": async (act, e) => {
+    await api("/api/reports/generate", { method: "POST", body: { kind: act.dataset.kind } });
+    await reload();
+  },
+  "save-report": async (act, e) => {
+    const body = $("report-body") && $("report-body").value;
+    await api(`/api/reports/${act.dataset.id}`, { method: "PATCH", body: { body } });
+    await reload();
+  },
+  "brief-filter": async (act, e) => {
+    const filter = act.dataset.briefFilter;
+    if (["all", "today", "unread", "favorite"].includes(filter)) {
+      go("briefs", "all", filter);
+      $("ws-body").querySelector(`[data-brief-filter="${filter}"]`)?.focus({ preventScroll: true });
+    }
+  },
+  "brief-source": async (act, e) => {
+    go("briefs", act.dataset.sourceId);
+    $("ws-body").querySelector('.brief-source-card[aria-pressed="true"]')?.focus({ preventScroll: true });
+  },
+  "brief-read": async (act, e) => { await updateBriefPreference(act, false); },
+  "brief-favorite": async (act, e) => { await updateBriefPreference(act, true); },
+  "backup": async (act, e) => {
+    const blob = new Blob([JSON.stringify(await api("/api/state"), null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "workbench-store.json";
+    link.click();
+    URL.revokeObjectURL(url);
+  },
+});
+
 document.addEventListener("click", async (e) => {
   const brief = e.target.closest("[data-brief]");
   if (brief) {
@@ -1351,8 +1559,8 @@ document.addEventListener("click", async (e) => {
     const sel = $("cmd-to");
     if ([...sel.options].some((o) => o.value === cmd.dataset.cmd)) sel.value = cmd.dataset.cmd;
     $("cmd-hint").textContent = tr("已锁定下达对象，请输入指令");
+    openComposer();
     $("composer").scrollIntoView({ behavior: "smooth", block: "nearest" });
-    $("cmd-body").focus();
     return;
   }
   const p = e.target.closest("[data-primary]");
@@ -1367,213 +1575,14 @@ document.addEventListener("click", async (e) => {
   const act = e.target.closest("[data-act]");
   if (!act) return;
   const a = act.dataset.act;
-  if (a === 'overview-filter' && ['home','work'].includes(primary) && secondary === 'all') {
+  if (a === 'overview-filter' && ['home','work'].includes(primary) && ['all','modules'].includes(secondary)) {
     const filter = act.dataset.overviewFilter;
     if (!['all','doing','today','risks','members'].includes(filter)) return;
     overviewFilter = filter; render();
     document.querySelector(`[data-act="overview-filter"][data-overview-filter="${filter}"]`)?.focus({preventScroll:true});
     return;
   }
-  if (a === 'refresh-extensions') return refreshCapabilities(true);
-  if (a === "close-modal") $("modal").hidden = true;
-  if (a === "add-module") openAddModule();
-  if (a === "open-decompose") openDecompose();
-  if (a === "ai-decompose") aiDecompose();
-  if (a === "create-tasks") await createTasksFromDecompose();
-  if (a === "add-prompt") openAddPrompt();
-  if (a === "codex-test") await startCodex({ test: true }, act);
-  if (a === "codex-run") await startCodex({ runId: act.dataset.runId, role: act.dataset.role }, act);
-  if (a === "save-llm") await saveLlm();
-  if (a === 'resume-siliconflow') {
-    if (!window.confirm(tr('恢复后 SiliconFlow 请求可能产生费用，确认恢复？'))) return;
-    await api('/api/llm/provider-pause',{method:'POST',body:{provider:'siliconflow',paused:false,confirmed:true}}); await reload();
-  }
-  if (a === 'save-vault') await saveVault();
-  if (a === 'refresh-vault') await refreshVaultStatus();
-  if (a === 'search-vault') await searchVault();
-  if (a === 'vault-files') await showVaultFiles();
-  if (a === 'sync-vault') { try { await api('/api/vault/sync',{method:'POST',body:{}}); await refreshVaultStatus(); } catch(err) { $('vault-status').textContent=err.message; } }
-  if (a === "test-llm") await testLlm();
-  if (a === "enable-ollama") await enableOllama();
-  if (a === "save-theme") await saveTheme();
-  if (a === "save-companion") return saveCompanion();
-  if (a === "preview-greeting") return previewGreeting();
-  if (a === "asset-rescan") {
-    if (document.querySelector("[data-asset-workspace]")) {
-      try { await rescanDiskSkills(); } catch (error) { window.alert(error.message); }
-    }
-    return reload();
-  }
-  if (a === "open-system") {
-    const url = act.dataset.url || "";
-    if (window.benchShell?.openExternal) await window.benchShell.openExternal(url);
-    else window.open(url, "_blank", "noopener,noreferrer");
-    return;
-  }
-  if (a === "manage-records") openArchive(primary,reload);
-  if (a === "tool-launch") {
-    const card = act.closest(".tool-card");
-    const receipt = card?.querySelector(".tool-receipt");
-    act.disabled = true;
-    try {
-      const result = await api(`/api/external-tools/${encodeURIComponent(act.dataset.toolId)}/launch`, { method: "POST", body: { actionId: act.dataset.actionId } });
-      if (receipt) receipt.textContent = result.executed ? tr("已请求本机打开。") : tr("已记录打开意图。当前系统不是 Windows，未执行命令。");
-    } catch (error) {
-      if (receipt) receipt.textContent = tr("打开失败：") + error.message;
-    } finally {
-      act.disabled = false;
-    }
-    return;
-  }
-  if (a === "tool-edit") {
-    const tool = (externalCatalog?.tools || []).find((item) => item.id === act.dataset.toolId);
-    if (!tool || !externalCatalog) return;
-    editTool(tool, externalCatalog.revision);
-    render();
-    document.getElementById("tool-editor")?.scrollIntoView({ block: "nearest" });
-    return;
-  }
-  if (a === "tool-add-action") { addToolAction(); render(); return; }
-  if (a === "tool-cancel") { clearToolDraft(); render(); return; }
-  if (a === "tool-save") {
-    const form = document.getElementById("tool-editor");
-    if (!form) return;
-    try {
-      externalCatalog = await api("/api/external-tools", { method: "POST", body: readToolForm(form) });
-      clearToolDraft();
-      render();
-    } catch (error) {
-      const note = form.querySelector(".tool-form-error") || form.appendChild(document.createElement("p"));
-      note.className = "tool-form-error";
-      note.textContent = tr("保存失败：") + error.message;
-    }
-    return;
-  }
-  if (a === "tool-delete") {
-    if (!window.confirm(tr("从本机清单移除这项工具？种子条目可以再显示。"))) return;
-    try {
-      externalCatalog = await api(`/api/external-tools/${encodeURIComponent(act.dataset.toolId)}`, { method: "DELETE", body: { expectedRevision: externalCatalog?.revision } });
-      clearToolDraft();
-      render();
-    } catch (error) {
-      window.alert(tr("保存失败：") + error.message);
-    }
-    return;
-  }
-  if (a === "save-language") { await api("/api/meta",{method:"PATCH",body:{language:$("language-select").value}}); await reload(); }
-  if (a === "save-reminder") await saveReminder();
-  if (a === "agenda-toggle") await toggleAgenda(act.dataset.id);
-  if (a === "agenda-materials") await editAgendaMaterials(act.dataset.id);
-  if (a === "agenda-review") await reviewAgenda(act.dataset.id);
-  if (a === "agenda-notes") await openNotesManager(getStore().agendas || [], api, reload);
-  if (a === "agenda-delete") await deleteAgenda(act.dataset.id);
-  if (a === "agenda-edit") editAgenda(act.dataset.id);
-  if (a === "agenda-ai-draft") await draftAgendaWithAi();
-  if (a === "agenda-view") setAgendaView(act.dataset.view);
-  if (a === "agenda-filter") setAgendaFilter(act.dataset.agendaFilter);
-  if (a === "agenda-nav") shiftAgendaPeriod(Number(act.dataset.shift || 0));
-  if (a === "agenda-open-day") { agendaDate = act.dataset.date || agendaDate; setAgendaView("day"); }
-  if (a === "agenda-open-material") await openAgendaMaterial(act.dataset.id, act.dataset.index);
-  if (a === "agenda-report-draft") await draftAgendaReport();
-  if (a === "agenda-report-save") await saveAgendaReport();
-  if (a === 'agenda-report-save-historical') await saveAgendaReport(true);
-  if (a === 'agenda-report-regenerate') { if (agendaReportDraft?.sourceMode==='saved-reviews') await previewSavedReviewReport(); else await startAgendaReport({confirmedReplace:true}); }
-  if (a === 'agenda-report-save-cancel') { agendaReportExportPreview=null;render(); }
-  if (a === "agenda-report-discard") { agendaReportDraft = null; render(); }
-  if (a === "habit-toggle") await toggleHabit(act.dataset.id);
-  if (a === "learning-session-toggle") await toggleLearningSession(act.dataset.planId, act.dataset.sessionId);
-  if (a === "learning-draft-adopt") await adoptLearningDraft();
-  if (a === "learning-draft-discard") { learningPlanDraft = null; render(); }
-  if (a === "department-model-execute") await modelExecuteDepartment(act.dataset.runId, act.dataset.itemId, act);
-  if (a === "department-auto-run") await autoRunDepartment(act.dataset.runId, act);
-  if (a === "department-manual") openDepartmentManual(act.dataset.runId, act.dataset.itemId);
-  if (a === "external-retry") {
-    const runId = act.dataset.runId;
-    act.disabled = true;
-    act.textContent = tr("正在重试…");
-    try {
-      await api(`/api/departments/runs/${encodeURIComponent(runId)}/automation`, {method:"POST",body:{enabled:true,retry:true}});
-      await reload();
-      const latest = (getStore().externalJobs || []).find(job => job.runId === runId);
-      window.alert(latest?.status === 'failed' ? "重试未能启动：" + latest.error : tr("重试请求已提交，请查看成员自动执行状态。等待 WorkBuddy 领取时，也可手动运行其领取任务。"));
-    } catch (error) {
-      window.alert("重试失败：" + error.message);
-    } finally {
-      act.disabled = false;
-      act.textContent = tr("重试成员执行");
-    }
-  }
-  if (a === "agent-invitation") {
-    const run = (getStore().departmentRuns || []).find(r => r.id === act.dataset.runId);
-    if (!run) return;
-    const root = tr("D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台");
-    const invitations = ["workbuddy", "cursor"].map(member => {
-      const item = run.items.find(stage => stage.ownerAgentId === member);
-      const text = ui`请接入正式项目 ${run.id}。先读取 ${root}\\docs\\Agent接入邀请与项目协作协议.md。你的阶段：${item ? item.role + " / " + item.id : tr("协作成员")}。在你的工具环境运行：\nnode "${root}\\agent-client.js" wait ${member} ${run.id}\n有任务返回后先读取目标、约束、主管方案和项目原件，再执行。无任务时检查依赖并再次运行 wait；不要生成模拟回执。结果按协议通过 submit 回写。报告完整写作仍遵守用户的 Start Writing 要求。`;
-      return `<h3>${member}</h3><textarea class="full" rows="8" readonly>${esc(text)}</textarea>`;
-    }).join("");
-    $("modal").innerHTML = ui`<div class="sheet"><h2>一次性成员接入邀请</h2><p>将对应邀请发到成员自己的会话。领取命令会等待最多50秒，不会自行启动该软件。</p>${invitations}<button type="button" class="ghost" data-act="close-modal">关闭</button></div>`;
-    $("modal").hidden = false;
-  }
-  if (a === "project-manage") {
-    const run = (getStore().departmentRuns || []).find(r => r.id === act.dataset.runId);
-    if (!run) return;
-    const operation = act.dataset.operation;
-    let body = {};
-    if (operation === "delete") {
-      if (!window.confirm(ui`删除项目“${run.title}”？将删除工作台中的消息、阶段成果和成果登记，项目目录内的实际文件保留。`)) return;
-      await api(`/api/departments/runs/${encodeURIComponent(run.id)}`, { method: "DELETE" });
-    } else {
-      if (operation === "rename") {
-        const title = window.prompt(tr("项目名称"), run.title);
-        if (title === null || !title.trim()) return;
-        body.title = title.trim();
-      } else if (operation === "pin") body.pinned = !run.pinned;
-      else if (operation === "archive") { openArchive("department",reload,{collection:"departmentRuns",id:run.id}); return; }
-      await api(`/api/departments/runs/${encodeURIComponent(run.id)}`, { method: "PATCH", body });
-    }
-    await reload();
-    if (operation === "delete") go("department", "all");
-  }
-  if (a === "confirm-send") {
-    $("modal").hidden = true;
-    await sendCommand();
-  }
-  if (a === "sync") {
-    await api("/api/crew/sync", { method: "POST", body: {} });
-    await refreshCapabilities(true);
-  }
-  if (a === "gen") {
-    await api("/api/reports/generate", { method: "POST", body: { kind: act.dataset.kind } });
-    await reload();
-  }
-  if (a === "save-report") {
-    const body = $("report-body") && $("report-body").value;
-    await api(`/api/reports/${act.dataset.id}`, { method: "PATCH", body: { body } });
-    await reload();
-  }
-  if (a === "brief-filter") {
-    const filter = act.dataset.briefFilter;
-    if (["all", "today", "unread", "favorite"].includes(filter)) {
-      go("briefs", "all", filter);
-      $("ws-body").querySelector(`[data-brief-filter="${filter}"]`)?.focus({ preventScroll: true });
-    }
-  }
-  if (a === "brief-source") {
-    go("briefs", act.dataset.sourceId);
-    $("ws-body").querySelector('.brief-source-card[aria-pressed="true"]')?.focus({ preventScroll: true });
-  }
-  if (a === "brief-read") await updateBriefPreference(act, false);
-  if (a === "brief-favorite") await updateBriefPreference(act, true);
-  if (a === "backup") {
-    const blob = new Blob([JSON.stringify(getRawStore(), null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "workbench-store.json";
-    link.click();
-    URL.revokeObjectURL(url);
-  }
+  await runAction(a, act, e);
 });
 
 document.addEventListener("keydown", (e) => {
@@ -1625,7 +1634,7 @@ window.addEventListener("pagehide",()=>{
 });
 
 async function reload() {
-  const s = await api("/api/state");
+  const s = await api("/api/state?slice=ui");
   setStore(s);
   render();
 }

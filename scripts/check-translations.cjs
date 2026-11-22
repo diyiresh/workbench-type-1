@@ -13,6 +13,10 @@ files.push('public/js/compact-layout.js');
 files.push('public/js/sidebar-resize.js');
 files.push('public/js/pet.js');
 files.push('public/js/external-tools-ui.js');
+files.push('public/js/v8-studio.js');
+files.push('public/js/command-palette.js');
+files.push('public/js/features.js');
+files.push('public/js/decision-inbox.js');
 const needed=new Set();
 const han=/[\u3400-\u9fff]/;
 function add(value){if(han.test(value) && !/^[A-Z]:\\/.test(value))needed.add(value);}
