@@ -29,6 +29,7 @@ import { syncPet, previewGreeting } from './js/pet.js';
 import { mountSkillStudio, bindSkillSources } from './js/skill-studio-ui.js';
 import { mountDiskSkills, rescanDiskSkills } from './js/disk-skills-ui.js';
 import { mountExecution, bindConversion } from './js/execution-ui.js';
+import { growthView, mountGrowth } from './js/growth-ui.js';
 import { bindCompactLayout, mountCompactLayout } from './js/compact-layout.js';
 import { mountLively } from './js/lively.js';
 import { toolsView, filterLabel, bindToolEditor, captureToolForm, editTool, clearToolDraft, addToolAction, readToolForm, toolDraft } from './js/external-tools-ui.js';
@@ -156,7 +157,34 @@ function go(p, s, nextBriefFilter = "all") {
 
 // ---------- 简报弹窗 ----------
 
+const BRIEFING_LOCAL_DISMISS_KEY = 'bench-briefing-dismissed-on-v1';
+function locallyDismissedBriefings() {
+  try { return localStorage.getItem(BRIEFING_LOCAL_DISMISS_KEY) === ymd(); }
+  catch { return false; }
+}
+async function dismissBriefings() {
+  // Leaving the overlay must not depend on a successful preference write.
+  $("briefing").hidden = true;
+  $("briefing").innerHTML = "";
+  let rememberedLocally = false;
+  try { localStorage.setItem(BRIEFING_LOCAL_DISMISS_KEY, ymd()); rememberedLocally = true; } catch { /* server persistence remains available */ }
+  try {
+    await api("/api/briefings/dismiss", { method: "POST", body: {} });
+    $("briefing-dismiss-notice")?.remove();
+  } catch {
+    let notice = $("briefing-dismiss-notice");
+    if (!notice) {
+      notice = document.createElement('p'); notice.id = 'briefing-dismiss-notice'; notice.className = 'card'; notice.setAttribute('role', 'status');
+      $("ws-body").prepend(notice);
+    }
+    const english = document.documentElement.lang === 'en';
+    notice.textContent = rememberedLocally
+      ? (english ? 'Reminder closed. The server preference could not be saved; hidden for today in this browser.' : '提醒已关闭。服务端未保存偏好，今日不再弹出已在本浏览器生效。')
+      : (english ? 'Reminder closed. The preference could not be saved; it may reappear after reloading.' : '提醒已关闭。“今日不再弹出”未能保存，刷新后可能再次出现。');
+  }
+}
 async function maybeBriefings() {
+  if (locallyDismissedBriefings()) return;
   const pack = await api("/api/briefings");
   briefs = pack.items || [];
   if (!briefs.length) return;
@@ -255,7 +283,7 @@ function channels() {
       .join("");
   } else if (primary === "learn") {
     const plans = ((getStore().lifeSystem || {}).learningPlans || []).filter((x) => x.status === "active");
-    html += ui`<div class="sec">学习成长</div>${channelBtn("all", tr("繁星与银河"), plans.length ? ui`${plans.length} 个计划` : "")}`;
+    html += ui`<div class="sec">学习成长</div>${channelBtn("growth", "履职成长 V9")}${channelBtn("growth-plan", "八周路径")}${channelBtn("growth-cards", "工具卡片")}${channelBtn("growth-sources", "资料与指令")}${channelBtn("all", tr("繁星与银河"), plans.length ? ui`${plans.length} 个计划` : "")}`;
   } else if (primary === "life") {
     const todayRuns = ((getStore().lifeSystem || {}).habitRuns || []).filter((x) => x.date === ymd());
     html += ui`<div class="sec">生活管理</div>${channelBtn("all", tr("繁星与银河"), todayRuns.length ? ui`${todayRuns.length} 项今日习惯` : "")}`;
@@ -298,7 +326,7 @@ function workspace() {
     ops: REPORT_KINDS.includes(secondary) ? tr((OPS.find((o) => o.id === secondary) || { name: "经营报告" }).name) : tr("我的关注"),
     crew: secondary === "all" ? tr("成员中心") : agent(secondary).name,
     work: secondary === "all" ? tr("项目中心") : (m || {}).title || "",
-    learn: tr("学习成长"),
+    learn: secondary.startsWith('growth') ? '履职成长 V9' : tr("学习成长"),
     life: tr("生活管理"),
     memory: secondary === "papers" ? tr("论文") : tr("资产中心"),
     tools: tr("外部工具"),
@@ -314,7 +342,7 @@ function workspace() {
     ops: REPORT_KINDS.includes(secondary) ? tr("周期报告统一保存在这里，行程安排进入每日行程。") : tr("按关注分类阅读已入库的简报和记忆。经营报告仍在这一页生成。"),
     crew: tr("查看成员职责、台账指令和执行证据；登记状态不代表实时在线。"),
     work: tr("业务项目与协作任务共用入口，各自保留原记录。"),
-    learn: tr("繁星引用临时学习行程；银河保存经您采纳的学习计划。"),
+    learn: secondary.startsWith('growth') ? '管理能力与造价业务双线成长，学习活动与理解证据分别记录。' : tr("繁星引用临时学习行程；银河保存经您采纳的学习计划。"),
     life: tr("繁星保留生活行程；银河自动载入当天到期习惯。"),
     memory: tr("技能、知识原子、内容原料、教训和提示词都来自本机台账。"),
     tools: tr("从这里打开本机辅助工具。没有登记启动方式的条目不显示按钮。"),
@@ -336,7 +364,7 @@ function workspace() {
     if (primary === "work") return secondary === "all" ? businessProjectsView() : V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
     if (primary === "ops") return V.focusView(secondary);
     if (primary === "crew") return secondary === "all" ? V.crewAllView() : V.agentDetailView(agent(secondary));
-    if (primary === "learn") return V.frontView("learn", secondary, learningPlanDraft, learningFormDraft);
+    if (primary === "learn") return secondary.startsWith('growth') ? growthView() : V.frontView("learn", secondary, learningPlanDraft, learningFormDraft);
     if (primary === "life") return V.frontView("life", secondary);
     if (primary === "memory") return secondary === "papers" ? papersView() : assetsView(secondary, V.memoryView);
     if (primary === "tools") return toolsView(externalCatalog, secondary);
@@ -386,6 +414,7 @@ function workspace() {
   mountDiskSkills();
   mountExecution();
   void mountDecisionInbox();
+  void mountGrowth();
   mountCompactLayout();
   syncPet(getStore().meta?.companion);
   syncComposer();
@@ -1540,15 +1569,11 @@ document.addEventListener("click", async (e) => {
   if (brief) {
     const act = brief.dataset.brief;
     if (act === "skip") {
-      await api("/api/briefings/dismiss", { method: "POST", body: {} });
-      $("briefing").hidden = true;
-      $("briefing").innerHTML = "";
+      await dismissBriefings();
     } else {
       briefIndex += 1;
       if (briefIndex >= briefs.length) {
-        await api("/api/briefings/dismiss", { method: "POST", body: {} });
-        $("briefing").hidden = true;
-        $("briefing").innerHTML = "";
+        await dismissBriefings();
       } else showBrief();
     }
     return;

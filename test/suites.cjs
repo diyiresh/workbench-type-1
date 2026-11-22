@@ -4,6 +4,7 @@
 // Not listed on purpose: *-live.cjs and wecom-trigger-probe (real services), and
 // chat-bubbles / chat-input / department-scroll (read the running workbench at 127.0.0.1:3780).
 const unit = [
+  "growth.test.cjs", "growth-api.test.cjs", "desktop-bridge-prompt.test.js",
   "superagent-review-regressions.test.cjs", "superagent-intake.test.cjs", "superagent-watchdog.test.cjs", "superagent-async.test.cjs",
   "execution-governance.test.cjs", "execution-api.test.cjs", "skill-studio.test.cjs", "disk-skills.test.cjs",
   "project-chat.test.js", "cursor-long-prompt.test.js", "preparation-flow.test.js", "theme-contrast.test.js",
@@ -20,6 +21,7 @@ const unit = [
 ];
 
 const ui = [
+  "briefing-close.browser.cjs", "growth.browser.cjs",
   "workbench-v010.browser.cjs", "chat-timeline.browser.cjs", "delivery.browser.cjs", "report-draft-visibility.browser.cjs",
   "saved-review-report.browser.cjs", "agenda-report-members.browser.cjs", "agenda-report-export.browser.cjs",
   "agenda-filter.browser.cjs", "agenda-reschedule.browser.cjs", "brief-filters.browser.cjs", "review-note-members.browser.cjs",

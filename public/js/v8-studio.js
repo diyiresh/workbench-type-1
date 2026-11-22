@@ -16,7 +16,7 @@ export const LINKS = {
   today: [['#home/all','总览'],['#agenda/all','行程'],['#briefs/all','简报'],['#life/all','生活'],['#home/decisions','风险与决策'],['#home/modules','模块看板']],
   projects: [['#projects/business','业务项目'],['#projects/all','协作任务'],['#agents/all','成员'],['#projects/new','新建协作']],
   reflections: [['#reflections/all','行程思考'],['#reports/business','全部报告'],['#reports/monthly','月报']],
-  library: [['#assets/papers','论文'],['#assets/all','资产'],['#assets/skills','技能'],['#assets/knowledge','知识来源'],['#learn/all','学习'],['#reports/pain','行业痛点'],['#reports/frontier','科技前沿'],['#reports/ai-new','AI 上新'],['#reports/construction','建筑报告'],['#reports/lab','本地实验']],
+  library: [['#assets/papers','论文'],['#assets/all','资产'],['#assets/skills','技能'],['#assets/knowledge','知识来源'],['#learn/growth','履职成长 V9'],['#learn/all','学习'],['#reports/pain','行业痛点'],['#reports/frontier','科技前沿'],['#reports/ai-new','AI 上新'],['#reports/construction','建筑报告'],['#reports/lab','本地实验']],
   settings: [['#set/all','系统设置'],['#tools/all','外部工具'],['#set/help','使用说明']],
 };
 const GROUP_NAMES = { today:'今日', projects:'项目', reflections:'思考', library:'知识库', settings:'工具与设置' };

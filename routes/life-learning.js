@@ -6,6 +6,7 @@ const { ymd } = require("../lib/migrate");
 const { chat } = require("../lib/llm");
 const { inactive } = require("../lib/archive");
 const { lifeHabitsForDate, normalizeLearningDraft, adoptLearningPlan, completeLearningSession } = require("../lib/life-learning");
+const growth = require("../lib/growth");
 
 const LEARNING_SYSTEM = "你是学习规划助理。只能依据用户提供的学习目标、内容、可用时间和截止日期排计划；不得杜撰链接、书名、版本、视频、文档、课程、教程或任何事实。没有明确给出的材料时，只能安排概念梳理、用户自行练习、复盘和自测，不得要求观看视频或阅读文档。不要输出 JSON、Markdown 或解释，只输出如下行式协议：第一行 `TITLE: 计划标题`；后续每行严格为 `YYYY-MM-DD | HH:MM | 分钟数 | 本次学习主题 | 具体动作与完成标准`。sessions 只能安排今天至截止日期之间，最多 14 条；每条动作不超过 20 个汉字。";
 
@@ -84,6 +85,7 @@ module.exports = function lifeLearningRoutes({ writeStore }) {
     {
       method: "PATCH", path: /^\/api\/learning\/plans\/([^/]+)\/sessions\/([^/]+)$/,
       async handler({ req, res, store }, match) {
+        if ((store.lifeSystem?.learningPlans || []).some(plan => plan.id === match[1] && plan.program === growth.PROGRAM)) return sendJson(res, 409, { error: '请通过履职成长入口更新学习安排，保留分次记录和修订检查。' });
         const body = await readBody(req) || {};
         const plan = completeLearningSession(store, match[1], match[2], body.done, nowIso());
         if (!plan) return notFound(res);

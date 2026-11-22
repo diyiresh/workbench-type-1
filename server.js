@@ -25,6 +25,7 @@ const { importLegacyDailyPlanReminder } = require("./lib/legacy-reminder");
 const { openInExplorer } = require("./lib/local-opener");
 const externalTools = require("./lib/external-tools");
 const papers = require('./lib/paper-library');
+const growth = require('./lib/growth');
 const workspace = require("./lib/workspace");
 const agentDispatch = require("./lib/agent-dispatch");
 const { createRuntime } = require("./lib/external-runtime");
@@ -218,6 +219,25 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
   const method = req.method;
   const p = url.pathname;
   let store = readStore();
+
+  if (p === '/api/growth' || p.startsWith('/api/growth/')) {
+    try {
+      if (method === 'GET' && p === '/api/growth') return sendJson(res, 200, growth.snapshot(store));
+      if (method === 'GET' && p === '/api/growth/weekly-draft') return sendJson(res, 200, growth.weeklyDraft(store, Number(url.searchParams.get('week'))));
+      if (!['POST', 'PATCH'].includes(method)) return sendJson(res, 405, { error: '不支持此操作。' });
+      if (!isLoopback(req) || (req.headers.origin && req.headers.origin !== `http://${req.headers.host}`)) return sendJson(res, 403, { error: '履职成长仅允许本机同源保存。' });
+      const input = await readBody(req) || {}; store = readStore();
+      let result;
+      const session = p.match(/^\/api\/growth\/sessions\/([^/]+)$/);
+      const card = p.match(/^\/api\/growth\/cards\/([^/]+)(\/archive)?$/);
+      if (method === 'POST' && p === '/api/growth/activate') result = growth.activate(store, input);
+      else if (method === 'PATCH' && session) result = growth.setSession(store, decodeURIComponent(session[1]), input);
+      else if (method === 'POST' && p === '/api/growth/cards') result = growth.saveCard(store, null, input);
+      else if (method === 'PATCH' && card) result = card[2] ? growth.archiveCard(store, decodeURIComponent(card[1]), input) : growth.saveCard(store, decodeURIComponent(card[1]), input);
+      else return sendJson(res, 404, { error: '成长功能入口不存在。' });
+      writeStore(store); return sendJson(res, 200, { result });
+    } catch (error) { return sendJson(res, error.status || 400, { error: error.message }); }
+  }
 
   if (await domainRoutes({ req, res, url, p, method, store, reportManager, paperManager, launchDeps })) return true;
 
