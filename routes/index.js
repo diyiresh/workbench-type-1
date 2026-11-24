@@ -4,6 +4,8 @@
 // ctx: { req, res, url, p, method, store, reportManager, paperManager, launchDeps }.
 // Domains here own disjoint URL prefixes; department, inbox, task and generic record routes stay in server.js.
 const MODULES = [
+  require('./coordinator'),
+  require("./provider-connections"),
   require("./skills"),
   require("./codex"),
   require("./superagent"),

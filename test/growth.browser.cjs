@@ -21,7 +21,7 @@ const server = require('../server').createServer();
     assert.equal((await (await fetch(base + '/api/growth')).json()).plan, null);
     await page.getByLabel('第一周开始日期').fill('2026-11-09'); await page.getByRole('button', { name: '采纳八周计划', exact: true }).click();
     await page.locator('.growth-plan-status').waitFor();
-    assert.match(await page.title(), /Workbench V8/);
+    assert.match(await page.title(), /^BEN · Workbench$/);
     assert.equal(await page.locator('.v8-subnav a[href="#learn/growth"]').count(), 1, 'growth remains reachable in V8 navigation');
     assert.equal(await page.locator('.v8-subnav a[href="#assets/papers"]').count(), 1, 'V8 paper navigation remains available');
     await page.locator('#ws-body').evaluate(node => { node.scrollTop = 0; });

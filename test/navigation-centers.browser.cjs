@@ -49,12 +49,12 @@ const {createServer,readStore}=require('../server'); const server=createServer()
     await open('#assets/extensions');await page.locator('[data-extension="multica"]').waitFor();assert.match(await page.locator('[data-extension="multica"]').textContent(),/预留/);
     await open('#assets/knowledge');await page.waitForFunction(()=>document.querySelector('#vault-status').textContent.includes('未接通'));
     assert.match(await page.locator('#ws-body').textContent(),/排除 VaultRAG/);
-    for (const language of ['zh-CN','en']) for (const theme of ['violet','warm','night','guofeng']) {
+    for (const language of ['zh-CN','en']) for (const theme of ['studio','moonlit','porcelain','autumn']) {
       // Change only the isolated fixture's display preferences; no business operations.
-      await page.request.patch(base+'/api/meta',{data:{language,theme}});
-      await open('#assets/skills');await page.reload();await page.waitForFunction(theme=>document.documentElement.dataset.theme===theme,theme);await page.setViewportSize({width:390,height:844});
+      await page.request.patch(base+'/api/meta',{data:{language}});
+      await open('#assets/skills');await page.evaluate(palette=>localStorage.setItem('bench-appearance',JSON.stringify({palette})),theme);await page.reload();await page.waitForFunction(theme=>document.documentElement.dataset.studioPalette===theme,theme);await page.setViewportSize({width:390,height:844});
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-      assert.equal(await page.locator('html').getAttribute('data-theme'),theme);
+      assert.equal(await page.locator('html').getAttribute('data-studio-palette'),theme);
       assert.equal(await page.locator('#rail > [data-primary]').count(),11);
       await page.setViewportSize({width:1440,height:1000});
     }

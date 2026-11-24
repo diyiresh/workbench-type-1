@@ -5,7 +5,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const zlib = require("zlib");
-const { createLedger, writeBackups } = require("../lib/ledger-store");
+const { createLedger, writeBackups, DEFAULT_TIERS } = require("../lib/ledger-store");
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bench-ledger-"));
 const file = path.join(dir, "store.json");
@@ -101,6 +101,19 @@ const disk = () => JSON.parse(fs.readFileSync(file, "utf8"));
   const daily = fs.readdirSync(path.join(backups, "daily")).sort();
   assert.deepStrictEqual(daily, ["store-2026-11-20.json.gz", "store-2026-11-21.json.gz"]);
   assert.strictEqual(zlib.gunzipSync(fs.readFileSync(path.join(backups, "daily", daily[0]))).toString(), '{"n":1}', "daily keeps the first state of the day");
+}
+
+// Main-line policy: three recent copies, no hourly tier, and a seven-calendar-day restore window.
+{
+ const backups=path.join(dir,'slim-backups');
+ for(let day=1;day<=10;day++) writeBackups(backups,JSON.stringify({day}),DEFAULT_TIERS,new Date(`2026-11-${String(day).padStart(2,'0')}T08:00:00.000Z`));
+ assert.equal(fs.readdirSync(backups).filter(f=>f.endsWith('.json')).length,3);
+ assert.equal(fs.existsSync(path.join(backups,'hourly')),false);
+ assert.equal(fs.readdirSync(path.join(backups,'daily')).length,7);
+ writeBackups(backups,'{"day":20}',DEFAULT_TIERS,new Date('2026-11-20T08:00:00.000Z'));
+ const daily=fs.readdirSync(path.join(backups,'daily'));
+ assert.deepEqual(daily,['store-2026-11-20.json.gz'],'a gap cannot retain snapshots older than seven days');
+ assert.equal(zlib.gunzipSync(fs.readFileSync(path.join(backups,'daily',daily[0]))).toString(),'{"day":20}');
 }
 
 // Server: cached reads, ui slice and full state.

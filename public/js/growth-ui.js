@@ -9,7 +9,7 @@ const option = (value, label, current) => `<option value="${esc(value)}" ${Strin
 const weekOptions = current => Array.from({ length: 8 }, (_, i) => option(i + 1, `第${i + 1}周`, current)).join('');
 const activeCards = () => model.cards.filter(c => !c.archived);
 const tabFor = () => ({ 'growth-plan': 'plan', 'growth-cards': 'cards', 'growth-sources': 'sources' })[location.hash.split('/')[1]] || 'overview';
-export function growthView() { return '<section id="growth-root" class="growth" aria-label="履职成长 V9"><p role="status">正在载入履职成长…</p></section>'; }
+export function growthView() { return '<section id="growth-root" class="growth" aria-label="履职成长"><p role="status">正在载入履职成长…</p></section>'; }
 
 function editorDraft() {
   if (!selected) return null;
@@ -87,7 +87,7 @@ function filterCards(root) {
 function paint(root, notice = '', isError = false) {
   if (!root.isConnected) return;
   const tab = tabFor();
-  root.innerHTML = `${model.preview ? '<aside class="growth-warning" role="status">隔离演示：此处记录不进入正式工作台台账。正式服务重启后，从3780端口进入使用。</aside>' : ''}<header class="growth-hero"><div><div class="growth-eyebrow">WORKBENCH V9 · PROFESSIONAL GROWTH</div><h2>让每一次实践，长成判断力。</h2><p>管理能力与造价业务双线成长，保留学习、证据与思考。</p></div><span class="growth-seal" aria-hidden="true">学<br>以致用</span></header>
+  root.innerHTML = `${model.preview ? '<aside class="growth-warning" role="status">隔离演示：此处记录不进入正式工作台台账。正式服务重启后，从3780端口进入使用。</aside>' : ''}<header class="growth-hero"><div><div class="growth-eyebrow">WORKBENCH · PROFESSIONAL GROWTH</div><h2>让每一次实践，长成判断力。</h2><p>管理能力与造价业务双线成长，保留学习、证据与思考。</p></div><span class="growth-seal" aria-hidden="true">学<br>以致用</span></header>
     <nav class="growth-tabs" aria-label="履职成长分类">${[['overview', 'growth', '成长概览'], ['plan', 'growth-plan', '八周路径'], ['cards', 'growth-cards', '工具卡片'], ['sources', 'growth-sources', '资料与指令']].map(([id, route, label]) => `<a href="#learn/${route}" ${tab === id ? 'aria-current="page"' : ''}>${label}</a>`).join('')}<a href="#learn/all">原有学习计划 ↗</a></nav>
     <div id="growth-message" role="${isError ? 'alert' : 'status'}" class="${isError ? 'growth-warning' : 'growth-notice'}" ${notice ? '' : 'hidden'}>${esc(notice)}</div>
     ${tab === 'plan' ? planView() : tab === 'cards' ? cardsView() : tab === 'sources' ? sourcesView() : overview()}`;
@@ -104,7 +104,7 @@ async function refresh(root, notice) { model = await api('/api/growth'); setStor
 export async function mountGrowth() {
   const root = document.getElementById('growth-root'); if (!root || root.dataset.mounted) return; root.dataset.mounted = 'true';
   try { model = await api('/api/growth'); if (!root.isConnected) return; paint(root); }
-  catch (error) { root.innerHTML = `<p role="alert">${error.message.includes('not_found') ? 'V9页面已安装，原后台服务尚未加载新接口。需要重启正式服务后使用。' : esc(errorText(error))}</p><p><a href="http://127.0.0.1:3790/#learn/growth">打开V9隔离演示（记录与正式台账分开） →</a></p><button type="button" onclick="location.reload()">重新载入</button>`; return; }
+  catch (error) { root.innerHTML = `<p role="alert">${error.message.includes('not_found') ? '履职成长页面已安装，原后台服务尚未加载新接口。需要重启正式服务后使用。' : esc(errorText(error))}</p><p><a href="http://127.0.0.1:3790/#learn/growth">打开履职成长隔离演示（记录与正式台账分开） →</a></p><button type="button" onclick="location.reload()">重新载入</button>`; return; }
   root.addEventListener('input', e => { if (e.target.closest('#growth-card-form')) capture(e.target.closest('form')); if (e.target.id === 'growth-search') filterCards(root); if (e.target.closest('#growth-activate')) { drafts.activation = { startDate: e.target.value }; remember(); } });
   root.addEventListener('change', async e => {
     if (e.target.closest('#growth-card-form')) capture(e.target.closest('form'));

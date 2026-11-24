@@ -3,19 +3,22 @@
 const path=require('path');
 const fs=require('fs');
 const {status}=require('../lib/workbuddy-queue');
-const root=path.resolve(__dirname,'..','data','workbuddy-queue');
+const {submit,localBaseUrl}=require('../lib/workbuddy-submit');
+const root=path.resolve(process.env.BENCH_DATA_DIR || path.resolve(__dirname,'..','data'),'workbuddy-queue');
 (async()=>{
   if(process.argv[2]==='status')return console.log(JSON.stringify(status(root)));
+  const baseUrl=localBaseUrl(process.env.BENCH_URL);
+  if(process.argv[2]==='submit')return console.log(JSON.stringify(await submit({root,jobId:process.argv[3],draftPath:process.argv[4],baseUrl})));
   if(process.argv[2]==='started'){
     const jobId=process.argv[3];if(!/^[a-zA-Z0-9-]+$/.test(jobId||''))throw new Error('invalid_job_id');
     const request=JSON.parse(fs.readFileSync(path.join(root,jobId+'.request.json'),'utf8'));
     if(request.status!=='claimed'||!request.claimId||!request.attemptId)throw new Error('claim_receipt_required');
     const startPath=request.purpose==='agenda-report'?'/api/agenda/reports/jobs/'+encodeURIComponent(request.runId)+'/started':'/api/departments/runs/'+encodeURIComponent(request.runId)+'/execution/started';
-    const response=await fetch('http://127.0.0.1:3780'+startPath,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({attemptId:request.attemptId,claimId:request.claimId,inputHash:request.inputHash,idempotencyKey:'started:'+request.attemptId+':'+request.claimId}),signal:AbortSignal.timeout(10000)});
+    const response=await fetch(baseUrl+startPath,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({attemptId:request.attemptId,claimId:request.claimId,inputHash:request.inputHash,idempotencyKey:'started:'+request.attemptId+':'+request.claimId}),redirect:'error',signal:AbortSignal.timeout(10000)});
     const result=await response.json();if(!response.ok)throw new Error(result.error||'start_receipt_rejected');return console.log(JSON.stringify(result));
   }
   const idempotencyKey=require('crypto').randomUUID();
-  const response=await fetch('http://127.0.0.1:3780/api/workbuddy/claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idempotencyKey,workerId:'workbuddy-desktop'}),signal:AbortSignal.timeout(10000)});
+  const response=await fetch(baseUrl+'/api/workbuddy/claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idempotencyKey,workerId:'workbuddy-desktop'}),redirect:'error',signal:AbortSignal.timeout(10000)});
   const result=await response.json();
   if(!response.ok)throw new Error(result.error||'工作台领取未确认，停止执行并核对本机队列');
   console.log(JSON.stringify(result));

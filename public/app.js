@@ -12,7 +12,7 @@ import { defineActions, runAction } from "./js/actions.js";
 import { decisionInboxShell, mountDecisionInbox } from "./js/decision-inbox.js";
 import * as V from "./js/views.js";
 import { papersView, mountPapers } from "./js/paper-library-ui.js";
-import { mountStudio, todayView, reflectionsView, studioEnabled, useSavedClassicTheme, openComposer } from "./js/v8-studio.js";
+import { mountStudio, todayView, reflectionsView, openComposer } from "./js/v8-studio.js";
 import { t as tr, ui, systemFragment } from "./js/i18n.js";
 import { bindDelivery } from './js/delivery-ui.js';
 import { bindNoteSuggestion, openReviewNote, openNotesManager, resetSuggestion } from './js/agenda-notes-ui.js';
@@ -24,11 +24,12 @@ import { rememberChatPosition, restoreChatPosition } from "./js/chat-scroll.js";
 
 import { NAVIGATION as PRIMARY, resolveRoute, sectionFor, moduleTarget, FOCUS_CATEGORIES, REPORT_KINDS, focusCategoryFor } from './js/navigation.mjs';
 import { feedFor, assetSnapshot } from './js/focus.mjs';
+import { isWorkAgenda } from './js/agenda-scope.mjs';
 import { businessProjectsView, assetsView, setCapabilities } from './js/centers.js';
 import { syncPet, previewGreeting } from './js/pet.js';
 import { mountSkillStudio, bindSkillSources } from './js/skill-studio-ui.js';
 import { mountDiskSkills, rescanDiskSkills } from './js/disk-skills-ui.js';
-import { mountExecution, bindConversion } from './js/execution-ui.js';
+import { mountExecution, mountProviders, bindConversion } from './js/execution-ui.js';
 import { growthView, mountGrowth } from './js/growth-ui.js';
 import { bindCompactLayout, mountCompactLayout } from './js/compact-layout.js';
 import { mountLively } from './js/lively.js';
@@ -283,7 +284,7 @@ function channels() {
       .join("");
   } else if (primary === "learn") {
     const plans = ((getStore().lifeSystem || {}).learningPlans || []).filter((x) => x.status === "active");
-    html += ui`<div class="sec">学习成长</div>${channelBtn("growth", "履职成长 V9")}${channelBtn("growth-plan", "八周路径")}${channelBtn("growth-cards", "工具卡片")}${channelBtn("growth-sources", "资料与指令")}${channelBtn("all", tr("繁星与银河"), plans.length ? ui`${plans.length} 个计划` : "")}`;
+    html += ui`<div class="sec">学习成长</div>${channelBtn("growth", "履职成长")}${channelBtn("growth-plan", "八周路径")}${channelBtn("growth-cards", "工具卡片")}${channelBtn("growth-sources", "资料与指令")}${channelBtn("all", tr("繁星与银河"), plans.length ? ui`${plans.length} 个计划` : "")}`;
   } else if (primary === "life") {
     const todayRuns = ((getStore().lifeSystem || {}).habitRuns || []).filter((x) => x.date === ymd());
     html += ui`<div class="sec">生活管理</div>${channelBtn("all", tr("繁星与银河"), todayRuns.length ? ui`${todayRuns.length} 项今日习惯` : "")}`;
@@ -326,7 +327,7 @@ function workspace() {
     ops: REPORT_KINDS.includes(secondary) ? tr((OPS.find((o) => o.id === secondary) || { name: "经营报告" }).name) : tr("我的关注"),
     crew: secondary === "all" ? tr("成员中心") : agent(secondary).name,
     work: secondary === "all" ? tr("项目中心") : (m || {}).title || "",
-    learn: secondary.startsWith('growth') ? '履职成长 V9' : tr("学习成长"),
+    learn: secondary.startsWith('growth') ? '履职成长' : tr("学习成长"),
     life: tr("生活管理"),
     memory: secondary === "papers" ? tr("论文") : tr("资产中心"),
     tools: tr("外部工具"),
@@ -354,7 +355,7 @@ function workspace() {
 
   const body = safe(() => {
     if (primary === "reflections") return reflectionsView();
-    if (primary === "home" && secondary === "all") return studioEnabled() ? todayView() + V.homeAllView(overviewFilter, { board: false }) : V.homeAllView(overviewFilter);
+    if (primary === "home" && secondary === "all") return todayView() + V.homeAllView(overviewFilter, { board: false });
     if (primary === "home" && secondary === "modules") return V.homeAllView(overviewFilter, { hero: false, addModule: true });
     if (primary === "home") return V.moduleDetailView(m || { id: secondary, type: "project", title: tr("未知名") });
     if (primary === "deck") return decisionInboxShell() + V.deckView();
@@ -413,6 +414,7 @@ function workspace() {
   mountSkillStudio();
   mountDiskSkills();
   mountExecution();
+  mountProviders();
   void mountDecisionInbox();
   void mountGrowth();
   mountCompactLayout();
@@ -760,13 +762,6 @@ async function saveLlm() {
   };
   await api("/api/llm/config", { method: "PUT", body });
   $("llm-result").textContent = tr("已保存 ✓");
-  await reload();
-}
-
-async function saveTheme() {
-  const theme = $("theme-select").value;
-  await api("/api/meta", { method: "PATCH", body: { theme } });
-  useSavedClassicTheme();
   await reload();
 }
 
@@ -1338,7 +1333,7 @@ async function draftAgendaWithAi() {
   const box = $("agenda-ai-output");
   if (!box) return;
   box.hidden = false;
-  const entries = (getStore().agendas || []).filter((x) => x.date === agendaDate);
+  const entries = (getStore().agendas || []).filter((x) => isWorkAgenda(x) && x.date === agendaDate);
   if (!entries.length) {
     box.textContent = tr("请先录入至少一条真实事项。为了不凭空编造会议、人员或任务，空日程不调用 AI。");
     return;
@@ -1383,7 +1378,6 @@ defineActions("workbench", {
   "sync-vault": async (act, e) => { try { await api('/api/vault/sync',{method:'POST',body:{}}); await refreshVaultStatus(); } catch(err) { $('vault-status').textContent=err.message; } },
   "test-llm": async (act, e) => { await testLlm(); },
   "enable-ollama": async (act, e) => { await enableOllama(); },
-  "save-theme": async (act, e) => { await saveTheme(); },
   "save-companion": async (act, e) => { return saveCompanion(); },
   "preview-greeting": async (act, e) => { return previewGreeting(); },
   "asset-rescan": async (act, e) => {

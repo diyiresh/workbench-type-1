@@ -1,7 +1,7 @@
-/* V8 adds a presentation layer over the existing route/action contracts. */
+/* Workbench appearance over the shared route/action contracts. */
 #v8-nav,.v8-subnav,.v8-welcome,.v8-today-grid,.v8-thought,.v8-appearance-entry{display:none}
 :root[data-v8="true"]{--studio-heading:Georgia,"Noto Serif SC","Songti SC",SimSun,serif}
-:root[data-v8="true"]:not([data-studio-palette="classic"]){--rail:var(--side);--rail-deep:var(--side);--rail-ink:var(--ink);--rail-bg:none;--side-bg:none;--hero-a:var(--paper-soft);--hero-b:var(--paper-soft);--shadow:0 5px 22px #253b3110;--pink:var(--accent);--side-ink:var(--ink);--side-muted:var(--muted);--side-line:var(--line);--side-hover:var(--accent-soft);--side-sel:var(--accent-soft)}
+:root[data-v8="true"]{--rail:var(--side);--rail-deep:var(--side);--rail-ink:var(--ink);--rail-bg:none;--side-bg:none;--hero-a:var(--paper-soft);--hero-b:var(--paper-soft);--shadow:0 5px 22px #253b3110;--pink:var(--accent);--side-ink:var(--ink);--side-muted:var(--muted);--side-line:var(--line);--side-hover:var(--accent-soft);--side-sel:var(--accent-soft)}
 :root[data-v8="true"][data-studio-palette="studio"]{color-scheme:light;--side:#f6f3eb;--canvas:#faf7f0;--paper:#fffdf8;--paper-soft:#f4f0e7;--ink:#292e26;--muted:#63685b;--line:#dedbcf;--accent:#4c6648;--accent-deep:#354d32;--accent-soft:#e6ebdd;--ok:#386448;--danger:#a23c32;--warn:#886015;--warn-bg:#f6ecd3}
 :root[data-v8="true"][data-studio-palette="moonlit"]{color-scheme:dark;--side:#1c2424;--canvas:#1b2222;--paper:#242d2c;--paper-soft:#2a3532;--ink:#eef1e8;--muted:#b7c3b8;--line:#46534b;--accent:#a3d2b3;--accent-deep:#b4e4c4;--accent-soft:#344a3d;--ok:#a0d6b1;--danger:#ffaaa1;--warn:#e9c576;--warn-bg:#463e2b;--shadow:0 5px 22px #0002}
 :root[data-v8="true"][data-studio-palette="porcelain"]{color-scheme:light;--side:#edf2f6;--canvas:#f6f9fb;--paper:#fff;--paper-soft:#edf3f8;--ink:#233749;--muted:#586b7b;--line:#ced9e2;--accent:#34618a;--accent-deep:#244d73;--accent-soft:#dfebf4;--ok:#386c55;--danger:#a33b42;--warn:#8b621d;--warn-bg:#fbf0d8}
@@ -36,9 +36,6 @@
 #v8-palette li[aria-selected="true"],#v8-palette li:hover{background:var(--accent-soft);color:var(--accent-deep)}
 #v8-palette .v8-palette-empty{display:block;color:var(--muted);cursor:default}
 .v8-palette-help{margin:0;padding:8px 18px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
-.v8-classic-drawer{margin-top:18px;border:1px solid var(--line);border-radius:10px;padding:10px 14px}
-.v8-classic-drawer summary{cursor:pointer;font-size:13px}
-.v8-classic-drawer button{margin-top:10px}
 :root[data-v8="true"] #ws-head{padding:15px 30px;background:var(--canvas);min-height:65px}
 :root[data-v8="true"] #ws-head h1{font:22px var(--studio-heading);letter-spacing:0}
 :root[data-v8="true"] .v8-subnav{display:flex;gap:7px;padding:10px 28px;border-bottom:1px solid var(--line);overflow:auto;flex-shrink:0;background:var(--canvas)}
@@ -97,7 +94,7 @@
 :root[data-v8="true"][data-studio-palette="autumn"] .v8-landscape{filter:sepia(.45) saturate(1.2)}
 :root[data-v8="true"] .overview-stat .lv-stat-chip{background:var(--accent-soft);color:var(--accent-deep)}
 
-/* The old agenda hero assumed a dark backdrop. Give V8 controls explicit
+/* The old agenda hero assumed a dark backdrop. Give appearance controls explicit
    semantic surfaces and text instead of inheriting its translucent whites. */
 :root[data-v8="true"] .agenda-hero-controls{padding:12px;gap:16px;background:var(--paper);border:1px solid var(--line);border-radius:10px;color:var(--ink)}
 :root[data-v8="true"] .agenda-view-switch{background:#fcf3f3;border:1px solid #dbc0c4;padding:4px;gap:4px}
@@ -140,7 +137,7 @@
 :root[data-v8="true"] .agenda-report-cta{background:var(--paper-soft);border:1px solid var(--line);border-radius:10px}
 @media(max-width:1100px){:root[data-v8="true"] .agenda-layout{grid-template-columns:1fr}:root[data-v8="true"] .agenda-layout>.agenda-form{order:0;position:static}}
 
-/* Decision inbox and member activity: shared by the V8 and classic layouts. */
+/* Decision inbox and member activity: shared across workbench views. */
 .decision-inbox .decision-list{display:grid;gap:2px;margin-top:10px}
 .decision-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:baseline;padding:10px 4px;border-bottom:1px solid var(--line,#8883);text-decoration:none;color:inherit}
 .decision-row:hover,.decision-row:focus-visible{background:var(--accent-soft,#8881)}

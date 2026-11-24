@@ -71,14 +71,29 @@ const {createServer}=require('../server');const server=createServer();
  assert.equal(await page.locator('html').getAttribute('data-studio-palette'),'autumn');
  assert.equal(await page.locator('html').getAttribute('data-studio-density'),'compact');
  assert.equal(await page.locator('html').getAttribute('data-studio-artwork'),'false');
- await page.locator('[data-v8="appearance"]').first().click();assert.equal(await page.locator('#v8-classic option').count(),25);
- assert.equal(await page.locator('.v8-classic-drawer').evaluate(node=>node.open),false,'Classic themes stay collapsed behind the V8 palettes');
- await page.locator('.v8-classic-drawer summary').click();
- await page.selectOption('#v8-classic','night');await page.locator('[data-v8="apply"]').click();await page.reload();await page.locator('#v8-nav').waitFor();
- assert.equal(await page.locator('html').getAttribute('data-theme'),'night');
- await page.locator('[data-v8="appearance"]').first().click();await page.selectOption('#v8-layout','classic');await page.locator('[data-v8="apply"]').click();
- assert.equal(await page.locator('html').getAttribute('data-v8'),'false');
- await page.goto(base+'/#set/all');await page.locator('.v8-appearance-entry').click();await page.selectOption('#v8-layout','studio');await page.locator('[data-v8-palette="studio"]').click();await page.locator('[data-v8="apply"]').click();
+ await page.locator('[data-v8="appearance"]').first().click();
+ assert.equal(await page.locator('[data-v8-palette]').count(),4);
+ assert.equal(await page.locator('#v8-classic,#v8-layout,.v8-classic-drawer').count(),0);
+ assert.equal(await page.locator('#v8-appearance').textContent().then(t=>/经典主题|原版布局|V8/.test(t)),false);
+ await page.locator('[data-v8="cancel"]').first().click();
+ // Existing browser preferences migrate without a business write; retired palettes cannot return.
+ for(const palette of ['classic','moonlit']){
+  await page.evaluate(palette=>{localStorage.removeItem('bench-appearance');localStorage.setItem('bench-v8-appearance',JSON.stringify({palette,layout:'classic',classicTheme:'night',density:'compact',artwork:false,system:false}));},palette);
+  await page.reload();await page.locator('#v8-nav').waitFor();
+  assert.equal(await page.locator('html').getAttribute('data-v8'),'true');
+  assert.equal(await page.locator('html').getAttribute('data-studio-palette'),palette==='classic'?'studio':'moonlit');
+  assert.equal(await page.locator('html').getAttribute('data-theme'),null);
+  assert.equal(await page.locator('html').getAttribute('data-studio-density'),'compact');
+  assert.equal(await page.locator('html').getAttribute('data-studio-artwork'),'false');
+  assert.deepEqual(await page.evaluate(()=>Object.keys(JSON.parse(localStorage.getItem('bench-appearance'))).sort()),['artwork','density','palette','system']);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('bench-v8-appearance')),null);
+ }
+ assert.equal(await page.title(),'BEN · Workbench');
+ await page.goto(base+'/#set/all');await page.locator('.v8-appearance-entry').waitFor();
+ assert.equal(await page.locator('#theme-select,[data-act="save-theme"]').count(),0);
+ await page.locator('.v8-appearance-entry').click();await page.check('#v8-system');await page.locator('[data-v8="apply"]').click();
+ await page.emulateMedia({colorScheme:'dark'});await page.waitForFunction(()=>document.documentElement.dataset.studioPalette==='moonlit');assert.equal(await page.locator('html').getAttribute('data-studio-palette'),'moonlit');
+ await page.emulateMedia({colorScheme:'light'});await page.waitForFunction(()=>document.documentElement.dataset.studioPalette==='studio');assert.equal(await page.locator('html').getAttribute('data-studio-palette'),'studio');
  // Hidden features leave navigation and the palette, and come back when re-enabled; no business writes.
  await page.goto(base+'/#assets/all');await page.locator('.v8-subnav a[href="#assets/papers"]').waitFor();
  await page.locator('#v8-nav [data-v8="appearance"]').click();await page.locator('.v8-feature-drawer summary').click();
@@ -97,6 +112,6 @@ const {createServer}=require('../server');const server=createServer();
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await page.screenshot({path:path.join(root,'v8-mobile.png'),fullPage:true});
  assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);
- console.log('V8 grouping, legacy destinations, reflection search, theme preview/cancel/apply/reload, classic themes/layout fallback, feature hiding, mobile width and draft preservation passed; zero business writes. Screenshots: '+root);
+ console.log('Workbench grouping, legacy destinations, reflection search, theme preview/cancel/apply/reload, retired-theme preference migration and system color scheme, feature hiding, mobile width and draft preservation passed; zero business writes. Screenshots: '+root);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>server.close());

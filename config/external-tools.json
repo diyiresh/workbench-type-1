@@ -10,10 +10,26 @@
       "location": "D:\\ComfyUI_windows_portable",
       "note": "start_comfyui.bat 打开 8188。图像视频工作台地址是 8190；启动脚本名有记录，完整路径未核，所以这里只给地址。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "D:\\ComfyUI_windows_portable" },
-        { "id": "start", "kind": "start-file", "target": "D:\\ComfyUI_windows_portable\\start_comfyui.bat" },
-        { "id": "ui", "kind": "open-url", "target": "http://127.0.0.1:8188" },
-        { "id": "studio", "kind": "open-url", "target": "http://127.0.0.1:8190" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "D:\\ComfyUI_windows_portable"
+        },
+        {
+          "id": "start",
+          "kind": "start-file",
+          "target": "D:\\ComfyUI_windows_portable\\start_comfyui.bat"
+        },
+        {
+          "id": "ui",
+          "kind": "open-url",
+          "target": "http://127.0.0.1:8188"
+        },
+        {
+          "id": "studio",
+          "kind": "open-url",
+          "target": "http://127.0.0.1:8190"
+        }
       ]
     },
     {
@@ -25,7 +41,11 @@
       "location": "C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe",
       "note": "守护进程经常是停着的。ai-stack、VaultRAG 依赖它时先打开这一项。",
       "actions": [
-        { "id": "start", "kind": "start-file", "target": "C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe" }
+        {
+          "id": "start",
+          "kind": "start-file",
+          "target": "C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe"
+        }
       ]
     },
     {
@@ -37,10 +57,27 @@
       "location": "D:\\ai-stack",
       "note": "先打开 Docker Desktop，再 compose。WebUI 是 3002，Ollama 是 11434。本机没有单独的 Ollama 程序。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "D:\\ai-stack" },
-        { "id": "up", "kind": "command", "command": "docker-compose-up", "cwd": "D:\\ai-stack" },
-        { "id": "web", "kind": "open-url", "target": "http://localhost:3002" },
-        { "id": "ollama", "kind": "open-url", "target": "http://localhost:11434" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "D:\\ai-stack"
+        },
+        {
+          "id": "up",
+          "kind": "command",
+          "command": "docker-compose-up",
+          "cwd": "D:\\ai-stack"
+        },
+        {
+          "id": "web",
+          "kind": "open-url",
+          "target": "http://localhost:3002"
+        },
+        {
+          "id": "ollama",
+          "kind": "open-url",
+          "target": "http://localhost:11434"
+        }
       ]
     },
     {
@@ -52,7 +89,11 @@
       "location": "D:\\litellm-env\\Scripts\\litellm.exe",
       "note": "只登记这个可执行文件，不另写参数。",
       "actions": [
-        { "id": "start", "kind": "start-file", "target": "D:\\litellm-env\\Scripts\\litellm.exe" }
+        {
+          "id": "start",
+          "kind": "start-file",
+          "target": "D:\\litellm-env\\Scripts\\litellm.exe"
+        }
       ]
     },
     {
@@ -64,8 +105,16 @@
       "location": "C:\\UVR\\UVR.exe",
       "note": "分离程序。看板是旁边的「音频处理看板」。",
       "actions": [
-        { "id": "start", "kind": "start-file", "target": "C:\\UVR\\UVR.exe" },
-        { "id": "folder", "kind": "open-folder", "target": "C:\\UVR" }
+        {
+          "id": "start",
+          "kind": "start-file",
+          "target": "C:\\UVR\\UVR.exe"
+        },
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "C:\\UVR"
+        }
       ]
     },
     {
@@ -77,7 +126,11 @@
       "location": "D:\\tools\\音频处理看板.html",
       "note": "浏览器打开这份本地 HTML。",
       "actions": [
-        { "id": "open", "kind": "open-file", "target": "D:\\tools\\音频处理看板.html" }
+        {
+          "id": "open",
+          "kind": "open-file",
+          "target": "D:\\tools\\音频处理看板.html"
+        }
       ]
     },
     {
@@ -89,9 +142,21 @@
       "location": "D:\\tools\\StemDeck",
       "note": "可直接开 StemDeck.exe，或走 start-with-proxy.bat。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "D:\\tools\\StemDeck" },
-        { "id": "start", "kind": "start-file", "target": "D:\\tools\\StemDeck\\StemDeck.exe" },
-        { "id": "proxy", "kind": "start-file", "target": "D:\\tools\\StemDeck\\start-with-proxy.bat" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "D:\\tools\\StemDeck"
+        },
+        {
+          "id": "start",
+          "kind": "start-file",
+          "target": "D:\\tools\\StemDeck\\StemDeck.exe"
+        },
+        {
+          "id": "proxy",
+          "kind": "start-file",
+          "target": "D:\\tools\\StemDeck\\start-with-proxy.bat"
+        }
       ]
     },
     {
@@ -103,8 +168,16 @@
       "location": "D:\\tools\\ghidra_12.1.4_PUBLIC",
       "note": "12.1.4 PUBLIC，用 ghidraRun.bat。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "D:\\tools\\ghidra_12.1.4_PUBLIC" },
-        { "id": "start", "kind": "start-file", "target": "D:\\tools\\ghidra_12.1.4_PUBLIC\\ghidraRun.bat" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "D:\\tools\\ghidra_12.1.4_PUBLIC"
+        },
+        {
+          "id": "start",
+          "kind": "start-file",
+          "target": "D:\\tools\\ghidra_12.1.4_PUBLIC\\ghidraRun.bat"
+        }
       ]
     },
     {
@@ -116,8 +189,16 @@
       "location": "D:\\tools\\md2doc-main",
       "note": "旁边有 md2doc_venv。这里只启动已确认的运行.bat，不另写 python 命令。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "D:\\tools\\md2doc-main" },
-        { "id": "start", "kind": "start-file", "target": "D:\\tools\\md2doc-main\\运行.bat" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "D:\\tools\\md2doc-main"
+        },
+        {
+          "id": "start",
+          "kind": "start-file",
+          "target": "D:\\tools\\md2doc-main\\运行.bat"
+        }
       ]
     },
     {
@@ -129,8 +210,17 @@
       "location": "D:\\tools\\paperclip",
       "note": "在该目录执行 pnpm dev。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "D:\\tools\\paperclip" },
-        { "id": "dev", "kind": "command", "command": "pnpm-dev", "cwd": "D:\\tools\\paperclip" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "D:\\tools\\paperclip"
+        },
+        {
+          "id": "dev",
+          "kind": "command",
+          "command": "pnpm-dev",
+          "cwd": "D:\\tools\\paperclip"
+        }
       ]
     },
     {
@@ -142,8 +232,17 @@
       "location": "D:\\tools\\rea",
       "note": "在该目录执行 npm start。rea-providers 未单独核启动方式，不另列。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "D:\\tools\\rea" },
-        { "id": "start", "kind": "command", "command": "npm-start", "cwd": "D:\\tools\\rea" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "D:\\tools\\rea"
+        },
+        {
+          "id": "start",
+          "kind": "command",
+          "command": "npm-start",
+          "cwd": "D:\\tools\\rea"
+        }
       ]
     },
     {
@@ -155,7 +254,11 @@
       "location": "%LOCALAPPDATA%\\Programs\\WorkBuddy\\WorkBuddy.exe",
       "note": "本机安装程序。工作区目录是另一条卡片。",
       "actions": [
-        { "id": "start", "kind": "start-file", "target": "%LOCALAPPDATA%\\Programs\\WorkBuddy\\WorkBuddy.exe" }
+        {
+          "id": "start",
+          "kind": "start-file",
+          "target": "%LOCALAPPDATA%\\Programs\\WorkBuddy\\WorkBuddy.exe"
+        }
       ]
     },
     {
@@ -167,7 +270,11 @@
       "location": "D:\\Program Files\\workbuddy international\\WorkBuddyAI\\WorkBuddyAI.exe",
       "note": "与上面的 WorkBuddy 不是同一个程序。",
       "actions": [
-        { "id": "start", "kind": "start-file", "target": "D:\\Program Files\\workbuddy international\\WorkBuddyAI\\WorkBuddyAI.exe" }
+        {
+          "id": "start",
+          "kind": "start-file",
+          "target": "D:\\Program Files\\workbuddy international\\WorkBuddyAI\\WorkBuddyAI.exe"
+        }
       ]
     },
     {
@@ -179,7 +286,11 @@
       "location": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\2.workbuddy默认工作空间",
       "note": "打开默认工作空间文件夹。桌面快捷方式未给出可核验的完整路径，不另造 lnk。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\2.workbuddy默认工作空间" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\2.workbuddy默认工作空间"
+        }
       ]
     },
     {
@@ -191,7 +302,11 @@
       "location": "D:\\Program Files\\Cursor\\Cursor.exe",
       "note": "程序本身。工作台目录见「搭建工作台」。",
       "actions": [
-        { "id": "start", "kind": "start-file", "target": "D:\\Program Files\\Cursor\\Cursor.exe" }
+        {
+          "id": "start",
+          "kind": "start-file",
+          "target": "D:\\Program Files\\Cursor\\Cursor.exe"
+        }
       ]
     },
     {
@@ -203,7 +318,11 @@
       "location": "%LOCALAPPDATA%\\OpenAI\\Codex",
       "note": "只打开安装目录。未核到唯一的 exe 路径，不另造启动文件。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "%LOCALAPPDATA%\\OpenAI\\Codex" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "%LOCALAPPDATA%\\OpenAI\\Codex"
+        }
       ]
     },
     {
@@ -215,9 +334,21 @@
       "location": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台",
       "note": "start.bat 会跑 node server.js，并打开 3780。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台" },
-        { "id": "start", "kind": "start-file", "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\start.bat" },
-        { "id": "ui", "kind": "open-url", "target": "http://127.0.0.1:3780" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台"
+        },
+        {
+          "id": "start",
+          "kind": "start-file",
+          "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\搭建工作台\\start.bat"
+        },
+        {
+          "id": "ui",
+          "kind": "open-url",
+          "target": "http://127.0.0.1:3780"
+        }
       ]
     },
     {
@@ -229,7 +360,11 @@
       "location": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\3.chatgpt默认工作空间",
       "note": "打开文件夹。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\3.chatgpt默认工作空间" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\3.chatgpt默认工作空间"
+        }
       ]
     },
     {
@@ -241,7 +376,11 @@
       "location": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\4.visual studio code",
       "note": "只打开扫到的文件夹。不假设 code 命令已在 PATH。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\4.visual studio code" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\4.visual studio code"
+        }
       ]
     },
     {
@@ -253,8 +392,17 @@
       "location": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\4.remotion",
       "note": "待核。已记录的是这个目录和 npm run dev。render-speech.bat 没有完整路径，不单列。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\4.remotion" },
-        { "id": "dev", "kind": "command", "command": "npm-run-dev", "cwd": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\4.remotion" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\4.remotion"
+        },
+        {
+          "id": "dev",
+          "kind": "command",
+          "command": "npm-run-dev",
+          "cwd": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\5.cursor\\4.remotion"
+        }
       ]
     },
     {
@@ -266,9 +414,21 @@
       "location": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\SJZZ",
       "note": "start-dev.bat 启动 API :8000 和界面 :5173。打开界面需要程序已经在运行。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\SJZZ" },
-        { "id": "start", "kind": "start-file", "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\SJZZ\\scripts\\start-dev.bat" },
-        { "id": "ui", "kind": "open-url", "target": "http://127.0.0.1:5173" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\SJZZ"
+        },
+        {
+          "id": "start",
+          "kind": "start-file",
+          "target": "D:\\OneDrive\\Desktop\\Ben_My_Agent\\SJZZ\\scripts\\start-dev.bat"
+        },
+        {
+          "id": "ui",
+          "kind": "open-url",
+          "target": "http://127.0.0.1:5173"
+        }
       ]
     },
     {
@@ -277,10 +437,24 @@
       "category": "dev",
       "confidence": "high",
       "status": "ready",
-      "location": "Origin · tao-huang-code/Happy-family-happy-English",
-      "note": "这台电脑上未检出本地目录。配好路径后，可在下方改成该目录的 npm run dev。界面端口 43123。",
+      "location": "D:\\github\\Happy-family-happy-English",
+      "note": "scripts\\start-dev.bat 启动 npm run dev · 端口 43123。打开界面需要程序已在运行。",
       "actions": [
-        { "id": "ui", "kind": "open-url", "target": "http://127.0.0.1:43123" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "D:\\github\\Happy-family-happy-English"
+        },
+        {
+          "id": "start",
+          "kind": "start-file",
+          "target": "D:\\github\\Happy-family-happy-English\\scripts\\start-dev.bat"
+        },
+        {
+          "id": "ui",
+          "kind": "open-url",
+          "target": "http://127.0.0.1:43123"
+        }
       ]
     },
     {
@@ -292,7 +466,11 @@
       "location": "http://127.0.0.1:48731",
       "note": "工作台文档里的引擎地址。这里只打开页面，不启动 Docker。",
       "actions": [
-        { "id": "ui", "kind": "open-url", "target": "http://127.0.0.1:48731" }
+        {
+          "id": "ui",
+          "kind": "open-url",
+          "target": "http://127.0.0.1:48731"
+        }
       ]
     },
     {
@@ -434,8 +612,16 @@
       "location": "C:\\Users\\Benjamin\\deepseek-harness",
       "note": "依赖 WorkBuddy 自带的 node 和 @deepseek-ai/dsh。start-webui.bat 会自己找到它们。",
       "actions": [
-        { "id": "folder", "kind": "open-folder", "target": "C:\\Users\\Benjamin\\deepseek-harness" },
-        { "id": "start", "kind": "start-file", "target": "C:\\Users\\Benjamin\\deepseek-harness\\start-webui.bat" }
+        {
+          "id": "folder",
+          "kind": "open-folder",
+          "target": "C:\\Users\\Benjamin\\deepseek-harness"
+        },
+        {
+          "id": "start",
+          "kind": "start-file",
+          "target": "C:\\Users\\Benjamin\\deepseek-harness\\start-webui.bat"
+        }
       ]
     }
   ]

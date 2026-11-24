@@ -16,6 +16,7 @@ const skillStudio = require('./lib/skill-studio');
 const diskSkills = require('./lib/disk-skills');
 const governance = require('./lib/execution-governance');
 const executionCommands = require('./lib/execution-commands');
+const workflowRecovery = require('./lib/workflow-recovery');
 const reportJobs = require('./lib/agenda-report-jobs');
 const agendaReportManager = reportJobs.createManager({ readStore, writeStore });
 const { createManager } = require("./lib/codex-jobs");
@@ -54,13 +55,16 @@ const paperLibrary = papers.createLibrary({readStore,writeStore,dataDir:DATA});
 const externalRuntime = createRuntime({ readStore, writeStore, artifactRoot: path.join(DATA,"agent-results") });
 const deliveryManager = delivery.createManager({ readStore, writeStore, root: path.join(DATA, "deliveries"), reviewExecute: async (agentId, prompt, cwd, context) => {
   if (agentId === "codex") return (await require("./lib/codex").generate(prompt,{onStart:context.onStart,onBeforeStart:context.onBeforeStart})).text;
-  if (!["cursor", "workbuddy"].includes(agentId)) throw new Error("delivery_reviewer_adapter_unavailable");
+  if (!require('./lib/provider-catalog').EXTERNAL.includes(agentId)) throw new Error("delivery_reviewer_adapter_unavailable");
   return require("./lib/external-runtime").generate(agentId, prompt, cwd, context);
 } });
 const preparationFlow = require('./lib/preparation-flow').createPreparationFlow({ readStore, writeStore });
 const projectChat = require('./lib/project-chat').createChat({ readStore, writeStore });
+const dutyCoordinator=require('./lib/duty-coordinator');
+const dutyManager=dutyCoordinator.createCoordinator({readStore,writeStore,dataDir:DATA});
+const providerManager=require('./lib/provider-manager').createManager({readStore,writeStore,dataDir:DATA,generate:require('./lib/external-runtime').generate});
 // Domain route modules, checked in order before the core ledger routes below (see routes/index.js).
-const domainRoutes = createRouter(require("./routes")({ readStore, writeStore, DATA, SKILL_ROOT, diskCatalog, skillManager, codexManager }));
+const domainRoutes = createRouter(require("./routes")({ readStore, writeStore, DATA, SKILL_ROOT, diskCatalog, skillManager, codexManager,providerManager }));
 // 默认只绑本机；需要手机等局域网设备访问时，用 start-lan.bat 启动（HOST=0.0.0.0）
 const HOST = process.env.HOST || "127.0.0.1";
 const PORT = Number(process.env.PORT || 3780);
@@ -242,16 +246,32 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
   if (await domainRoutes({ req, res, url, p, method, store, reportManager, paperManager, launchDeps })) return true;
 
   const lockedRun = p.match(/^\/api\/departments\/runs\/([^/]+)\//);
-  const executionRoute=p.match(/^\/api\/departments\/runs\/([^/]+)\/execution(?:\/(control|skills|reconcile|retry|result|started))?$/);
+  const executionRoute=p.match(/^\/api\/departments\/runs\/([^/]+)\/execution(?:\/(control|skills|reconcile|retry|result|started|policy|assign|approve|failover))?$/);
   if(executionRoute){
     try{
       let fresh=readStore(),run=getRun(fresh,executionRoute[1]);
-      if(method==='GET'&&!executionRoute[2])return sendJson(res,200,{run:{id:run.id,automationPaused:!!run.automationPaused,resumeRequired:!!run.resumeRequired,archived:!!run.archived,controlGeneration:run.controlGeneration||0,externalAutomation:!!run.externalAutomation,items:run.items},attempts:(fresh.executionAttempts||[]).filter(a=>a.runId===run.id),legacyJobs:[...(fresh.codexJobs||[]),...(fresh.externalJobs||[])].filter(j=>j.runId===run.id&&!j.attemptId),skills:(fresh.skillLibrary||[]).filter(s=>!inactive(s)&&s.state==='published').map(s=>({id:s.id,name:s.draft.name,versions:s.versions,currentVersionId:s.currentVersionId})),channels:extensions.snapshot(fresh,{dataDir:DATA,automation:process.env.BENCH_DATA_DIR?null:extensions.workbuddyAutomation()}).agents,limits:{concurrentPerAgent:1,attemptsPerInput:3,reviewRounds:3,usage:'unknown'}});
+      if(method==='GET'&&!executionRoute[2])return sendJson(res,200,{run:{id:run.id,automationPaused:!!run.automationPaused,resumeRequired:!!run.resumeRequired,archived:!!run.archived,controlGeneration:run.controlGeneration||0,externalAutomation:!!run.externalAutomation,writingApproved:!!run.writingApproved,requiresWritingApproval:run.requiresWritingApproval!==false,recoveryPolicy:workflowRecovery.policy(run),dutyPolicy:dutyCoordinator.policy(fresh,run.id),coordinatorLastTickAt:fresh.coordinator?.lastTickAt||null,items:run.items},attempts:(fresh.executionAttempts||[]).filter(a=>a.runId===run.id),legacyJobs:[...(fresh.codexJobs||[]),...(fresh.externalJobs||[])].filter(j=>j.runId===run.id&&!j.attemptId),skills:(fresh.skillLibrary||[]).filter(s=>!inactive(s)&&s.state==='published').map(s=>({id:s.id,name:s.draft.name,versions:s.versions,currentVersionId:s.currentVersionId})),channels:extensions.snapshot(fresh,{dataDir:DATA,automation:process.env.BENCH_DATA_DIR?null:extensions.workbuddyAutomation()}).agents,limits:{concurrentPerAgent:1,attemptsPerInput:3,reviewRounds:3,usage:'unknown'}});
       if(method!=='POST'||!isLoopback(req))return sendJson(res,403,{error:'execution_local_only'});
       const body=await readBody(req)||{};fresh=readStore();run=getRun(fresh,run.id);
       const scope=run.id+'/'+executionRoute[2],old=executionCommands.receipt(fresh,scope,body);if(old)return sendJson(res,200,old);
       let result;
-      if(executionRoute[2]==='control'){
+      if(executionRoute[2]==='policy'){
+        if(inactive(run))throw governance.error('project_paused_or_archived');
+        workflowRecovery.configure(run,body);result={policy:workflowRecovery.policy(run)};
+        postMessage(fresh,{runId:run.id,sender:'chairman',type:'decision',text:`自动恢复策略已确认：${body.enabled?'启用':'关闭'}；连续调用上限 ${body.maxAttempts}；替补复核 ${body.reviewerFallback}。`});
+      }else if(executionRoute[2]==='failover'){
+        result={policy:dutyCoordinator.configure(fresh,run,body)};
+        postMessage(fresh,{runId:run.id,sender:'chairman',type:'decision',text:body.enabled?'已批准75分钟未领取补位：Cursor 正文，Codex 独立复核。':'已停用未领取任务的自动补位。'});
+      }else if(executionRoute[2]==='assign'){
+        if(inactive(run))throw governance.error('project_paused_or_archived');
+        result=workflowRecovery.assign(fresh,run,body);
+      }else if(executionRoute[2]==='approve'){
+        if(inactive(run)||body.expectedGeneration!==(run.controlGeneration||0)||body.confirmed!==true)throw governance.error('input_changed');
+        const executor=getItem(run,'executor');
+        if(executor.preparationReady&&run.preparationFlow?.status!=='awaiting_confirmation')throw governance.error('preparation_not_ready');
+        if(!run.writingApproved){run.writingApproved=true;governance.touch(run);if(executor.preparationReady&&executor.status==='doing'){executor.status='queued';executor.preparationReady=false;const assignment=(fresh.inbox||[]).find(m=>m.runId===run.id&&m.departmentItemId===executor.id);if(assignment)assignment.status='queued';}postMessage(fresh,{runId:run.id,sender:'chairman',type:'decision',text:'已在项目控制面板确认正式写作。'});}
+        result={writingApproved:true};
+      }else if(executionRoute[2]==='control'){
         if(inactive(run))throw governance.error('project_paused_or_archived');
         if(body.expectedGeneration!==(run.controlGeneration||0)||!['pause','resume'].includes(body.action))throw governance.error('input_changed');
         run.automationPaused=body.action==='pause';governance.touch(run);result={paused:run.automationPaused};
@@ -943,6 +963,7 @@ async function main() {
   ensureDirs();
   codexManager.recover();
   {const s=readStore();if(governance.recover(s))writeStore(s);}
+  providerManager.recover();
   skillManager.recover();
   agendaReportManager.recover();
   const store = readStore();
@@ -965,6 +986,8 @@ async function main() {
     preparationFlow.recover();
     projectChat.recover();
     setInterval(() => { try { projectChat.tick(); } catch (err) { console.error('群聊调度错误：', err.message); } }, 2000);
+    dutyManager.tick();
+    setInterval(()=>{try{dutyManager.tick();}catch(err){console.error('值班巡检错误：',err.message);}},60000);
     deliveryManager.recover();
     setInterval(() => { try { deliveryManager.tick(); codexManager.tick(); externalRuntime.tick(); preparationFlow.tick(); } catch (err) { console.error("成员调度错误：", err.message); } }, 5000);
     setInterval(() => void dispatchDueAgendaReminders(), 60 * 1000);

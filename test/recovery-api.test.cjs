@@ -1,0 +1,20 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('fs'),os=require('os'),path=require('path');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'recovery-api-'));process.env.BENCH_DATA_DIR=root;
+const dept=require('../lib/department'),gov=require('../lib/execution-governance');
+const store=require('../lib/default-store').buildDefaultStore();store.remote.vault={enabled:false};store.departmentRuns=[];const run=dept.createDepartmentRun(store,{goal:'Synthetic controls',requiresWritingApproval:true});run.automationPaused=true;const executor=dept.getItem(run,'executor');executor.status='queued';fs.writeFileSync(path.join(root,'store.json'),JSON.stringify(store));
+const {createServer,readStore,writeStore}=require('../server');const server=createServer();
+(async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port+'/api/departments/runs/'+run.id+'/execution';let count=0;
+ async function post(action,body,status=200){const res=await fetch(url+'/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idempotencyKey:'test-'+(++count),...body})});const v=await res.json();assert.equal(res.status,status,JSON.stringify(v));return v;}
+ let model=await (await fetch(url)).json();assert.equal(model.run.writingApproved,false);assert.equal(model.run.recoveryPolicy.enabled,true);
+ const setting={expectedGeneration:model.run.controlGeneration,confirmed:true,enabled:true,maxAttempts:2,reviewerFallback:'codex',idempotencyKey:'policy-once'};await post('policy',setting);await post('policy',setting);
+ model=await(await fetch(url)).json();await post('policy',{...setting,idempotencyKey:'stale',expectedGeneration:0},409);
+ await post('assign',{confirmed:true,expectedGeneration:model.run.controlGeneration,stepId:executor.id,ownerAgentId:'cursor'},409);
+ await post('assign',{confirmed:true,expectedGeneration:model.run.controlGeneration,stepId:executor.id,ownerAgentId:'workbuddy'});
+ model=await(await fetch(url)).json();await post('approve',{confirmed:true,expectedGeneration:model.run.controlGeneration});assert.equal(readStore().departmentRuns[0].writingApproved,true);
+ let s=readStore();const r=s.departmentRuns[0];r.writingApproved=false;dept.getItem(r,'executor').preparationReady=true;r.preparationFlow={status:'reviewing'};writeStore(s);model=await(await fetch(url)).json();await post('approve',{confirmed:true,expectedGeneration:model.run.controlGeneration},409);
+ assert.equal(readStore().executionAttempts?.length||0,0);
+ s=readStore();s.departmentRuns[0].preparationFlow.status='awaiting_confirmation';dept.getItem(s.departmentRuns[0],'director').status='done';dept.getItem(s.departmentRuns[0],'director').output='Synthetic plan';dept.getItem(s.departmentRuns[0],'executor').status='doing';s.departmentRuns[0].workbuddyTransport='cli';s.departmentRuns[0].externalAutomation=true;s.departmentRuns[0].automationPaused=false;require('../lib/agent-dispatch').syncAssignments(s);const assignment=s.inbox.find(m=>m.runId===run.id&&m.departmentItemId===executor.id);assignment.status='doing';writeStore(s);model=await(await fetch(url)).json();await post('approve',{confirmed:true,expectedGeneration:model.run.controlGeneration});assert.equal(readStore().inbox.find(m=>m.id===assignment.id).status,'queued');
+ let calls=0;const runtime=require('../lib/external-runtime').createRuntime({readStore,writeStore,artifactRoot:path.join(root,'results'),execute:async()=>{calls++;return 'Actual synthetic formal draft';}});runtime.tick();await new Promise(r=>setImmediate(r));assert.equal(calls,1);assert.equal(dept.getItem(readStore().departmentRuns[0],'executor').status,'done');
+ console.log('Recovery API: explicit policy/idempotency, stale snapshot, independent assignment and preparation approval→actual formal execution passed; real Agent calls 0');
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>{server.close();fs.rmSync(root,{recursive:true,force:true});});

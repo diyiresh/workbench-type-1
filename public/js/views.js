@@ -11,9 +11,10 @@ import {
 import { renderCard, renderDetail } from "../modules/index.js";
 import { deliveryView } from './delivery-ui.js';
 import { agentEvidence } from './centers.js';
-import { executionPanel, conversionButton } from './execution-ui.js';
+import { executionPanel, conversionButton, providerPanel, projectMembers, MODEL_MEMBER_IDS } from './execution-ui.js';
 import { stageDescription } from './compact-layout.js';
 import { feedFor } from './focus.mjs';
+import { isWorkAgenda } from './agenda-scope.mjs';
 import { FOCUS_CATEGORIES, REPORT_KINDS, focusCategoryFor } from './navigation.mjs';
 
 // ---------- 指挥舱 / 事业部 ----------
@@ -256,7 +257,7 @@ export function crewAllView() {
   const digestTasks = (id) =>
     (s.tasks || []).filter((t) => t.ownerAgentId === id || (t.helperAgentIds || []).includes(id));
   const bcs = broadcastGroups().slice(0, 5);
-  return ui`<div class="filters"><button type="button" class="solid" data-act="sync">刷新台账状态</button></div><p class="k">刷新只读取现有记录，不联系成员、不修改同步时间、不恢复执行。</p>
+  return ui`<div class="filters"><button type="button" class="solid" data-act="sync">刷新台账状态</button></div><p class="k">刷新只读取现有记录，不联系成员、不修改同步时间、不恢复执行。</p>${providerPanel()}
     ${
       bcs.length
         ? ui`<div class="h">全员通告</div>${bcs
@@ -416,7 +417,7 @@ export function departmentView(runId = "all", draft = {}) {
   const llm = (s.remote && s.remote.llm) || {};
   const selected = runs.find((run) => run.id === runId);
   const defaultMembers = ["codex", "cursor", "workbuddy"];
-  const memberPicker = (s.agents || []).map((member) => `<label class="member-choice"><input type="checkbox" name="participantAgentIds" value="${esc(member.id)}" ${defaultMembers.includes(member.id) ? "checked" : ""} /><span><b>${esc(member.name)}</b><small>${esc(member.role || member.mode || tr("协作成员"))}</small></span></label>`).join("");
+  const memberPicker = projectMembers(s).map((member) => `<label class="member-choice"><input type="checkbox" name="participantAgentIds" value="${esc(member.id)}" ${defaultMembers.includes(member.id) ? "checked" : ""} /><span><b>${esc(member.name)}</b><small>${esc(member.role || member.mode || tr("协作成员"))}</small></span></label>`).join("");
   const intake = ui`<section class="department-intake card">
     <div class="row"><div><div class="eyebrow">NEW MISSION</div><div class="h">把目标交给整个部门</div></div><span class="chip ${llm.enabled ? "ok" : "warn"}">${llm.enabled ? tr("当前模型已启用") : tr("模型未启用 · 可先建台账")}</span></div>
     <form id="department-goal-form"><label>您要完成什么？</label><textarea name="goal" class="full" style="min-height:92px" required placeholder="例如：研究一个公开项目，形成可执行方案，并由另一角色独立检查。">${esc(draft.goal || "")}</textarea><label>背景、约束与已有材料（可选）</label><textarea name="context" class="full" style="min-height:82px" placeholder="截止时间、禁止事项、材料路径、判断标准……">${esc(draft.context || "")}</textarea><label>交付形式<select name="deliveryProfile" required><option value="">请选择交付形式</option><option value="text">正文即可</option><option value="single">一份 Word</option><option value="report-bundle">长篇、摘要、附件三份 Word</option></select></label><label>参与成员（创建后固定在项目房间）</label><div class="member-picker">${memberPicker}</div><label class="member-choice"><input type="checkbox" name="v2" value="1" /><span><b>v2 部门协作</b><small>董事长、主管与执行房间。不勾选则仍建立原来的四阶段。</small></span></label><div class="actions"><button class="solid" type="submit">建立项目房间</button></div></form>
@@ -439,7 +440,7 @@ export function departmentView(runId = "all", draft = {}) {
   const memberHtml = participants.map((member) => `<div class="room-member"><span class="avatar">${esc((member.name || "?").slice(0, 1))}</span><span><b>${esc(member.name)}</b><small>${esc(member.role || tr("成员"))}</small></span><i class="chip ${member.status === "active" ? "ok" : ""}">${(s.inbox || []).some(m => m.runId === selected.id && m.toAgentId === member.id && m.departmentItemId && m.status === "doing") ? tr("已领取任务") : (selected.items || []).some(i => i.ownerAgentId === member.id && i.status === "done") ? tr("已有阶段成果") : tr("未领取任务")}</i></div>`).join("");
   const taskHtml = (selected.items || []).map((item) => `<div class="room-task"><b>${esc(tr(item.label))}</b><span class="chip ${item.status === "done" ? "ok" : item.status === "doing" ? "doing" : ""}">${esc(tr(DEPARTMENT_STATUS[item.status] || item.status))}</span>${breakerBadge(item)}<small>${esc(agent(item.ownerAgentId).name)} · ${esc(((s.inbox || []).find(m => m.departmentItemId === item.id) || {}).status === "doing" ? tr("已领取") : item.status === "queued" ? tr("待成员领取") : item.status === "blocked" ? tr("等待前置成果") : item.status === "done" ? tr("已提交成果") : tr("阶段执行中"))}</small></div>`).join("");
   return ui`${selected.resumeRequired?ui`<div class="card"><b>项目已恢复并保持暂停</b><p>请在管理与归档中选择继续。原有复核暂停和写作批准仍须按原流程处理。</p></div>`:""}<section class="command-hero"><div><div class="eyebrow">PROJECT ROOM · ${esc(selected.planningMode === "model-assisted" ? tr("模型协作") : tr("等待总管"))}</div><h2>${esc(selected.title)}</h2><p>${esc(selected.goal)}</p></div><div class="hero-actions">${selected.status !== "completed" ? ui`<button type="button" class="solid" data-act="department-auto-run" data-run-id="${esc(selected.id)}">启动部门工作</button>` : ""}<button type="button" class="ghost" data-act="external-retry" data-run-id="${esc(selected.id)}">重试成员执行</button><button type="button" class="ghost" data-sec="new">新建项目</button></div></section>
-    ${externalStatus}${selected.preparationFlow ? ui`<section class="card"><h3>准备材料接力</h3><p>${esc(({reviewing:tr("Cursor 正在复核准备材料"),summarizing:tr("Codex 正在汇总问题与建议"),awaiting_confirmation:tr("复核与建议已完成，等待董事长确认及 Start Writing"),failed:tr("准备材料接力失败，请查看原因后重试")})[selected.preparationFlow.status] || selected.preparationFlow.status)}</p>${selected.preparationFlow.error ? `<p>${esc(selected.preparationFlow.error)}</p>` : ""}</section>` : ""}<section class="project-room"><aside class="room-panel card"><div class="eyebrow">MEMBERS · 项目成员</div><h2>参与成员</h2>${memberHtml || ui`<p class="k">未固定成员</p>`}</aside><main class="room-chat card"><div class="section-head"><div><div class="eyebrow">CHAT · 项目讨论</div><h2>项目群聊</h2></div><span>${projectMessages.length} 条消息</span></div><div class="messages project-messages">${messageHtml}</div><form class="room-composer" data-room-form="${esc(selected.id)}"><label class="chat-recipient">回复成员 <select name="recipient"><option value="all">Codex（默认）</option>${["codex","cursor","workbuddy"].filter(a => (selected.participantAgentIds || ["codex","cursor","workbuddy"]).includes(a)).map(a => `<option value="${a}">${esc(agent(a).name || a)}</option>`).join("")}<option value="everyone">三位成员分别回答</option></select><small>也可在正文 @成员；讨论不会自行改变阶段。</small></label><textarea name="text" rows="2" maxlength="12000" required aria-keyshortcuts="Alt+Enter" placeholder="直接提问，或 @Cursor / @WorkBuddy 讨论项目……"></textarea><button class="solid" type="submit">发送</button><small class="chat-key-hint">Enter 换行 · Alt+Enter 发送</small></form></main><aside class="room-panel card"><div class="eyebrow">TASKS · 成员任务</div><h2>任务与状态</h2>${taskHtml}</aside></section>
+    ${externalStatus}${selected.preparationFlow ? ui`<section class="card"><h3>准备材料接力</h3><p>${esc(({reviewing:tr("Cursor 正在复核准备材料"),summarizing:tr("Codex 正在汇总问题与建议"),awaiting_confirmation:tr("复核与建议已完成，等待董事长确认及 Start Writing"),failed:tr("准备材料接力失败，请查看原因后重试")})[selected.preparationFlow.status] || selected.preparationFlow.status)}</p>${selected.preparationFlow.error ? `<p>${esc(selected.preparationFlow.error)}</p>` : ""}</section>` : ""}<section class="project-room"><aside class="room-panel card"><div class="eyebrow">MEMBERS · 项目成员</div><h2>参与成员</h2>${memberHtml || ui`<p class="k">未固定成员</p>`}</aside><main class="room-chat card"><div class="section-head"><div><div class="eyebrow">CHAT · 项目讨论</div><h2>项目群聊</h2></div><span>${projectMessages.length} 条消息</span></div><div class="messages project-messages">${messageHtml}</div><form class="room-composer" data-room-form="${esc(selected.id)}"><label class="chat-recipient">回复成员 <select name="recipient"><option value="all">Codex（默认）</option>${MODEL_MEMBER_IDS.filter(a => (selected.participantAgentIds || MODEL_MEMBER_IDS).includes(a)).map(a => `<option value="${a}">${esc(agent(a).name || a)}</option>`).join("")}<option value="everyone">${tr("项目成员分别回答")}</option></select><small>也可在正文 @成员；讨论不会自行改变阶段。</small></label><textarea name="text" rows="2" maxlength="12000" required aria-keyshortcuts="Alt+Enter" placeholder="直接提问，或 @Cursor / @WorkBuddy 讨论项目……"></textarea><button class="solid" type="submit">发送</button><small class="chat-key-hint">Enter 换行 · Alt+Enter 发送</small></form></main><aside class="room-panel card"><div class="eyebrow">TASKS · 成员任务</div><h2>任务与状态</h2>${taskHtml}</aside></section>
     <section class="overview-stats"><article><b>${doneCount}/4</b><span>阶段完成</span><small>严格按依赖顺序解锁</small></article><article><b>${esc(tr((selected.items.find((item) => item.role === selected.currentRole) || {}).label || "完成"))}</b><span>当前阶段</span><small>${esc(tr(({awaiting_files:"待生成文件",awaiting_file_review:"待文件复核",awaiting_delivery_configuration:"待确定交付要求"})[selected.status] || selected.status))}</small></article><article><b>${(selected.artifacts || []).length}</b><span>材料</span><small>所有路径归入同一工作链</small></article><article><b>${(selected.discussion || []).length}</b><span>留痕</span><small>目标、成果与复核意见</small></article></section>
     ${selected.context ? ui`<div class="msg"><div class="who">背景与约束</div>${esc(selected.context)}</div>` : ""}
     ${orgTreeSection(selected)}
@@ -557,8 +558,8 @@ function starSection(kind) {
   const items = starAgendas(kind);
   const done = items.filter((item) => item.done).length;
   return ui`<section class="front-section">
-    <div class="front-section-head"><div><div class="eyebrow">STAR FIELD · 日程引用</div><h2>繁星</h2><p>从“日”板块分类为“${esc(kind)}”的零散行程。这里不复制数据，完成、复盘、材料与“日”即时同步。</p></div><span class="chip">${done} / ${items.length} 完成</span></div>
-    ${items.length ? `<div class="front-list">${items.map((item) => agendaItem(item)).join("")}</div>` : ui`<div class="agenda-empty">还没有从“日”板块流入的${esc(kind)}行程。</div>`}
+    <div class="front-section-head"><div><div class="eyebrow">STAR FIELD · 日程引用</div><h2>繁星</h2><p>分类为“${esc(kind)}”的日程在这里单独呈现，不显示在主行程中；完成、复盘和材料保留在同一份记录中。</p><a href="#agenda/all">前往行程界面制定日程 →</a></div><span class="chip">${done} / ${items.length} 完成</span></div>
+    ${items.length ? `<div class="front-list">${items.map((item) => agendaItem(item)).join("")}</div>` : ui`<div class="agenda-empty">还没有分类为“${esc(kind)}”的日程。</div>`}
   </section>`;
 }
 
@@ -580,7 +581,7 @@ function habitGalaxySection() {
 }
 
 function learningPlanCard(plan) {
-  if (plan.program === 'cost-management-v9') return `<article class="learning-plan-card"><h3>${esc(plan.title)}</h3><p>学习安排、理解证据和管理复盘集中在履职成长中保留。</p><a href="#learn/growth-plan">进入履职成长 V9 →</a></article>`;
+  if (plan.program === 'cost-management-v9') return `<article class="learning-plan-card"><h3>${esc(plan.title)}</h3><p>学习安排、理解证据和管理复盘集中在履职成长中保留。</p><a href="#learn/growth-plan">进入履职成长 →</a></article>`;
   if (plan.status === "completed") {
     return `<article class="achievement-card"><div class="eyebrow">LEARNING ACHIEVEMENT</div><b>🏆 ${esc(plan.achievement || ui`已完成对《${plan.title}》的学习，你真棒！`)}</b><p>${esc(plan.completedAt ? ui`完成于 ${fmt(plan.completedAt)} · 共 ${plan.completedSessions || 0} 个学习时段` : "")}</p></article>`;
   }
@@ -614,7 +615,7 @@ function learningGalaxySection(draft, formDraft = {}) {
 
 export function frontView(kind, secondary, learningDraft = null, learningFormDraft = {}) {
   if (kind === "life") return ui`<section class="front-hero"><div><div class="eyebrow">LIFE SYSTEM · 本机执行账</div><h2>生活战线：繁星与银河</h2><p>零散生活行程与固定习惯分开管理，但都保留为可勾选、可回看的真实行动。</p></div></section>${starSection("生活")}${habitGalaxySection()}`;
-  return ui`<section class="front-hero"><div><div class="eyebrow">LEARNING SYSTEM · 人工采纳</div><h2>学习战线：繁星与银河</h2><p>临时学习行程保持与“日”同步；体系化计划先由当前模型路由推理，再由您决定是否采纳。</p></div></section>${starSection("学习")}${learningGalaxySection(learningDraft, learningFormDraft)}`;
+  return ui`<section class="front-hero"><div><div class="eyebrow">LEARNING SYSTEM · 人工采纳</div><h2>学习战线：繁星与银河</h2><p>学习日程在此单独呈现；体系化计划先由当前模型路由推理，再由您决定是否采纳。</p></div></section>${starSection("学习")}${learningGalaxySection(learningDraft, learningFormDraft)}`;
 }
 
 // ---------- 每日行程：日 / 周 / 月共用同一份 agendas 台账 ----------
@@ -692,7 +693,7 @@ export function agendaView(date, mode = "day", reportDraft = null, filter = "all
   const reportTitles = {day:tr('基于本日已录入事项与复盘生成日报'),week:tr('基于本周已录入事项与复盘生成周报'),month:tr('基于本月已录入事项与复盘生成月报')};
   const reportActions = {day:tr('生成日报'),week:tr('生成周报'),month:tr('生成月报')};
   const range = periodForAgenda(mode, date);
-  const entries = (s.agendas || []).filter((item) => item.date >= range.start && item.date <= range.end)
+  const entries = (s.agendas || []).filter((item) => isWorkAgenda(item) && item.date >= range.start && item.date <= range.end)
     .slice().sort((a, b) => `${a.date}|${a.time || "99:99"}`.localeCompare(`${b.date}|${b.time || "99:99"}`));
   const done = entries.filter((item) => item.done).length;
   const important = entries.filter((item) => item.important).length;
@@ -720,7 +721,7 @@ export function agendaView(date, mode = "day", reportDraft = null, filter = "all
   const reportHtml = reportDraft ? ui`<section class="card agenda-report"><div class="section-head"><div><div class="eyebrow">AI DRAFT · 可编辑</div><h2>${esc(reportDraft.title)}</h2></div><button type="button" class="tiny" data-act="agenda-report-discard">放弃草稿</button></div><p class="agenda-report-notice ${reportDraft.modelApplied === false ? "is-warning" : ""}">${esc(reportDraft.notice || tr("请核对事实后再保存。"))}</p><textarea id="agenda-report-body" data-source-job-id="${esc(reportDraft.sourceJobId || '')}" rows="16">${esc(reportDraft.body)}</textarea>${saveChoices}<div class="actions"><button type="button" class="solid" data-act="agenda-report-save" ${options.saving ? "disabled" : ""}>${saveLabel}</button></div></section>` : "";
   const savedReviewButton = mode === 'month' ? ui`<section class="agenda-report-cta saved-review-report-cta"><div><div class="eyebrow">SAVED REVIEWS</div><b>月度思考与反思（逐项详细整理）</b><p>完整读取行程备注、原始复盘和已保存笔记，保留判断理由、具体例子及认识变化。</p></div><div class="report-member-controls"><label for="saved-review-report-agent">生成成员</label><select id="saved-review-report-agent"><option value="codex">Codex</option><option value="cursor">Cursor</option><option value="workbuddy">WorkBuddy</option></select><button type="button" class="solid" data-review-report-preview>生成月度思考与反思</button></div><div id="saved-review-report-sources" hidden></div><div id="saved-review-report-status" role="status" aria-live="polite"></div></section>` : '';
   const reportButton = ui`<section class="agenda-report-cta"><div><div class="eyebrow">PERIOD REPORT</div><b>${reportTitles[mode]}</b><p>仅将本周期事实交给所选成员；返回可编辑草稿，确认后保存。</p>${s.remote?.providerPauses?.siliconflow?.paused ? ui`<p>SiliconFlow 已暂停，配置已保留。</p>` : ""}</div><div class="report-member-controls"><label for="agenda-report-agent">生成成员</label><select id="agenda-report-agent"><option value="codex">Codex</option><option value="cursor">Cursor</option><option value="workbuddy">WorkBuddy</option></select><button type="button" class="solid" data-act="agenda-report-draft">${reportActions[mode]}</button></div><div id="agenda-report-status" role="status" aria-live="polite"></div></section>`;
-  return ui`<section class="agenda-hero"><div><div class="eyebrow">AGENDA · 本地单一台账</div><h2>${mode === "day" ? esc(dateText(date)) : ui`${labels[mode]}视图 · ${esc(range.start)} — ${esc(range.end)}`}</h2><p>日程只录一次；日、周、月只是从同一份本机台账查看不同范围。</p></div><div class="agenda-hero-controls"><div class="agenda-view-switch">${switches}</div><label class="date-picker">日期锚点<input id="agenda-date" type="date" value="${esc(date)}" /></label></div></section>
+  return ui`<section class="agenda-hero"><div><div class="eyebrow">AGENDA · 本地单一台账</div><h2>${mode === "day" ? esc(dateText(date)) : ui`${labels[mode]}视图 · ${esc(range.start)} — ${esc(range.end)}`}</h2><p>主行程仅展示工作与会议；生活、学习日程仍可在此制定，保存后分别在生活、学习板块查看。</p></div><div class="agenda-hero-controls"><div class="agenda-view-switch">${switches}</div><label class="date-picker">日期锚点<input id="agenda-date" type="date" value="${esc(date)}" /></label></div></section>
     ${navigator}
     <div class="actions"><button type="button" class="ghost" data-act="agenda-notes">复盘笔记</button></div>
     <section class="overview-stats agenda-stats">${statsHtml}</section>
@@ -767,12 +768,8 @@ export function setView() {
   <div class="card">
     <div class="eyebrow">APPEARANCE</div><div class="h">工作台主题</div>
     <p>主题只改变外观，不改变台账和功能。紫色指挥舱保留为默认选择。</p>
-    <label>当前主题</label>${(() => { const ids = ["violet","warm","night","guofeng","aubergine","clementine","banana","jade","lagoon","barbra","gray","mood-indigo","raspberry-beret","big-business","pog","mint-chip","pbj","chill-vibes","forest-floor","slackr","sea-glass","lemon-lime","falling-leaves","sunrise"]; const cur = ids.includes(s.meta && s.meta.theme) ? s.meta.theme : "violet"; return `<select id="theme-select" class="full">
-      <optgroup label="现有"><option value="violet" ${cur === "violet" ? "selected" : ""}>紫色指挥舱</option><option value="warm" ${cur === "warm" ? "selected" : ""}>暖白总控台</option><option value="night" ${cur === "night" ? "selected" : ""}>深色专注</option><option value="guofeng" ${cur === "guofeng" ? "selected" : ""}>中国风 · 青墨</option></optgroup>
-      <optgroup label="单一颜色"><option value="aubergine" ${cur === "aubergine" ? "selected" : ""}>Aubergine 茄紫</option><option value="clementine" ${cur === "clementine" ? "selected" : ""}>Clementine 橘橙</option><option value="banana" ${cur === "banana" ? "selected" : ""}>Banana 香蕉黄</option><option value="jade" ${cur === "jade" ? "selected" : ""}>Jade 翡翠</option><option value="lagoon" ${cur === "lagoon" ? "selected" : ""}>Lagoon 潟湖蓝</option><option value="barbra" ${cur === "barbra" ? "selected" : ""}>Barbra 芭比粉</option><option value="gray" ${cur === "gray" ? "selected" : ""}>Gray 素灰</option><option value="mood-indigo" ${cur === "mood-indigo" ? "selected" : ""}>Mood Indigo 靛蓝</option></optgroup>
-      <optgroup label="新颖有趣"><option value="raspberry-beret" ${cur === "raspberry-beret" ? "selected" : ""}>Raspberry Beret 覆盆子</option><option value="big-business" ${cur === "big-business" ? "selected" : ""}>Big Business 商务</option><option value="pog" ${cur === "pog" ? "selected" : ""}>POG 波格</option><option value="mint-chip" ${cur === "mint-chip" ? "selected" : ""}>Mint Chip 薄荷</option><option value="pbj" ${cur === "pbj" ? "selected" : ""}>PB&J 花生果酱</option><option value="chill-vibes" ${cur === "chill-vibes" ? "selected" : ""}>Chill Vibes 清凉</option><option value="forest-floor" ${cur === "forest-floor" ? "selected" : ""}>Forest Floor 林地</option><option value="slackr" ${cur === "slackr" ? "selected" : ""}>Slackr 炫彩</option><option value="sea-glass" ${cur === "sea-glass" ? "selected" : ""}>Sea Glass 海玻璃</option><option value="lemon-lime" ${cur === "lemon-lime" ? "selected" : ""}>Lemon Lime 柠檬青柠</option><option value="falling-leaves" ${cur === "falling-leaves" ? "selected" : ""}>Falling Leaves 落叶</option><option value="sunrise" ${cur === "sunrise" ? "selected" : ""}>Sunrise 日出</option></optgroup>
-    </select>`; })()}<div class="actions" style="margin-top:10px"><button type="button" class="solid" data-act="save-theme">应用主题</button></div>
-    <p>中国风 · 青墨：宣纸底色、松绿导航、青玉按钮与朱砂点缀。</p>
+    <p>四种配色、界面密度、装饰图与跟随系统明暗，只保存在当前浏览器。</p>
+    <button type="button" class="solid v8-appearance-entry" data-v8="appearance">${tr('打开外观设置')}</button>
   </div>
   <div class="card" id="companion-settings">
     <div class="eyebrow">JARVIS</div><div class="h">陪伴宠物</div>
