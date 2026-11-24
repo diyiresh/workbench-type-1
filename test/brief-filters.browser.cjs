@@ -23,7 +23,7 @@ const server = createServer();
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const base = 'http://127.0.0.1:' + server.address().port;
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
-  require('./helpers/classic-layout.cjs')(browser);
+
   try {
     const page = await browser.newPage({ viewport: { width: 1500, height: 1000 }, timezoneId: 'Asia/Shanghai' });
     page.setDefaultTimeout(10000);
@@ -68,12 +68,12 @@ const server = createServer();
     assert.deepEqual(await ids(), ['today-unread', 'old-saved']);
     assert.equal(await page.locator('.brief-stat[aria-pressed="true"]').count(), 0);
     await select('unread');
-    await page.locator(`#channels [data-sec="${sourceB}"]`).click();
+    await source(sourceB).click();
     assert.deepEqual(await ids(), ['today-saved', 'old-unread']);
     assert.equal(await source(sourceB).getAttribute('aria-pressed'), 'true');
     await source(sourceD).focus(); await page.keyboard.press('Enter');
     assert.equal(await page.locator('.brief-run').count(), 0);
-    await page.locator('#channels [data-sec="all"]').click();
+    await select('all');
     assert.deepEqual(await ids(), all);
     await source(sourceA).click();
     await page.reload(); await card('all').waitFor();
@@ -97,8 +97,8 @@ const server = createServer();
     await page.reload(); await card('all').waitFor();
     assert.deepEqual(await counts(), ['4', '3', '2', '2']);
     await select('favorite');
-    await page.locator('#rail [data-primary="home"]').click();
-    await page.locator('#rail [data-primary="briefs"]').click();
+    await page.goto(base+'/#home/all');
+    await page.goto(base+'/#briefs/all');
     assert.equal(await card('all').getAttribute('aria-pressed'), 'true');
     assert.deepEqual(await ids(), all);
 
@@ -136,8 +136,8 @@ const server = createServer();
     await toggleSaved('today-unread'); await toggleSaved('old-saved');
     assert.equal(await page.locator('.agenda-empty').textContent(), 'No briefings match the current filter.');
     assert.deepEqual(await counts(), ['4', '3', '2', '0']);
-    for (const theme of ['violet', 'warm', 'dark']) {
-      assert((await page.request.patch(base + '/api/meta', { data: { theme } })).ok());
+    for (const theme of ['studio', 'moonlit', 'porcelain', 'autumn']) {
+      await page.evaluate(palette=>localStorage.setItem('bench-appearance',JSON.stringify({palette})),theme);
       await page.reload(); await card('all').waitFor(); await select('unread');
       const colors = await page.evaluate(() => [getComputedStyle(document.querySelector('.brief-stat.active')).backgroundColor, getComputedStyle(document.querySelector('[data-brief-filter="favorite"]')).backgroundColor]);
       assert.notEqual(colors[0], colors[1]);

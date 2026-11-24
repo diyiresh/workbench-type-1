@@ -22,14 +22,14 @@ const {createServer,readStore}=require('../server'),server=createServer();
 (async()=>{
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+server.address().port;
   const browser=await chromium.launch({channel:'msedge',headless:true});
-  require('./helpers/classic-layout.cjs')(browser);
+
   try{
     const page=await browser.newPage({viewport:{width:1500,height:1000},timezoneId:'Asia/Shanghai'}),errors=[],writes=[];
     page.on('pageerror',error=>errors.push(error.message));page.setDefaultTimeout(10000);
     await page.clock.install({time:new Date('2026-10-18T12:00:00+08:00')});
     await page.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));
     page.on('request',request=>{if(request.method()!=='GET')writes.push(request.url());});
-    await page.goto(base+'/#home');await page.locator('.overview-stat').first().waitFor();
+    await page.goto(base+'/#home/modules');await page.locator('.overview-stat').first().waitFor();
     const initial=JSON.parse(JSON.stringify(readStore()));
     const counts=async()=>page.locator('.overview-stat b').allTextContents();
     assert.deepEqual(await counts(),['3','2','4','2']);
@@ -40,7 +40,7 @@ const {createServer,readStore}=require('../server'),server=createServer();
       const ids=await page.locator('#overview-results [data-overview-id]').evaluateAll(nodes=>nodes.map(node=>node.dataset.overviewId));
       assert.deepEqual(ids.sort(),expected.sort());assert.deepEqual(await counts(),['3','2','4','2']);
       assert.equal(await page.locator('.overview-stat[aria-pressed="true"]').count(),1);
-      assert(['#home','#home/all'].includes(new URL(page.url()).hash));
+      assert(['#home/modules'].includes(new URL(page.url()).hash));
     };
     await select('doing',['doing','review','stale']);
     await select('today',['today','completed']);assert.match(await page.locator('#overview-results').textContent(),/已完成/);
@@ -55,23 +55,23 @@ const {createServer,readStore}=require('../server'),server=createServer();
     assert.equal(await page.locator('#overview-results').getAttribute('data-overview-view'),'risks');
     await page.getByRole('button',{name:'显示全部模块',exact:true}).click();assert.equal(await page.locator('#overview-results [draggable]').count(),2);
     assert.equal(await page.locator('.overview-stat[aria-pressed="true"]').count(),0);
-    await page.locator('#overview-results [data-mod="one"]').click();await page.locator('#rail [data-primary="home"]').click();
+    await page.locator('#overview-results [data-mod="one"]').click();await page.goto(base+'/#home/modules');
     assert.equal(await page.locator('#overview-results').getAttribute('data-overview-view'),'all');
     await select('doing',['doing','review','stale']);await page.reload();await page.locator('#overview-results').waitFor();assert.equal(await page.locator('#overview-results').getAttribute('data-overview-view'),'all');
     await select('risks',['stale','blocked','overdue','multi']);
-    await page.locator('[data-primary="agenda"]').first().click();await page.locator('[data-primary="home"]').first().click();
+    await page.goto(base+'/#agenda/all');await page.goto(base+'/#home/modules');
     assert.equal(await page.locator('#overview-results').getAttribute('data-overview-view'),'all');
-    await select('today',['today','completed']);await page.locator('[data-sec="all"]').click();assert.equal(await page.locator('#overview-results').getAttribute('data-overview-view'),'all');
-    for(const theme of ['violet','warm','night','guofeng']){
-      await page.evaluate(async theme=>{const core=await import('/js/core.js');const state=core.getRawStore();core.setStore({...state,meta:{...state.meta,theme}});},theme);
+    await select('today',['today','completed']);await page.getByRole('button',{name:'显示全部模块',exact:true}).click();assert.equal(await page.locator('#overview-results').getAttribute('data-overview-view'),'all');
+    for(const theme of ['studio','moonlit','porcelain','autumn']){
+      await page.evaluate(palette=>localStorage.setItem('bench-appearance',JSON.stringify({palette})),theme);await page.reload();await page.locator('.overview-stat').first().waitFor();
       await select('risks',['stale','blocked','overdue','multi']);
-      assert.equal(await page.locator('html').getAttribute('data-theme'),theme);
+      assert.equal(await page.locator('html').getAttribute('data-studio-palette'),theme);
       await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
       await page.setViewportSize({width:1500,height:1000});
     }
     assert.deepEqual(writes,[],'Viewing filters must not write to the ledger.');
     for(const key of ['tasks','agendas','agents','modules'])assert.deepEqual(readStore()[key],initial[key]);
-    const language=await page.request.patch(base+'/api/meta',{data:{language:'en',theme:'guofeng'}});assert(language.ok());
+    const language=await page.request.patch(base+'/api/meta',{data:{language:'en'}});assert(language.ok());
     await page.reload();await page.getByRole('button',{name:'Show all modules',exact:true}).waitFor();
     await select('members',['one','two']);assert.match(await page.locator('#overview-results').textContent(),/成员甲/);
     await select('doing',['doing','review','stale']);

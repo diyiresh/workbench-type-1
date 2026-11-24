@@ -25,7 +25,7 @@ const server = createServer();
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const base = 'http://127.0.0.1:' + server.address().port;
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
-  require('./helpers/classic-layout.cjs')(browser);
+
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     page.setDefaultTimeout(10000);
@@ -112,8 +112,8 @@ const server = createServer();
     assert.equal(await card('all').getAttribute('aria-pressed'), 'true');
     assert.deepEqual(await titles(), allDay);
     await select('done');
-    await page.locator('#rail [data-primary="home"]').click();
-    await page.locator('#rail [data-primary="agenda"]').click();
+    await page.goto(base+'/#home/all');
+    await page.goto(base+'/#agenda/all');
     assert.equal(await card('all').getAttribute('aria-pressed'), 'true');
     assert.deepEqual(await titles(), allDay);
     await select('important');
@@ -161,8 +161,8 @@ const server = createServer();
     await select('done');
     assert.equal(await page.locator('.agenda-empty').textContent(), 'No appointments match this filter in the current period.');
 
-    for (const theme of ['violet', 'warm', 'dark']) {
-      assert((await page.request.patch(base + '/api/meta', { data: { theme } })).ok());
+    for (const theme of ['studio', 'moonlit', 'porcelain', 'autumn']) {
+      await page.evaluate(palette=>localStorage.setItem('bench-appearance',JSON.stringify({palette})),theme);
       await page.reload();
       await card('all').waitFor();
       await select('pending');

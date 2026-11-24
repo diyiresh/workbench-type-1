@@ -22,34 +22,19 @@ const {createServer,readStore}=require('../server'),server=createServer();
 (async()=>{
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+server.address().port;
   const browser=await chromium.launch({channel:'msedge',headless:true});
-  require('./helpers/classic-layout.cjs')(browser);
+
   try{
     const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[],writes=[],remote=[];
     page.on('pageerror',e=>errors.push(e.message));
     page.on('request',r=>{if(r.method()!=='GET')writes.push(r.url());if(!r.url().startsWith(base))remote.push(r.url());});
     await page.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));
-    await page.goto(base+'/#home/all');await page.locator('[data-sidebar-toggle]').waitFor();
-    const original=readStore();
-    assert.deepEqual(await page.locator('#rail .rail-label').allTextContents(),['工作首页','项目中心','成员中心','每日行程','简报中心','我的关注','资产中心','学习成长','生活管理','外部工具','系统设置']);
-    assert.equal(await page.locator('#ws-head h1').textContent(),'工作首页');
-    assert.equal(await page.locator('#workspace [data-sidebar-toggle]').count(),0);
-    assert.equal(await page.locator('[data-sidebar-toggle]').count(),1);
-    assert.equal(await page.locator('#sidebar [data-sidebar-toggle]').textContent(),'');
-    assert.equal(await page.locator('[data-sidebar-toggle]').getAttribute('aria-label'),'收起侧栏');
-    const sizes=await page.locator('#rail .rail-btn').evaluateAll(buttons=>buttons.map(button=>({width:button.offsetWidth,height:button.offsetHeight})));
-    assert(sizes.every(size=>size.width===sizes[0].width&&size.height===sizes[0].height));
-    assert(await page.locator('#sidebar').isVisible());
-    const expandedX=(await page.locator('#workspace').boundingBox()).x;
-    await page.locator('[data-sidebar-toggle]').click();assert(await page.locator('#sidebar').isHidden());
-    assert(await page.locator('#rail-tools [data-sidebar-toggle]').isVisible());
-    assert((await page.locator('#workspace').boundingBox()).x<expandedX-200);
-    assert(await page.locator('#sidebar').evaluate(element=>element.inert));
-    await page.reload();await page.locator('[data-sidebar-toggle][aria-expanded="false"]').waitFor();assert(await page.locator('#sidebar').isHidden());
-    await page.locator('[data-primary="projects"]').click();await page.locator('#ws-head h1').filter({hasText:'项目中心'}).waitFor();assert(await page.locator('#sidebar').isHidden());
     await page.goto(base+'/#projects/run:'+run.id);await page.locator('[data-stage-toggle]').first().waitFor();
+    const original=readStore();
+    assert.equal(await page.locator('#sidebar').isVisible(),false);
+    assert.equal(await page.locator('#v8-nav').isVisible(),true);
     const composer=page.locator('.room-composer textarea');await composer.fill('草稿\nDo not lose this text');
     await composer.evaluate(element=>{window.originalComposer=element;element.setSelectionRange(2,7);});
-    await page.locator('[data-sidebar-toggle]').click();await page.locator('[data-sidebar-toggle]').click();
+    await page.locator('#v8-nav [data-v8="appearance"]').click();await page.locator('[data-v8="cancel"]').first().click();
     assert.equal(await composer.inputValue(),'草稿\nDo not lose this text');assert(await composer.evaluate(element=>element===window.originalComposer));
     const descriptions=page.locator('[data-stage-kind="instruction"]'),long=descriptions.nth(0),text=long.locator('.stage-instruction'),toggle=long.locator('[data-stage-toggle]');
     const rejection=page.locator('[data-stage-kind="review"]').first(),reviewText=rejection.locator('.stage-instruction'),reviewToggle=rejection.locator('[data-stage-toggle]');
@@ -70,33 +55,21 @@ const {createServer,readStore}=require('../server'),server=createServer();
     await page.locator('[data-stage-toggle][aria-expanded="true"]').first().press('Space');assert.equal(await descriptions.nth(0).locator('[data-stage-toggle]').getAttribute('aria-expanded'),'false');
     await descriptions.nth(0).locator('[data-stage-toggle]').click();
     await page.goto(base+'/#projects/run:'+other.id);await page.locator('[data-execution-run]').waitFor();await page.goto(base+'/#projects/run:'+run.id);await toggle.waitFor();assert.equal(await toggle.getAttribute('aria-expanded'),'false');
-    await page.setViewportSize({width:390,height:900});assert(await page.locator('#sidebar').isHidden());
-    await page.locator('[data-sidebar-toggle]').click();assert(await page.locator('#sidebar').isVisible());assert.equal(await page.locator('#sidebar').getAttribute('role'),'dialog');
-    assert(await page.locator('#workspace').evaluate(element=>element.inert));
-    assert.equal(await page.evaluate(()=>document.activeElement.hasAttribute('data-sidebar-toggle')),true);
-    await page.keyboard.press('Shift+Tab');assert.equal(await page.evaluate(()=>document.activeElement.classList.contains('add-mod')),true);
-    await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.activeElement.hasAttribute('data-sidebar-toggle')),true);
-    await page.keyboard.press('Escape');assert(await page.locator('#sidebar').isHidden());assert.equal(await page.evaluate(()=>document.activeElement.hasAttribute('data-sidebar-toggle')),true);
-    await page.locator('[data-sidebar-toggle]').click();await page.mouse.click(388,600);assert(await page.locator('#sidebar').isHidden());
-    await page.locator('[data-sidebar-toggle]').click();await page.locator('#channels a[href="#projects/all"]').click();await page.waitForURL('**/#projects/all');assert(await page.locator('#sidebar').isHidden());assert(!(await page.locator('#workspace').evaluate(element=>element.inert)));
-    await page.setViewportSize({width:1440,height:1000});assert(await page.locator('#sidebar').isHidden());
-    // A new browser has an independent preference and defaults to expanded.
-    const fresh=await browser.newPage({viewport:{width:1440,height:1000}});await fresh.route('**/api/briefings',route=>route.fulfill({json:{items:[]}}));await fresh.goto(base);await fresh.locator('[data-sidebar-toggle][aria-expanded="true"]').waitFor();assert(await fresh.locator('#sidebar').isVisible());await fresh.setViewportSize({width:390,height:900});await fresh.locator('[data-sidebar-toggle]').click();await fresh.setViewportSize({width:1440,height:1000});await fresh.waitForFunction(()=>document.activeElement.hasAttribute('data-sidebar-toggle'));assert(await fresh.locator('#sidebar').isVisible());await fresh.close();
     const uiWrites=writes.length;
-    for(const language of ['zh-CN','en']) for(const theme of ['violet','warm','night','guofeng']){
-      await page.request.patch(base+'/api/meta',{data:{language,theme}});await page.goto(base+'/#projects/run:'+run.id);await page.reload();await toggle.waitFor();
+    for(const language of ['zh-CN','en']) for(const theme of ['studio','moonlit','porcelain','autumn']){
+      await page.request.patch(base+'/api/meta',{data:{language}});await page.goto(base+'/#projects/run:'+run.id);await page.evaluate(palette=>localStorage.setItem('bench-appearance',JSON.stringify({palette})),theme);await page.reload();await toggle.waitFor();
       assert.equal(await toggle.textContent(),language==='en'?'Show details':'展开详情');
       await toggle.click();assert.equal(await text.textContent(),run.items[0].instruction);await toggle.click();
       assert(await reviewToggle.isVisible());assert(await reviewText.evaluate(element=>element.clientHeight<=parseFloat(getComputedStyle(element).lineHeight)*4+1));
       await reviewToggle.click();assert.equal(await reviewText.textContent(),run.items[1].review.comment);await reviewToggle.click();
-      await page.setViewportSize({width:390,height:900});await page.locator('[data-sidebar-toggle]').click();assert(await page.locator('#sidebar').isVisible());await page.locator('#sidebar [data-sidebar-toggle]').click();
+      await page.setViewportSize({width:390,height:900});assert(await page.locator('#v8-nav').isVisible());
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2));
       await page.screenshot({path:path.join(root,language+'-'+theme+'-narrow.png'),fullPage:false});
       await page.setViewportSize({width:1440,height:1000});assert(await page.locator('#sidebar').isHidden());
     }
     assert.equal(writes.length,uiWrites);assert.equal(uiWrites,0);assert.deepEqual(errors,[]);assert.deepEqual(remote,[]);
     for(const key of ['tasks','modules','departmentRuns','inbox','agents'])assert.deepEqual(readStore()[key],original[key]);
-    await page.locator('[data-sidebar-toggle]').click();await page.screenshot({path:path.join(root,'compact-desktop.png'),fullPage:false});await page.locator('.department-flow').screenshot({path:path.join(root,'four-stages-compact.png')});
-    console.log('Compact layout: four-character names, icon-only navigation control, unchanged routes/content, sidebar width and remembered preference, live composer identity, modal focus/Escape/backdrop/navigation, independent instruction/rejection overflow and refresh state, four themes, EN/CN and zero UI writes passed. Screenshots: '+root);
+    await page.screenshot({path:path.join(root,'compact-desktop.png'),fullPage:false});await page.locator('.department-flow').screenshot({path:path.join(root,'four-stages-compact.png')});
+    console.log('Current layout: stage instruction/rejection overflow, original content, composer identity, appearance previews, reload state, four palettes, EN/CN, narrow viewport and zero UI writes passed. Screenshots: '+root);
   }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>server.close());

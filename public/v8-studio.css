@@ -93,6 +93,7 @@
 :root[data-v8="true"][data-studio-palette="porcelain"] .v8-landscape{filter:hue-rotate(65deg) saturate(.65)}
 :root[data-v8="true"][data-studio-palette="autumn"] .v8-landscape{filter:sepia(.45) saturate(1.2)}
 :root[data-v8="true"] .overview-stat .lv-stat-chip{background:var(--accent-soft);color:var(--accent-deep)}
+:root[data-v8="true"] :is(.agenda-stat.active,.brief-stat.active,.overview-stat.active){background:var(--accent-soft);border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 
 /* The old agenda hero assumed a dark backdrop. Give appearance controls explicit
    semantic surfaces and text instead of inheriting its translucent whites. */

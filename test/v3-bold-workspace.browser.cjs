@@ -33,7 +33,7 @@ const server = createServer();
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const base = "http://127.0.0.1:" + server.address().port;
   const browser = await chromium.launch({ channel: process.env.BENCH_BROWSER || "chrome", headless: true }).catch(() => chromium.launch({ channel: "msedge", headless: true }));
-  require('./helpers/classic-layout.cjs')(browser);
+
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     const errors = [];
@@ -51,22 +51,19 @@ const server = createServer();
 
     await open("#reports/all");
     assert.equal(new URL(page.url()).hash, "#reports/pain");
-    assert.equal(await page.locator('#rail [data-primary="reports"] .rail-label').innerText(), "我的关注");
-    const labels = await page.locator("#channels .ch").allInnerTexts();
-    assert.deepEqual(labels.map((text) => text.replace(/\s+/g, "")), ["行业痛点0", "科技前沿0", "AI上新0", "建筑报告1", "本地实验1", "经营报告1"]);
     assert.match(await page.locator("#ws-body").innerText(), /这一类还没有台账记录/);
     assert.equal(await page.locator("text=穗建简报隔离").count(), 0);
     assert.equal(await page.locator("#workspace.asset-mode").count(), 0);
 
-    await page.locator('#channels button[data-sec="construction"]').click();
+    await page.goto(base+'/#reports/construction');
     await page.waitForFunction(() => location.hash === "#reports/construction");
     assert.match(await page.locator("#ws-body").innerText(), /穗建简报隔离/);
     assert.equal(await page.locator('[data-act="open-system"]').count(), 1);
-    await page.locator('#channels button[data-sec="lab"]').click();
+    await page.goto(base+'/#reports/lab');
     await page.waitForFunction(() => location.hash === "#reports/lab");
     assert.match(await page.locator("#ws-body").innerText(), /原子甲/);
     assert.equal(await page.locator("text=原子乙").count(), 0);
-    await page.locator('#channels button[data-sec="business"]').click();
+    await page.goto(base+'/#reports/business');
     await page.waitForFunction(() => location.hash === "#reports/business");
     assert.equal(await page.locator('#ws-body button[data-sec="weekly"]').count(), 1);
     assert.equal(await page.locator('#ws-body button[data-kind="quarterly"]').count(), 1);
