@@ -1,5 +1,7 @@
 // Keys are developer-authored UI text. Business data is never a translation key.
 export const EN = {
+  '当前版本只读保留新流程项目，请升级后继续。原成果和历史记录均保留。':'This version preserves newer workflow projects as read-only. Upgrade to continue; outputs and history are retained.',
+
   '四种配色、界面密度、装饰图与跟随系统明暗，只保存在当前浏览器。':'Four palettes, density, artwork and system appearance are saved in this browser only.',
   '自动恢复与人工控制':'Automatic recovery and manual controls',
   '当前分工与恢复进展':'Assignments and recovery progress',

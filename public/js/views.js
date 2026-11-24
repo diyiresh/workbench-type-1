@@ -416,6 +416,7 @@ export function departmentView(runId = "all", draft = {}) {
   const rework = runs.filter((run) => run.status === "rework").length;
   const llm = (s.remote && s.remote.llm) || {};
   const selected = runs.find((run) => run.id === runId);
+  if(selected?.workflowVersion===2)return ui`<section class="card"><h2>${esc(selected.title)}</h2><p>当前版本只读保留新流程项目，请升级后继续。原成果和历史记录均保留。</p><pre class="report">${esc(selected.finalOutput||"")}</pre>${(selected.artifacts||[]).map(a=>`<p>${esc(a.path||"")}</p>`).join("")}</section>`;
   const defaultMembers = ["codex", "cursor", "workbuddy"];
   const memberPicker = projectMembers(s).map((member) => `<label class="member-choice"><input type="checkbox" name="participantAgentIds" value="${esc(member.id)}" ${defaultMembers.includes(member.id) ? "checked" : ""} /><span><b>${esc(member.name)}</b><small>${esc(member.role || member.mode || tr("协作成员"))}</small></span></label>`).join("");
   const intake = ui`<section class="department-intake card">

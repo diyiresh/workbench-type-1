@@ -246,6 +246,7 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
   if (await domainRoutes({ req, res, url, p, method, store, reportManager, paperManager, launchDeps })) return true;
 
   const lockedRun = p.match(/^\/api\/departments\/runs\/([^/]+)\//);
+  if(method==="POST"&&lockedRun&&(store.departmentRuns||[]).some(r=>r.id===lockedRun[1]&&r.workflowVersion===2))return sendJson(res,409,{error:"workflow_read_only_after_rollback"});
   const executionRoute=p.match(/^\/api\/departments\/runs\/([^/]+)\/execution(?:\/(control|skills|reconcile|retry|result|started|policy|assign|approve|failover))?$/);
   if(executionRoute){
     try{
@@ -487,6 +488,7 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
     try {
       const run = getRun(store, departmentRunMatch[1]);
       if (body.roleOwners && typeof body.roleOwners === "object") {
+        if(run.workflowVersion===2)throw governance.error("workflow_read_only_after_rollback");
         if(inactive(run))return sendJson(res,409,{error:"project_paused_or_archived"});
         const changes = Object.entries(body.roleOwners);
         for (const [role, agentId] of changes) {
