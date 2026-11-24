@@ -95,7 +95,7 @@ const disk = () => JSON.parse(fs.readFileSync(file, "utf8"));
   writeBackups(backups, '{"n":4}', policy, at("2026-11-20T09:30:00.000Z"));
   writeBackups(backups, '{"n":5}', policy, at("2026-11-21T10:00:00.000Z"));
   assert.ok(fs.existsSync(path.join(backups, "store-before-manual-merge.json")), "hand-named backups sort after timestamps and are kept");
-  assert.strictEqual(fs.readdirSync(backups).filter((f) => f.startsWith("store-") && f.endsWith(".json")).length, 3, "recent tier keeps its count");
+  assert.strictEqual(recent().length, 3, "manual backups do not occupy recent automatic restore slots");
   const hourly = fs.readdirSync(path.join(backups, "hourly")).sort();
   assert.deepStrictEqual(hourly, ["store-2026-11-20T09.json.gz", "store-2026-11-21T10.json.gz"], "hourly tier pruned to its count");
   const daily = fs.readdirSync(path.join(backups, "daily")).sort();
