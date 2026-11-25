@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-11-25T09:26:53.511Z",
+  "method": "GET only; no deployment or credential initialization",
+  "healthOk": true,
+  "activeJobs": {
+    "codexJobs": 0,
+    "externalJobs": 0,
+    "chatJobs": 0,
+    "agendaReportJobs": 0,
+    "skillRuns": 0,
+    "providerJobs": 0
+  },
+  "uncertainOrActiveAttempts": 0,
+  "heldAttempts": 4,
+  "workflow2Projects": 0,
+  "legacyProjects": [
+    {
+      "id": "dr-99yekqwhpg",
+      "status": "rework",
+      "paused": true,
+      "archived": false
+    },
+    {
+      "id": "dr-36md68k9bl",
+      "status": "completed",
+      "paused": true,
+      "archived": true
+    },
+    {
+      "id": "dr-jv4x7suu82",
+      "status": "completed",
+      "paused": true,
+      "archived": true
+    }
+  ],
+  "approvalFilePresent": false,
+  "runningBackendRevision": "not reported by current health endpoint; not verified as latest source"
+}

@@ -74,3 +74,15 @@ test/suites.cjs
 ```
 
 没有暂存或提交用户提供的复核原件、data、output、tmp、批准口令或业务成果文件。所有提交仅在本地main；本轮未推送GitHub。
+
+## 0a0e1958f0272fa173757539cc571ceb86c7272f
+
+有界回执、过期请求拒绝、原始人工任务提示保留；5个文件。
+
+```text
+docs/verification/2026-11-25-workflow-receipt-tests.txt
+lib/project-workflow.js
+public/js/project-workflow-ui.js
+test/project-workflow-api.test.cjs
+test/project-workflow.test.cjs
+```
