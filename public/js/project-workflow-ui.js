@@ -35,7 +35,7 @@ function manualControls(run,store){
   return `<details data-workflow-details="manual"><summary>${l('人工 / 外部 Agent 回填','Manual / external Agent handoff')}</summary>${run.items.map(s=>{
     const a=(store.executionAttempts||[]).find(a=>a.id===s.activeAttemptId);
     if(a?.transport==='manual-member'&&['claimed','running'].includes(a.state)){
-      const p=run.workflowReceipts.find(r=>r.result.attemptId===a.id)?.result.prompt||'';
+      const p=a.manualPrompt||run.workflowReceipts.find(r=>r.result.attemptId===a.id)?.result.prompt||'';
       return `<form data-workflow-manual="${esc(a.id)}" data-claim-id="${esc(a.claimId)}"><h3>${roles[s.role]()}</h3><label>${l('交给该成员的当前任务','Current task for this member')}<textarea readonly rows="5">${esc(p)}</textarea></label><label>${l('粘贴该成员的完整真实回复','Paste the member’s complete actual reply')}<textarea name="output" rows="6" required maxlength="150000"></textarea></label><button class="ghost" type="submit">${l('按当前领取记录提交','Submit against this claim')}</button></form>`;
     }
     return s.status==='queued'&&s.purpose!=='role-probe'?`<p>${roles[s.role]()} · ${esc(s.ownerAgentId)} <button class="ghost" data-workflow-action="manual-start" data-step-id="${esc(s.id)}">${l('人工领取当前任务','Claim this task manually')}</button></p>`:'';
@@ -69,7 +69,7 @@ export function mountWorkflow({reload}){
     if(busy)return;busy=true;
     try{
       if(action==='refresh'){await reload();return;}
-      await api(`/api/departments/runs/${encodeURIComponent(run.id)}/workflow/${action}`,{method:'POST',body:{expectedRevision:run.workflowRevision,expectedGeneration:run.controlGeneration||0,idempotencyKey:crypto.randomUUID(),...extra}});await reload();
+      await api(`/api/departments/runs/${encodeURIComponent(run.id)}/workflow/${action}`,{method:'POST',body:{expectedRevision:run.workflowRevision,expectedGeneration:run.controlGeneration||0,idempotencyKey:`wf:${run.workflowRevision}:${crypto.randomUUID()}`,...extra}});await reload();
     }catch(e){feedback.textContent=l('操作未完成，原记录已保留：','Action not completed; existing records retained: ')+e.message;}
     finally{busy=false;}
   };

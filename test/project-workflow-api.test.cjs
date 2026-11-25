@@ -23,9 +23,10 @@ const {createServer,readStore,writeStore}=require('../server'),server=createServ
   for(const suffix of ['/auto-run','/automation','/execution/approve','/execution/assign','/items/'+current.items[1].id+'/model-execute','/items/'+current.items[1].id+'/action'])assert.equal((await request(suffix,{})).body.error,'use_project_workflow',suffix);
   assert.equal((await request('',{roleOwners:{director:'codex'}},'PATCH')).body.error,'use_project_workflow');
   const stale=await request('/workflow/appoint',{expectedRevision:9,expectedGeneration:0,idempotencyKey:'stale',roles:{director:'codex',executor:'cursor',reviewer:'workbuddy'}});assert.equal(stale.body.error,'input_changed');
-  const body={expectedRevision:0,expectedGeneration:0,idempotencyKey:'appoint',roles:{director:'codex',executor:'cursor',reviewer:'workbuddy'}};
+  const body={expectedRevision:0,expectedGeneration:0,idempotencyKey:'wf:0:appoint',roles:{director:'codex',executor:'cursor',reviewer:'workbuddy'}};
   const a=await request('/workflow/appoint',body),b=await request('/workflow/appoint',body);assert.equal(a.status,200);assert.deepEqual(a.body,b.body);
   assert.equal((await request('/workflow/appoint',{...body,roles:{director:'cursor',executor:'codex',reviewer:'workbuddy'}})).body.error,'idempotency_conflict');
+  const unscoped=await request('/workflow/appoint',{expectedRevision:1,expectedGeneration:readStore().departmentRuns.find(r=>r.id===current.id).controlGeneration||0,idempotencyKey:'new-unscoped',roles:{director:'codex',executor:'cursor',reviewer:'workbuddy'}});assert.equal(unscoped.status,409);assert.equal(unscoped.body.error,'workflow_idempotency_scope_invalid');
   const all=readStore();assert.equal(JSON.stringify(all.departmentRuns.find(r=>r.id===legacy.id)),legacyBefore);assert.equal(calls,0);
   // Exercise the real local desktop queue protocol, without calling a model or desktop app.
   const flow=require('../lib/project-workflow'),runtime=require('../lib/project-workflow-runtime');

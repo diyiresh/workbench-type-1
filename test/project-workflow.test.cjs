@@ -27,7 +27,7 @@ function setup({files=false,execute,planData}={}){
   const dm=delivery.createManager({readStore,writeStore,root});
   manager=createManager({readStore,writeStore,dataDir:root,execute:execute||normal,generateFiles:files?id=>dm.generate(id):undefined});
   const current=()=>readStore().departmentRuns.find(r=>r.id===runId);
-  const command=(action,extra={})=>{const s=readStore(),r=s.departmentRuns.find(r=>r.id===runId);const b={expectedRevision:r.workflowRevision,expectedGeneration:r.controlGeneration||0,idempotencyKey:require('node:crypto').randomUUID(),...extra};const v=flow.command(s,r,action,b);writeStore(s);return v;};
+  const command=(action,extra={})=>{const s=readStore(),r=s.departmentRuns.find(r=>r.id===runId);const b={expectedRevision:r.workflowRevision,expectedGeneration:r.controlGeneration||0,idempotencyKey:'wf:'+r.workflowRevision+':'+require('node:crypto').randomUUID(),...extra};const v=flow.command(s,r,action,b);writeStore(s);return v;};
   const advance=async()=>{for(let n=0;n<5;n++){manager.tick();await manager.drain();}};
   const approve=()=>{const s=readStore(),r=s.departmentRuns[0],p=flow.plan(r);return command('approve',{confirmed:true,planId:p.id,planHash:p.hash,appointmentRevision:r.roleAppointments.revision,deliveryHash:gov.hash(r.delivery.contract)});};
   return {readStore,writeStore,manager,current,command,advance,approve,root,normal};
@@ -45,7 +45,7 @@ test('three roles negotiate immutable versions; approval gates real work; accept
   const digest=flow.completionSnapshot(x.readStore(),delivered);x.command('acceptance',{confirmed:true,snapshot:digest});assert.equal(x.current().status,'completed');
 });
 test('concurrent feedback does not invalidate the other reply; duplicate command receipts are stable',async()=>{
-  const x=setup();const store=x.readStore(),r=store.departmentRuns[0];const b={expectedRevision:0,expectedGeneration:0,idempotencyKey:'same'};
+  const x=setup();const store=x.readStore(),r=store.departmentRuns[0];const b={expectedRevision:0,expectedGeneration:0,idempotencyKey:'wf:0:same'};
   const first=flow.command(store,r,'start',b);assert.deepEqual(flow.command(store,r,'start',b),first);
   assert.throws(()=>flow.command(store,r,'start',{...b,confirmed:true}),/idempotency_conflict/);x.writeStore(store);
   await x.advance();assert.equal(x.current().planFeedback.length,2);
@@ -81,7 +81,7 @@ test('bounded checks survive changed check IDs and repeated ticks; ordinary fail
 test('missing roles, self-review and unconfigured members are never silently replaced',()=>{
   const s=buildDefaultStore();assert.throws(()=>dept.createDepartmentRun(s,{workflowVersion:2,goal:'虚构',roles:{director:'codex',executor:'cursor',reviewer:'cursor'}}),/independent/);
   const r=dept.createDepartmentRun(s,{workflowVersion:2,goal:'虚构'});assert.equal(r.items[0].ownerAgentId,'');
-  assert.throws(()=>flow.command(s,r,'start',{idempotencyKey:'missing',expectedRevision:0,expectedGeneration:0}),/workflow_member_unavailable/);
+  assert.throws(()=>flow.command(s,r,'start',{idempotencyKey:'wf:0:missing',expectedRevision:0,expectedGeneration:0}),/workflow_member_unavailable/);
 });
 test('two file milestones retain separate batches and cannot reuse the prior review snapshot',async()=>{
   const p=plan();p.milestones.push({...structuredClone(p.milestones[0]),id:'m2',title:'第二节点',dependsOn:['m1']});
@@ -98,7 +98,7 @@ test('chairman revisions retain prior immutable plans and require fresh approval
   assert(!x.readStore().executionAttempts.some(a=>a.extra?.workflowPurpose==='milestone-execution'));
 });
 test('manual handoff binds the actual claim and validates structured output without role spoofing',async()=>{
-  const x=setup();x.command('start');x.manager.tick();await x.manager.drain();const s=x.readStore(),r=s.departmentRuns[0];const start={idempotencyKey:'manual',expectedRevision:r.workflowRevision,expectedGeneration:r.controlGeneration||0,stepId:r.items[0].id};
+  const x=setup();x.command('start');x.manager.tick();await x.manager.drain();const s=x.readStore(),r=s.departmentRuns[0];const start={idempotencyKey:'wf:'+r.workflowRevision+':manual',expectedRevision:r.workflowRevision,expectedGeneration:r.controlGeneration||0,stepId:r.items[0].id};
   const receipt=flow.command(s,r,'manual-start',start);x.writeStore(s);
   assert.throws(()=>x.command('manual-result',{attemptId:receipt.attemptId,claimId:'forged',output:JSON.stringify({plan:plan()})}),/result_identity_mismatch/);
   x.command('manual-result',{attemptId:receipt.attemptId,claimId:receipt.claimId,output:JSON.stringify({plan:plan()})});
@@ -203,4 +203,41 @@ test('finished milestones supersede unperformed checks without claiming progress
 test('quiet workflow tick reads once and does not write a heartbeat',()=>{
   const store=buildDefaultStore();store.departmentRuns=[];const run=flow.create(store,{goal:'公开虚构',requiresWritingApproval:false});run.externalAutomation=true;
   let reads=0,writes=0;const manager=createManager({readStore:()=>{reads++;return structuredClone(store)},writeStore:()=>writes++});manager.tick();assert.equal(reads,1);assert.equal(writes,0);
+});
+test('bounded receipts retain exact recent replies and reject expired or recycled keys without side effects',()=>{
+  const x=setup(),oldest={expectedRevision:0,expectedGeneration:0,idempotencyKey:'wf:0:first',action:'pause'};
+  x.command('control',{idempotencyKey:oldest.idempotencyKey,action:'pause'});
+  let lastBody,lastReply;
+  for(let n=0;n<130;n++){
+    const r=x.current();lastBody={expectedRevision:r.workflowRevision,expectedGeneration:r.controlGeneration||0,idempotencyKey:'wf:'+r.workflowRevision+':check-'+n,action:n%2?'pause':'resume'};
+    lastReply=x.command('control',lastBody);
+  }
+  const store=x.readStore(),run=store.departmentRuns[0],before=JSON.stringify(store);
+  assert.equal(run.workflowReceipts.length,128);assert(run.workflowReceiptFloor>0);
+  assert.deepEqual(flow.command(store,run,'control',lastBody),lastReply);
+  assert.throws(()=>flow.command(store,run,'control',oldest),/workflow_receipt_expired/);
+  assert.throws(()=>flow.command(store,run,'control',{...oldest,expectedRevision:run.workflowRevision,expectedGeneration:run.controlGeneration}),/workflow_idempotency_scope_invalid/);
+  assert.equal(JSON.stringify(store),before);assert.equal(store.executionAttempts.length,0);assert.equal(run.workHistory.length,0);
+});
+test('legacy cached receipts remain readable; fresh unscoped commands cannot bypass expiry protection',()=>{
+  const x=setup(),store=x.readStore(),run=store.departmentRuns[0];
+  const body={expectedRevision:0,expectedGeneration:0,idempotencyKey:'legacy',action:'pause'},result={ok:true,runId:run.id,revision:1};
+  run.workflowRevision=1;run.workflowReceipts.push({key:'legacy',digest:gov.hash({action:'control',body}),result});
+  assert.deepEqual(flow.command(store,run,'control',body),result);
+  assert.throws(()=>flow.command(store,run,'control',{...body,idempotencyKey:'new-unscoped',expectedRevision:1}),/workflow_idempotency_scope_invalid/);
+  assert.equal(run.workflowRevision,1);
+});
+test('expiring a legacy manual receipt preserves its issued assignment on the actual attempt',async()=>{
+  const x=setup();x.command('start');x.manager.tick();await x.manager.drain();
+  const manual=x.command('manual-start',{stepId:flow.item(x.current(),'director').id});
+  const store=x.readStore(),run=store.departmentRuns[0],attempt=store.executionAttempts.find(a=>a.id===manual.attemptId);
+  assert.equal(attempt.manualPrompt,manual.prompt);delete attempt.manualPrompt;
+  // Represent an old-format ledger where the only frozen assignment was in its receipt.
+  run.workflowReceipts=run.workflowReceipts.filter(r=>r.result.attemptId===manual.attemptId);
+  const first=run.workflowReceipts[0];delete first.requestRevision;
+  for(let n=0;n<127;n++)run.workflowReceipts.push({key:'legacy-'+n,digest:'fixture',result:{ok:true,revision:run.workflowRevision}});
+  x.writeStore(store);x.command('control',{action:'pause'});
+  const current=x.readStore();assert.equal(current.departmentRuns[0].workflowReceipts.length,128);
+  assert(!current.departmentRuns[0].workflowReceipts.some(r=>r.result.attemptId===manual.attemptId));
+  assert.equal(current.executionAttempts.find(a=>a.id===manual.attemptId).manualPrompt,manual.prompt);
 });

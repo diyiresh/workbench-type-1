@@ -1,0 +1,43 @@
+COMMAND: node --test --test-concurrency=1 test/project-workflow.test.cjs test/project-workflow-api.test.cjs test/project-workflow.browser.cjs
+Workflow API: read-only GET, legacy bypass prevention, role authority, snapshot conflicts and idempotency passed. No live model calls.
+✔ test\project-workflow-api.test.cjs (2499.1988ms)
+Workflow UI: plan approval, exact roles, escaped feedback, preserved drafts, English and narrow layout passed. Screenshots: C:\Users\Benjamin\AppData\Local\Temp\bench-project-workflow-ui-WsAVXA
+✔ test\project-workflow.browser.cjs (9720.4642ms)
+✔ three roles negotiate immutable versions; approval gates real work; acceptance is separate (262.2625ms)
+✔ concurrent feedback does not invalidate the other reply; duplicate command receipts are stable (163.7109ms)
+✔ pause/resume keeps late results held and restart does not blindly redispatch (102.9255ms)
+✔ real DOCX batch is independently reviewed and file changes invalidate final acceptance (667.1363ms)
+✔ bounded checks survive changed check IDs and repeated ticks; ordinary failures are owned by lead (156.1828ms)
+✔ missing roles, self-review and unconfigured members are never silently replaced (0.4095ms)
+✔ two file milestones retain separate batches and cannot reuse the prior review snapshot (699.0453ms)
+✔ chairman revisions retain prior immutable plans and require fresh approval (164.0082ms)
+✔ manual handoff binds the actual claim and validates structured output without role spoofing (110.302ms)
+✔ lead format recovery is persistent, bounded and uses a fresh governed unit (158.9385ms)
+✔ changed historical files are rebuilt from the original source and independently re-reviewed (693.0215ms)
+✔ unverified or fabricated capability replies cannot launch business work (93.1197ms)
+✔ expired capability evidence blocks dispatch and is renewed before executing (232.6682ms)
+✔ copied PASS markers are not an independent review (244.1257ms)
+✔ file hashes without matching actual readback excerpts cannot pass review (366.2019ms)
+✔ review is bound to the input result hash, not a newly copied current hash (202.1907ms)
+✔ changing the channel profile during a call retains the result without advancing (201.6995ms)
+✔ capability probes contain only synthetic materials, not business context (107.7508ms)
+✔ every approved criterion requires a separate review finding (219.1161ms)
+✔ lead checks close with actual receipt snapshots; replay cannot duplicate reports (200.2525ms)
+✔ invented progress evidence fails visibly; explicit unknowns remain valid (393.6793ms)
+✔ finished milestones supersede unperformed checks without claiming progress inspection (261.362ms)
+✔ quiet workflow tick reads once and does not write a heartbeat (1.9421ms)
+✔ bounded receipts retain exact recent replies and reject expired or recycled keys without side effects (260.8786ms)
+✔ legacy cached receipts remain readable; fresh unscoped commands cannot bypass expiry protection (6.5264ms)
+✔ expiring a legacy manual receipt preserves its issued assignment on the actual attempt (120.1776ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18839.6921
+
+STDERR:
+
+EXIT: 0
