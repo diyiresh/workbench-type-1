@@ -1,0 +1,21 @@
+COMMAND: node --test --test-concurrency=1 test/project-workflow.browser.cjs test/providers-ui.browser.cjs test/execution.browser.cjs test/delivery.browser.cjs
+Delivery API and browser: required format, generation, bilingual receipts, snapshot-bound review, tampering invalidation and archived writes passed.
+✔ test\delivery.browser.cjs (8365.7601ms)
+Execution UI: explicit controls, preserved binding drafts, safe result preview, reconciliation, conversion, read-only refresh, EN/CN, four themes and narrow screen passed. Screenshots: C:\Users\Benjamin\AppData\Local\Temp\bench-execution-ui-NXDm01
+✔ test\execution.browser.cjs (16216.7236ms)
+Workflow UI: plan approval, exact roles, escaped feedback, preserved drafts, English and narrow layout passed. Screenshots: C:\Users\Benjamin\AppData\Local\Temp\bench-project-workflow-ui-YxB2Eg
+✔ test\project-workflow.browser.cjs (11851.6018ms)
+Provider UI: six model members, infrastructure exclusion, explicit probe/model/test, safe real-output display, manual receipt/draft preservation and narrow layout passed
+✔ test\providers-ui.browser.cjs (6050.1645ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 42516.3591
+
+STDERR:
+
+EXIT: 0

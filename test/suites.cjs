@@ -19,7 +19,7 @@ const unit = [
   "v2-department-collab.test.js", "collaboration.test.js", "agent-dispatch.test.js", "desktop-bridge.test.js",
   "external-runtime.test.js", "workspace.test.js", "codex.test.js", "codex-vault-failure.test.js", "vault.test.js",
   "network.test.js", "archive.test.js", "archive-api.test.js", "navigation-extensions.test.cjs", "v3-bold-workspace.test.js",
-  "external-tools.test.js", "security-guards.test.js", "router.test.js", "ledger-store.test.js", "paper-library.test.cjs",
+  "external-tools.test.js", "security-guards.test.js", "router.test.js", "ledger-store.test.js", "ledger-concurrency.test.cjs", "paper-library.test.cjs",
   "decision-inbox.test.js", "mcp-server.test.js",
 ];
 
@@ -33,11 +33,13 @@ const ui = [
   "agenda-review-draft.browser.cjs", "agenda-notes.browser.cjs", "overview-filter.browser.cjs", "navigation-centers.browser.cjs",
   "skill-studio.browser.cjs", "disk-skills.browser.cjs", "execution.browser.cjs", "compact-layout.browser.cjs",
   "sidebar-resize.browser.cjs", "v3-bold-workspace.browser.cjs", "external-tools.browser.cjs", "v8-studio.browser.cjs",
-  "v8-agenda-controls.browser.cjs", "paper-library.browser.cjs", "desktop-companion.test.cjs",
+  "v8-agenda-controls.browser.cjs", "paper-library.browser.cjs",
 ];
 
 const agents = ["desktop-worker.test.mjs", "workbuddy-queue.test.js", "automatic-department.test.js"];
 const skills = ["skill-studio.test.cjs", "disk-skills.test.cjs", "skill-studio.browser.cjs", "disk-skills.browser.cjs"];
 const papers = ["paper-library.test.cjs", "paper-library.browser.cjs"];
 
-module.exports = { unit, ui, agents, skills, papers };
+// Electron integration needs the installed desktop runtime and an interactive desktop.
+const desktop = ["desktop-companion.test.cjs"];
+module.exports = { unit, ui, desktop, agents, skills, papers };

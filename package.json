@@ -14,6 +14,8 @@
     "build:assets": "node scripts/build-assets.cjs",
     "prestart": "npm run build:assets",
     "test:ui": "node scripts/run-tests.cjs ui",
+    "test:desktop": "node scripts/run-tests.cjs desktop",
+    "test:ui:all": "node scripts/run-tests.cjs ui desktop",
     "test:skills": "node scripts/run-tests.cjs skills --serial",
     "test:papers": "node scripts/run-tests.cjs papers --serial",
     "test:v9": "node test/briefing-close.browser.cjs && node test/growth.test.cjs && node test/growth-api.test.cjs && node test/growth.browser.cjs",
