@@ -1,0 +1,205 @@
+COMMAND: node scripts/run-tests.cjs unit
+
+▶ unit: 72 files, concurrency 6
+Agenda material action checks passed.
+✔ test\agenda-material-action.test.js (210.5526ms)
+Review note cleanup: exact previews, current version, stale snapshots, recoverable moves, byte-identical recovery, save-before-cleanup, failure reporting, other-review preservation, archive and linked-path guards passed.
+✔ test\agenda-note-cleanup.test.js (5189.7252ms)
+Review notes: confirmed Markdown/readback, idempotency, source/config/archive guards, file edits, versions/statuses, cited suggestions, no matches, invalid citations and zero RAG passed with an isolated ledger and model.
+✔ test\agenda-notes.test.js (3081.38ms)
+Obsidian report export: exact UTF-8 body/readback/SHA256, required historical acknowledgement, source/body recheck, immutable versions, idempotent retry/orphan recovery, tamper and linked-directory protection passed with isolated files.
+✔ test\agenda-report-export.test.cjs (684.2811ms)
+Report jobs: three isolated members, provider pause/no requests/key retention, exact idempotency, shared occupancy, source/late/restart guards, reconciliation/retry and real queue claim/start/result protocol passed; real Agents and paid model calls: 0.
+✔ test\agenda-report-jobs.test.cjs (517.3732ms)
+Agenda report-writing checks passed.
+✔ test\agenda-report-writing.test.js (199.3567ms)
+Agenda period and report-context checks passed.
+✔ test\agenda-utils.test.js (197.1256ms)
+Agent dispatch dependency, deduplication, claim and rework checks passed
+✔ test\agent-dispatch.test.js (517.5395ms)
+Archive API persistence, preview, paused write protection, language validation and whitelisted guide routes passed with an isolated ledger.
+✔ test\archive-api.test.js (1423.6396ms)
+Archive dependency preview, atomicity, restoration pause, reminders, queue exclusion, legacy migration and late-result retention passed.
+✔ test\archive.test.js (631.2257ms)
+Briefing favorites API: legacy defaults, independent read/save, disk persistence, recreated service, duplicate intake, immutable text, invalid preferences and archived writes passed.
+✔ test\brief-favorites.test.js (1480.8144ms)
+Brief hub checks passed.
+✔ test\brief-hub.test.js (207.691ms)
+✔ approval authentication fails closed, never provisions via HTTP, supports Unicode and bounds guesses (800.488ms)
+Codex director unavailable-vault regression passed
+✔ test\codex-vault-failure.test.js (510.0744ms)
+Codex event, deduplication, persistence and failure recovery checks passed.
+✔ test\codex.test.js (565.858ms)
+Project collaboration message and artifact checks passed.
+✔ test\collaboration.test.js (477.0096ms)
+Cursor long prompt file handoff and cleanup regression passed
+✔ test\cursor-long-prompt.test.js (588.2722ms)
+Cursor long handoff preserves executor versus reviewer role
+✔ test\cursor-role-handoff.test.cjs (568.5274ms)
+Decision inbox: reconcile, held results, Start Writing, retry budgets, failed deliveries, chat failures, task reviews/blocks and report drafts, archived exclusion and severity order; activity timeline order and read-only API passed.
+✔ test\decision-inbox.test.js (1207.3955ms)
+✔ parses only final text; invocation enforces sandbox plus monotonic tool denial (51.9541ms)
+✔ rejects missing final and returns positive process-close evidence (33.0936ms)
+✔ generated plugin installs a denying guard and publishes readiness only afterwards (52.1458ms)
+✔ rejects malformed and duplicate finals (48.5609ms)
+✔ does not accept final after nonzero exit or inconsistent session identity (53.3107ms)
+✔ sanitizes API credentials in error events (42.6492ms)
+✔ timeout requests termination and reports closed evidence (47.2548ms)
+File delivery gates, version checks, readback, retries, compatibility and held-result checks passed.
+✔ test\delivery.test.js (1279.9342ms)
+Virtual department workflow checks passed.
+✔ test\department.test.js (470.5642ms)
+desktop bridge v2 contract passed
+✔ test\desktop-bridge-prompt.test.js (223.471ms)
+Desktop bridge identity, duplicate, timeout and exact v2 claim receipt checks passed
+✔ test\desktop-bridge.test.js (437.3719ms)
+Disk skills: scan filter, read-only, hash conflict, path escape, skill-only push, and private repo args passed.
+✔ test\disk-skills.test.cjs (8389.7514ms)
+Dropbox brief checks passed.
+✔ test\dropbox-brief.test.js (200.7168ms)
+✔ quiet coordinator ticks update volatile health without rewriting the ledger (31.3943ms)
+✔ 75-minute unclaimed fallback fences queue, preserves judgment, uses independent review and is idempotent (66.7656ms)
+✔ claim wins or shared lock is held: coordinator does not steal an active task (40.8225ms)
+✔ approval, SLA, pause, draft evidence, input and budget gates prevent fallback (124.0192ms)
+✔ withdrawal journal repairs a crash before the ledger commit without re-opening the queue (63.6016ms)
+✔ board is read-only and reports actual ownership rather than resolving unknown work (23.4217ms)
+✔ supplementary evidence reaches the handoff without leaking another project or claiming verification (9.8435ms)
+✔ live desktop wait releases the runtime slot; Cursor can continue without cancelled attempt corruption (183.9519ms)
+✔ native policy API persists approval without invalidating an in-flight attempt; board GET is read-only (752.2989ms)
+Execution API: read-only refresh, legacy pause gates, pinned skill injection, duplicate receipts, late results, explicit reconciliation, paused conversion and desktop claim/result identity passed. Real Agent calls: 0.
+✔ test\execution-api.test.cjs (3482.9388ms)
+Governance regression: paused claim, pause/resume late results, durable ownership, idempotent receipts, restart uncertainty and explicit reconciliation passed.
+✔ test\execution-governance.test.cjs (552.7359ms)
+External runtime automatic start, duplicate prevention and writing gate checks passed
+✔ test\external-runtime.test.js (694.7463ms)
+External tools catalog, launch guard and route checks passed.
+✔ test\external-tools.test.js (1505.5314ms)
+V9 API persistence, read-only GET/draft, no credentials, same-origin writes, validation/conflicts, activation/save idempotency, legacy protection and archive/restore passed with an isolated ledger.
+✔ test\growth-api.test.cjs (1535.5884ms)
+V9 domain: read-only snapshot, 300-minute plan, idempotency, date validation, 40 retained sessions, reopening, evidence gates, review invalidation/history, conflicts, weekly draft, archive/restore and original record boundaries passed.
+✔ test\growth.test.cjs (204.6806ms)
+✔ separate processes preserve unrelated sections from stale snapshots (453.5567ms)
+✔ separate processes reject conflicting project changes and retain the first commit (453.2306ms)
+✔ live owner locks time out and cannot be deleted by a contender (626.5444ms)
+✔ confirmed exited writer is recovered without losing the last committed data (448.5526ms)
+✔ short lock contention waits for the live owner then merges independent changes (572.1741ms)
+Ledger cache isolation, outside edits, day rollover, stale-write merge, clash warning, full replacement, tiered/throttled backups and the ui state slice passed.
+✔ test\ledger-store.test.js (1645.7564ms)
+Life and learning galaxy checks passed.
+✔ test\life-learning.test.js (220.0569ms)
+LLM generation-limit checks passed.
+✔ test\llm-options.test.js (168.3636ms)
+Local Explorer targeting checks passed.
+✔ test\local-opener.test.js (176.1631ms)
+Workbench MCP: initialize/version negotiation, ping, tool list without identity parameters, brief, attributed checkpoint, one-step instruction lifecycle, claim errors, read-only mode and loopback-only target passed.
+✔ test\mcp-server.test.js (1735.5932ms)
+Current-week plan migration checks passed.
+✔ test\migration.test.js (493.8532ms)
+Online-compatible model status checks passed.
+✔ test\model-status.test.js (165.9537ms)
+Monthly thoughts: full remarks/reviews/saved originals, unsaved ideas, plan-only coverage, independent detailed prompt, source snapshots, three members, old-job compatibility, missing-section retention/manual repair and complete versioned export passed with isolated data.
+✔ test\monthly-thought-report.test.cjs (1484.8417ms)
+(node:69640) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Canonical routes, typed project identities, paused/stale channel evidence, read-only refresh and safe extension metadata passed.
+✔ test\navigation-extensions.test.cjs (1281.8575ms)
+Workbench system proxy and local vault bypass checks passed.
+✔ test\network.test.js (199.2258ms)
+Paper library: safe JSON import, identity merge, favorites/state retention, source removal, atomic failure, selected downloads, concurrent ownership, content reuse, PDF validation, redirect/host/size/time guards, tamper detection and recoverable repair passed. Isolated ledger/files; zero live downloads.
+✔ test\paper-library.test.cjs (392.6739ms)
+Preparation review, summary, deduplication, writing gate and failure checks passed
+✔ test\preparation-flow.test.js (521.9403ms)
+Project chat routing, deduplication, paused discussion, real adapter contract, failure and recovery passed
+✔ test\project-chat.test.js (623.3714ms)
+Workflow API: read-only GET, legacy bypass prevention, role authority, snapshot conflicts and idempotency passed. No live model calls.
+✔ test\project-workflow-api.test.cjs (2782.4931ms)
+✔ three roles negotiate immutable versions; approval gates real work; acceptance is separate (622.3593ms)
+✔ concurrent feedback does not invalidate the other reply; duplicate command receipts are stable (383.825ms)
+✔ pause/resume keeps late results held and restart does not blindly redispatch (187.1097ms)
+✔ real DOCX batch is independently reviewed and file changes invalidate final acceptance (912.7268ms)
+✔ bounded checks survive changed check IDs and repeated ticks; ordinary failures are owned by lead (380.7509ms)
+✔ missing roles, self-review and unconfigured members are never silently replaced (0.9123ms)
+✔ two file milestones retain separate batches and cannot reuse the prior review snapshot (1115.4352ms)
+✔ chairman revisions retain prior immutable plans and require fresh approval (482.5711ms)
+✔ manual handoff binds the actual claim and validates structured output without role spoofing (253.8455ms)
+✔ lead format recovery is persistent, bounded and uses a fresh governed unit (329.9773ms)
+✔ changed historical files are rebuilt from the original source and independently re-reviewed (1066.0987ms)
+✔ unverified or fabricated capability replies cannot launch business work (137.5588ms)
+✔ expired capability evidence blocks dispatch and is renewed before executing (425.5495ms)
+✔ copied PASS markers are not an independent review (457.0504ms)
+✔ file hashes without matching actual readback excerpts cannot pass review (598.4225ms)
+✔ review is bound to the input result hash, not a newly copied current hash (567.8839ms)
+✔ changing the channel profile during a call retains the result without advancing (443.4042ms)
+✔ capability probes contain only synthetic materials, not business context (169.0665ms)
+✔ every approved criterion requires a separate review finding (576.9313ms)
+✔ lead checks close with actual receipt snapshots; replay cannot duplicate reports (511.22ms)
+✔ invented progress evidence fails visibly; explicit unknowns remain valid (993.4233ms)
+✔ finished milestones supersede unperformed checks without claiming progress inspection (617.7416ms)
+✔ quiet workflow tick reads once and does not write a heartbeat (0.6305ms)
+✔ Ollama only offers completion models and rejects unsafe endpoints or incomplete output (6.3315ms)
+✔ Doubao exact claim and atomic result are required; paused or stale attempts cannot submit (45.9853ms)
+✔ provider APIs are read-only on GET and model configuration validates live inventory (982.7251ms)
+✔ real test records persist across reload, deduplicate and expose credential blockers (14.4067ms)
+Recovery API: explicit policy/idempotency, stale snapshot, independent assignment and preparation approval→actual formal execution passed; real Agent calls 0
+✔ test\recovery-api.test.cjs (1663.1412ms)
+Runtime recovery: two network failures, persisted retry, Codex fallback and unchanged upstream draft passed
+✔ test\recovery-runtime.test.cjs (578.3514ms)
+Agenda reminder checks passed.
+✔ test\reminders.test.js (162.506ms)
+Review filenames: stored Shanghai time, safe readable titles, long/Unicode/reserved names, collisions, duplicate saves, byte-identical legacy/trash migration, references and old draft compatibility, cleanup restore, idempotency, stale previews and rollback passed. Isolated vault only.
+✔ test\review-note-filenames.test.cjs (1549.3057ms)
+Review note members: incomplete gate, three adapters, exact original/draft contracts, idempotency, refinement, shared ownership, stale facts/configuration/files, real queue claim/start/result, three-attempt budget and generation without note writes passed. Real members/API calls: 0.
+✔ test\review-note-members.test.cjs (822.3685ms)
+Router dispatch, method/regex/prefix matching, local-only guard and 58-route manifest passed.
+✔ test\router.test.js (700.67ms)
+Real adapter seam: TLS failure carries child close evidence and transient classification
+✔ test\runtime-exit-evidence.test.cjs (507.5585ms)
+Saved-summary monthly reports: month/latest-active selection, exclusions, provenance preview, three members, no fallback API, idempotency, stale preview/file/add/delete guards, shared ownership and historical/current versioned exports passed with isolated files.
+✔ test\saved-review-report.test.cjs (4300.2634ms)
+Secrets redacted from /api/state, cross-site writes rejected, same-origin and agent writes accepted.
+✔ test\security-guards.test.js (1156.5668ms)
+Skill Studio: source boundaries, confirmed immutable versions, idempotency, conflicts, fixed tests, adapter receipt contract, pause/late-result/restart guards, archives and isolated HTTP checks passed. Real CLI acceptance is separate.
+✔ test\skill-studio.test.cjs (2150.6904ms)
+Start-script behavior checks passed.
+✔ test\start-script.test.js (165.2772ms)
+Superagent async Phase2: start idempotent, heartbeat, cooperative stop+governance, watchdog async lease passed.
+✔ test\superagent-async.test.cjs (471.2878ms)
+Superagent intake Phase2: filter, CRUD subscriptions, shared plan/deliver idempotent fan-out, pause skip, ingest passed.
+✔ test\superagent-intake.test.cjs (472.1828ms)
+PASS stop request retains ownership until execution is reconciled
+PASS watchdog retry count is scoped to the same input
+PASS watchdog read-only scan does not initialize the input ledger
+PASS subscription update preserves identity for a later id-free upsert
+PASS ingest replay without generated timestamps is idempotent
+PASS async key cannot silently bind a different goal
+Superagent review regressions passed with isolated ledgers; real workers and real messages: 0.
+✔ test\superagent-review-regressions.test.cjs (471.433ms)
+Superagent watchdog: lease expiry, no-progress, excessive retries, safe pause confirmation passed.
+✔ test\superagent-watchdog.test.cjs (440.5169ms)
+Four retained palettes: navigation, text, action and status contrast passed.
+✔ test\theme-contrast.test.js (173.03ms)
+v2 department collaboration checks passed.
+✔ test\v2-department-collab.test.js (1332.4727ms)
+v3 focus categories, asset counts, link routing, companion defaults and desktop shell policy passed.
+✔ test\v3-bold-workspace.test.js (507.7246ms)
+Vault injection, provenance, local endpoint and failure checks passed.
+✔ test\vault.test.js (208.8837ms)
+WorkBuddy deterministic submission: five-field wrapping, exact identity, input/control/pause/expiry checks, no overwrite, idempotency, loopback and isolated CLI passed
+✔ test\workbuddy-submit.test.js (1629.714ms)
+Workflow recovery: persistent retry, fallback, pause/input invalidation, unknown evidence and total budget passed
+✔ test\workflow-recovery.test.cjs (522.2398ms)
+Workspace shared-root test passed
+✔ test\workspace.test.js (185.5042ms)
+ℹ tests 115
+ℹ suites 0
+ℹ pass 115
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 19950.2434
+Translation coverage passed: 1306 system strings.
+
+STDERR:
+
+EXIT: 0

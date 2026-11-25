@@ -5,8 +5,8 @@ if(process.argv[2]==='worker'){
   const [file,section,value]=process.argv.slice(3),ledger=createLedger({file,log:{warn(){}}});
   const snapshot=ledger.load();snapshot[section].push(value);
   process.on('message',command=>{
-    if(command!=='write')return;
-    try{ledger.write(snapshot);process.send({result:'saved'});}catch(error){process.send({result:error.code});}
+    if(!['write','hold','crash'].includes(command))return;
+    try{ledger.write(snapshot,{prepare:command==='write'?undefined:()=>{process.send({result:'locked'});Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,command==='hold'?120:60000);}});process.send({result:'saved'});}catch(error){process.send({result:error.code});}
   });
   process.send({result:'ready'});
 }else{
@@ -25,10 +25,22 @@ if(process.argv[2]==='worker'){
     assert.equal(await write(a),'saved');assert.equal(await write(b),'ledger_write_conflict');
     assert.deepEqual(JSON.parse(fs.readFileSync(file)).departmentRuns,['paused']);assert(!fs.existsSync(file+'.write-lock'));
   });
-  test('busy or unverified orphan locks fail closed and cannot be deleted by a contender',async t=>{
+  test('live owner locks time out and cannot be deleted by a contender',async t=>{
     const file=fixture(),a=await worker(t,file,'tasks','blocked'),lock=file+'.write-lock';
     fs.writeFileSync(lock,JSON.stringify({pid:process.pid,createdAt:new Date().toISOString()}));
     assert.equal(await write(a),'ledger_write_busy');assert(fs.existsSync(lock));assert.deepEqual(JSON.parse(fs.readFileSync(file)).tasks,[]);
     fs.unlinkSync(lock);assert.equal(await write(a),'saved');
+  });
+  test('confirmed exited writer is recovered without losing the last committed data',async t=>{
+    const file=fixture(),a=await worker(t,file,'tasks','never-committed'),b=await worker(t,file,'departmentRuns','recovered');
+    const locked=message(a);a.send('crash');assert.equal(await locked,'locked');
+    const exited=new Promise(resolve=>a.once('exit',resolve));a.kill();await exited;
+    assert.equal(await write(b),'saved');assert.deepEqual(JSON.parse(fs.readFileSync(file)),{tasks:[],departmentRuns:['recovered']});assert(!fs.existsSync(file+'.write-lock'));
+  });
+  test('short lock contention waits for the live owner then merges independent changes',async t=>{
+    const file=fixture(),a=await worker(t,file,'tasks','first'),b=await worker(t,file,'departmentRuns','second');
+    const locked=message(a);a.send('hold');assert.equal(await locked,'locked');const done=message(a);
+    assert.equal(await write(b),'saved');assert.equal(await done,'saved');
+    assert.deepEqual(JSON.parse(fs.readFileSync(file)),{tasks:['first'],departmentRuns:['second']});
   });
 }
