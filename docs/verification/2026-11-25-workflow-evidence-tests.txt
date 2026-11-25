@@ -1,0 +1,68 @@
+Command: node --test --test-concurrency=1 --test-reporter=spec test/project-workflow.test.cjs test/project-workflow-api.test.cjs test/project-workflow.browser.cjs test/chairman-auth.test.cjs test/department.test.js test/execution-governance.test.cjs test/delivery.test.js test/project-chat.test.js test/providers-ui.browser.cjs test/execution.browser.cjs test/delivery.browser.cjs test/duty-coordinator.test.cjs test/execution-api.test.cjs test/external-runtime.test.js test/codex.test.js test/mcp-server.test.js
+
+✔ approval authentication fails closed, never provisions via HTTP, supports Unicode and bounds guesses (377.4517ms)
+Codex event, deduplication, persistence and failure recovery checks passed.
+✔ test\codex.test.js (186.5258ms)
+Delivery API and browser: required format, generation, bilingual receipts, snapshot-bound review, tampering invalidation and archived writes passed.
+✔ test\delivery.browser.cjs (3113.9135ms)
+File delivery gates, version checks, readback, retries, compatibility and held-result checks passed.
+✔ test\delivery.test.js (461.8425ms)
+Virtual department workflow checks passed.
+✔ test\department.test.js (181.0067ms)
+✔ quiet coordinator ticks update volatile health without rewriting the ledger (6.3828ms)
+✔ 75-minute unclaimed fallback fences queue, preserves judgment, uses independent review and is idempotent (19.2873ms)
+✔ claim wins or shared lock is held: coordinator does not steal an active task (9.9324ms)
+✔ approval, SLA, pause, draft evidence, input and budget gates prevent fallback (38.3571ms)
+✔ withdrawal journal repairs a crash before the ledger commit without re-opening the queue (18.1988ms)
+✔ board is read-only and reports actual ownership rather than resolving unknown work (8.1738ms)
+✔ supplementary evidence reaches the handoff without leaking another project or claiming verification (5.0454ms)
+✔ live desktop wait releases the runtime slot; Cursor can continue without cancelled attempt corruption (108.8994ms)
+✔ native policy API persists approval without invalidating an in-flight attempt; board GET is read-only (180.7418ms)
+Execution API: read-only refresh, legacy pause gates, pinned skill injection, duplicate receipts, late results, explicit reconciliation, paused conversion and desktop claim/result identity passed. Real Agent calls: 0.
+✔ test\execution-api.test.cjs (1719.1271ms)
+Governance regression: paused claim, pause/resume late results, durable ownership, idempotent receipts, restart uncertainty and explicit reconciliation passed.
+✔ test\execution-governance.test.cjs (151.9975ms)
+Execution UI: explicit controls, preserved binding drafts, safe result preview, reconciliation, conversion, read-only refresh, EN/CN, four themes and narrow screen passed. Screenshots: C:\Users\Benjamin\AppData\Local\Temp\bench-execution-ui-Ye7iaX
+✔ test\execution.browser.cjs (4631.0257ms)
+External runtime automatic start, duplicate prevention and writing gate checks passed
+✔ test\external-runtime.test.js (235.2318ms)
+Workbench MCP: initialize/version negotiation, ping, tool list without identity parameters, brief, attributed checkpoint, one-step instruction lifecycle, claim errors, read-only mode and loopback-only target passed.
+✔ test\mcp-server.test.js (512.5164ms)
+Project chat routing, deduplication, paused discussion, real adapter contract, failure and recovery passed
+✔ test\project-chat.test.js (296.1982ms)
+Workflow API: read-only GET, legacy bypass prevention, role authority, snapshot conflicts and idempotency passed. No live model calls.
+✔ test\project-workflow-api.test.cjs (703.1077ms)
+Workflow UI: plan approval, exact roles, escaped feedback, preserved drafts, English and narrow layout passed. Screenshots: C:\Users\Benjamin\AppData\Local\Temp\bench-project-workflow-ui-HH3Yop
+✔ test\project-workflow.browser.cjs (3331.787ms)
+✔ three roles negotiate immutable versions; approval gates real work; acceptance is separate (104.1568ms)
+✔ concurrent feedback does not invalidate the other reply; duplicate command receipts are stable (63.1693ms)
+✔ pause/resume keeps late results held and restart does not blindly redispatch (38.7663ms)
+✔ real DOCX batch is independently reviewed and file changes invalidate final acceptance (267.9333ms)
+✔ bounded checks survive changed check IDs and repeated ticks; ordinary failures are owned by lead (57.1288ms)
+✔ missing roles, self-review and unconfigured members are never silently replaced (0.3171ms)
+✔ two file milestones retain separate batches and cannot reuse the prior review snapshot (225.2897ms)
+✔ chairman revisions retain prior immutable plans and require fresh approval (68.5991ms)
+✔ manual handoff binds the actual claim and validates structured output without role spoofing (39.9781ms)
+✔ lead format recovery is persistent, bounded and uses a fresh governed unit (41.1119ms)
+✔ changed historical files are rebuilt from the original source and independently re-reviewed (220.9522ms)
+✔ unverified or fabricated capability replies cannot launch business work (28.9072ms)
+✔ expired capability evidence blocks dispatch and is renewed before executing (70.346ms)
+✔ copied PASS markers are not an independent review (80.6615ms)
+✔ file hashes without matching actual readback excerpts cannot pass review (122.2305ms)
+✔ review is bound to the input result hash, not a newly copied current hash (71.6566ms)
+✔ changing the channel profile during a call retains the result without advancing (66.4629ms)
+✔ capability probes contain only synthetic materials, not business context (31.7744ms)
+✔ every approved criterion requires a separate review finding (123.571ms)
+Provider UI: six model members, infrastructure exclusion, explicit probe/model/test, safe real-output display, manual receipt/draft preservation and narrow layout passed
+✔ test\providers-ui.browser.cjs (2600.8407ms)
+ℹ tests 42
+ℹ suites 0
+ℹ pass 42
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 21114.5403
+
+
+Exit code: 0

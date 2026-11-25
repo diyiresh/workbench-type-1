@@ -1,7 +1,13 @@
 // Keys are developer-authored UI text. Business data is never a translation key.
 export const EN = {
+ '确认':'Confirm',
+ '请输入董事长操作口令':'Enter the chairman approval passphrase',
+ '已取消董事长操作':'Chairman action cancelled',
+ '请先在本机终端设置董事长操作口令：node scripts/chairman-auth.cjs setup':'First configure the approval passphrase in a local terminal: node scripts/chairman-auth.cjs setup',
   '当前版本只读保留新流程项目，请升级后继续。原成果和历史记录均保留。':'This version preserves newer workflow projects as read-only. Upgrade to continue; outputs and history are retained.',
 
+  '负责人拟案、协调执行与独立审核，按批准节点交付。':'The lead plans, coordinates execution and independent review, and delivers against approved milestones.',
+  '方案批准':'Plan approval','项目验收':'Project acceptance','人工启动协助':'Manual agent start',
   '四种配色、界面密度、装饰图与跟随系统明暗，只保存在当前浏览器。':'Four palettes, density, artwork and system appearance are saved in this browser only.',
   '自动恢复与人工控制':'Automatic recovery and manual controls',
   '当前分工与恢复进展':'Assignments and recovery progress',

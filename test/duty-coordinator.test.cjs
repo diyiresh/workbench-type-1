@@ -2,6 +2,10 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),os=require('os'),path=require('path');
 const gov=require('../lib/execution-governance'),dept=require('../lib/department'),duty=require('../lib/duty-coordinator'),queue=require('../lib/workbuddy-queue');
 gov.configure({channelState:()=>({state:'test-isolated'})});
+test('quiet coordinator ticks update volatile health without rewriting the ledger',()=>{
+ let writes=0;const data={departmentRuns:[],executionAttempts:[]};const manager=duty.createCoordinator({readStore:()=>structuredClone(data),writeStore:()=>{writes++;},dataDir:os.tmpdir()});
+ const at=Date.now();manager.tick(at);manager.tick(at+60000);assert.equal(writes,0);assert.equal(duty.board(data,at+60000).lastTickAt,new Date(at+60000).toISOString());
+});
 function fixture(t){
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'duty-test-')),dir=path.join(root,'workbuddy-queue');fs.mkdirSync(dir);t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
  let data=require('../lib/default-store').buildDefaultStore();const run=dept.createDepartmentRun(data,{goal:'Synthetic failover',participantAgentIds:['codex','workbuddy','cursor'],requiresWritingApproval:false});run.externalAutomation=true;run.writingApproved=true;const step=dept.getItem(run,'executor');dept.getItem(run,'director').status='done';step.status='queued';
@@ -26,7 +30,7 @@ test('withdrawal journal repairs a crash before the ledger commit without re-ope
  const f=fixture(t);let fail=true;const m=duty.createCoordinator({readStore:f.readStore,writeStore:s=>{if(fail)throw Error('simulated disk failure');f.writeStore(s);},dataDir:f.root});assert.throws(()=>m.withdraw(f.runId),/disk failure/);assert.equal(JSON.parse(fs.readFileSync(f.file)).status,'withdrawn');assert.equal(queue.claim(f.dir).assignment,null);fail=false;assert.equal(m.withdraw(f.runId),true);assert.equal(f.readStore().coordinator.log.length,1);
 });
 test('board is read-only and reports actual ownership rather than resolving unknown work',t=>{
- const f=fixture(t),s=f.readStore(),before=JSON.stringify(s);const b=duty.board(s);assert(b.entries.some(e=>e.stepId===f.stepId&&e.waitingOn==='workbuddy'));assert.equal(JSON.stringify(s),before);f.manager.tick();assert(f.readStore().coordinator.lastTickAt);
+ const f=fixture(t),s=f.readStore(),before=JSON.stringify(s);const b=duty.board(s);assert(b.entries.some(e=>e.stepId===f.stepId&&e.waitingOn==='workbuddy'));assert.equal(JSON.stringify(s),before);f.manager.tick();assert(duty.board(f.readStore()).lastTickAt);
 });
 test('supplementary evidence reaches the handoff without leaking another project or claiming verification',t=>{
  const f=fixture(t),s=f.readStore(),r=dept.getRun(s,f.runId);s.artifacts=[{runId:r.id,name:'S1 actual source',path:'C:/synthetic/S1.txt',sha256:'recorded-hash',reviewStatus:'pending'},{runId:'other-project',name:'Foreign private material',path:'C:/other/private.txt'}];const prompt=dept.rolePrompt(r,dept.getItem(r,'executor'),s).prompt;assert.match(prompt,/S1 actual source/);assert.match(prompt,/登记不等于验收通过/);assert(!prompt.includes('Foreign private material'));assert(!prompt.includes('C:/other/private.txt'));

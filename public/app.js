@@ -1,3 +1,4 @@
+import { mountWorkflow } from './js/project-workflow-ui.js';
 // ============================================================
 // app.js — 壳层启动：路由、三栏渲染、简报弹窗、底部指令台。
 // 模块本身在 /modules/，页面视图在 /js/views.js，公共件在 /js/core.js。
@@ -88,12 +89,12 @@ let learningFormDraft = loadLearningFormDraft();
 let departmentGoalDraft = (() => {
   try {
     const value = JSON.parse(localStorage.getItem(DEPARTMENT_GOAL_CACHE_KEY) || "{}");
-    return { goal: String(value.goal || ""), context: String(value.context || "") };
+    return { ...value,goal: String(value.goal || ""), context: String(value.context || "") };
   } catch (_) { return { goal: "", context: "" }; }
 })();
 
 function saveDepartmentGoalDraft(value) {
-  departmentGoalDraft = { goal: String(value.goal || ""), context: String(value.context || "") };
+  departmentGoalDraft = { ...value,goal: String(value.goal || ""), context: String(value.context || "") };
   try { localStorage.setItem(DEPARTMENT_GOAL_CACHE_KEY, JSON.stringify(departmentGoalDraft)); } catch (_) { /* 仅保留内存 */ }
 }
 
@@ -337,7 +338,7 @@ function workspace() {
     reflections: document.documentElement.lang === "en" ? "Your original reflections, kept in full." : "保留每一次思考的原文与脉络。",
     home: tr("今日重点、跨模块入口与待决策事项。"),
     deck: tr("总控指标 + 风险雷达 + 全项目决策表。会议记录在这里拆成待办。"),
-    department: tr("只说一次目标，由主管、执行人、独立复核人与整合秘书接力完成。"),
+    department: tr("负责人拟案、协调执行与独立审核，按批准节点交付。"),
     agenda: tr("把真正占用今天的时间排出来，再让 AI 给出可编辑的建议。"),
     briefs: tr("ChatGPT、WorkBuddy 与其他 Agent 继续各自生成；这里统一收件、去重和阅读。"),
     ops: REPORT_KINDS.includes(secondary) ? tr("周期报告统一保存在这里，行程安排进入每日行程。") : tr("按关注分类阅读已入库的简报和记忆。经营报告仍在这一页生成。"),
@@ -414,6 +415,7 @@ function workspace() {
   mountSkillStudio();
   mountDiskSkills();
   mountExecution();
+  mountWorkflow({reload});
   mountProviders();
   void mountDecisionInbox();
   void mountGrowth();
@@ -1060,7 +1062,7 @@ function bindDepartment() {
   if (!form) return;
   const capture = () => {
     const data = new FormData(form);
-    saveDepartmentGoalDraft({ goal: data.get("goal"), context: data.get("context") });
+    saveDepartmentGoalDraft({ goal: data.get("goal"), context: data.get("context"), deliveryProfile:data.get("deliveryProfile"),taskType:data.get("taskType"),businessProjectId:data.get("businessProjectId"),v2:data.has("v2"),roles:Object.fromEntries(["director","executor","reviewer"].map(role=>[role,data.get(role)])) });
   };
   form.addEventListener("input", capture);
   form.onsubmit = async (e) => {
@@ -1069,8 +1071,9 @@ function bindDepartment() {
     const data = new FormData(form);
     const goal = String(data.get("goal") || "").trim();
     if (!goal) return;
-    const participantAgentIds = data.getAll("participantAgentIds").map((value) => String(value));
-    const run = await api("/api/departments/runs", { method: "POST", body: { goal, context: String(data.get("context") || "").trim(), participantAgentIds, v2: data.get("v2") === "1", delivery: { mode: data.get("deliveryProfile") === "text" ? "text" : "files", profile: data.get("deliveryProfile") } } });
+    const roles = Object.fromEntries(["director","executor","reviewer"].map(role=>[role,String(data.get(role)||"")]));
+    const run = await api("/api/departments/runs", { method: "POST", body: { goal, context: String(data.get("context") || "").trim(), workflowVersion:2, roles, businessProjectId:String(data.get("businessProjectId")||""), requiresWritingApproval:data.get("taskType")==="writing",requiresDevelopmentApproval:data.get("taskType")==="development", v2: data.get("v2") === "1", delivery: { mode: data.get("deliveryProfile") === "text" ? "text" : "files", profile: data.get("deliveryProfile") } } }).catch(error=>{const feedback=form.querySelector('[data-intake-feedback]');if(feedback)feedback.textContent=error.message;return null;});
+    if(!run)return;
     clearDepartmentGoalDraft();
     await reload();
     go("department", run.id);

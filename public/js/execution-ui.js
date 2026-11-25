@@ -151,6 +151,7 @@ function remember(ctx) {
   for (const form of ctx.host.querySelectorAll("[data-execution-assign]")) drafts.set(ctx.runId + "/assign/" + form.dataset.executionAssign, form.elements.ownerAgentId.value);
 }
 function drawControls(ctx) {
+  if(ctx.model.run.workflowVersion===2){ctx.host.querySelector("[data-execution-control]").innerHTML="";return;}
   const m = ctx.model;
   ctx.host.querySelector("[data-execution-control]").innerHTML = ui`<div class="actions"><span class="chip">${tr(m.run.automationPaused ? "工作链已暂停" : "工作链未暂停")}</span><button type="button" class="ghost" data-execution-action="${m.run.automationPaused ? "resume" : "pause"}" ${m.run.archived || m.run.resumeRequired ? "disabled" : ""}>${tr(m.run.automationPaused ? "明确继续工作链" : "暂停工作链")}</button><button type="button" class="ghost" data-execution-action="refresh">核对最新状态</button></div><p>每位成员同时最多一个执行；同一输入最多三次尝试；独立复核沿用每轮三次退回上限。实际模型用量未知时不显示为零。</p>${m.channels.find((a) => a.agentId === "workbuddy")?.state === "paused" ? ui`<p class="k">WorkBuddy 定时领取由你暂停，当前保持暂停。</p>` : ""}`;
 }
@@ -182,6 +183,7 @@ function stageCheckpoint(run,item,last,recovery){
   return `<div data-stage-checkpoint="${esc(item.id)}"><p>${esc(tr('等待对象'))}：${esc(MODEL_NAMES[owner]||owner)}${minutes!==null?` · ${esc(tr('当前状态持续（分钟）'))}：${minutes} · ${fmt(since)}`:''}</p><p>${esc(tr('下一步动作'))}：${esc(action)}</p>${active?`<p>${esc(tr('当前执行'))}：${esc(executionState(last))} · ${esc(last.id)}</p>`:''}</div>`;
 }
 function drawRecovery(ctx) {
+  if(ctx.model.run.workflowVersion===2){ctx.host.querySelector("[data-execution-recovery]").innerHTML="";return;}
   const m = ctx.model;
   const policy = m.run.recoveryPolicy || {};
   const maxAttempts = policy.maxAttempts || 3;
@@ -200,6 +202,7 @@ function drawRecovery(ctx) {
   }
 }
 function drawManagement(ctx) {
+  if(ctx.model.run.workflowVersion===2){ctx.host.querySelector("[data-execution-management]").innerHTML="";return;}
   const host = ctx.host.querySelector("[data-execution-management]");
   if (host.contains(document.activeElement)) return;
   const m = ctx.model, disabled = m.run.archived || m.run.resumeRequired;

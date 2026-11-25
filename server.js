@@ -45,6 +45,7 @@ const ROOT = __dirname;
 const WORKSPACE_ROOT = path.resolve(ROOT, "..", "..");
 const PUBLIC = path.join(ROOT, "public");
 const DATA = process.env.BENCH_DATA_DIR ? path.resolve(process.env.BENCH_DATA_DIR) : path.join(ROOT,"data");
+const chairmanAuth=require('./lib/chairman-auth').createAuth(DATA);
 const STORE = path.join(DATA, "store.json");
 const SKILL_ROOT = path.join(DATA, 'skill-library');
 governance.configure({skillRoot:SKILL_ROOT,channelState:()=>process.env.BENCH_DATA_DIR ? {state:'test-isolated'} : extensions.workbuddyAutomation()});
@@ -62,6 +63,8 @@ const preparationFlow = require('./lib/preparation-flow').createPreparationFlow(
 const projectChat = require('./lib/project-chat').createChat({ readStore, writeStore });
 const dutyCoordinator=require('./lib/duty-coordinator');
 const dutyManager=dutyCoordinator.createCoordinator({readStore,writeStore,dataDir:DATA});
+const projectWorkflow=require('./lib/project-workflow');
+const workflowManager=require('./lib/project-workflow-runtime').createManager({readStore,writeStore,cwd:ROOT,generateFiles:runId=>deliveryManager.generate(runId)});
 const providerManager=require('./lib/provider-manager').createManager({readStore,writeStore,dataDir:DATA,generate:require('./lib/external-runtime').generate});
 // Domain route modules, checked in order before the core ledger routes below (see routes/index.js).
 const domainRoutes = createRouter(require("./routes")({ readStore, writeStore, DATA, SKILL_ROOT, diskCatalog, skillManager, codexManager,providerManager }));
@@ -148,6 +151,7 @@ function uiState(state) {
     externalJobs: (state.externalJobs || []).map(({ output, ...job }) => ({ ...job, outputChars: String(output || "").length })),
     departmentRuns: (state.departmentRuns || []).map(run => ({
       ...run,
+      ...(run.workflowVersion===2?{workHistory:(run.workHistory||[]).map(({output,...h})=>({...h,outputChars:String(output||'').length})),milestones:(run.milestones||[]).map(({output,review,...m})=>({...m,review:review?{...review,comment:undefined}:null}))}:{}),
       discussion: (run.discussion || []).map(entry => String(entry.text || "").length > DISCUSSION_PREVIEW ? { ...entry, text: entry.text.slice(0, DISCUSSION_PREVIEW) + "…", truncated: true } : entry),
     })),
   };
@@ -246,12 +250,42 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
   if (await domainRoutes({ req, res, url, p, method, store, reportManager, paperManager, launchDeps })) return true;
 
   const lockedRun = p.match(/^\/api\/departments\/runs\/([^/]+)\//);
-  if(method==="POST"&&lockedRun&&(store.departmentRuns||[]).some(r=>r.id===lockedRun[1]&&r.workflowVersion===2))return sendJson(res,409,{error:"workflow_read_only_after_rollback"});
+  const workflowPreview=p.match(/^\/api\/departments\/runs\/([^/]+)\/workflow\/(history|results)\/([^/]+)$/);
+  if(method==='GET'&&workflowPreview){
+    const fresh=readStore(),run=getRun(fresh,workflowPreview[1]);
+    const value=workflowPreview[2]==='history'?(run.workHistory||[]).find(h=>h.unitId===workflowPreview[3]):(run.milestones||[]).find(m=>m.id===workflowPreview[3]);
+    return value?sendJson(res,200,value):sendJson(res,404,{error:'workflow_result_missing'});
+  }
+  const workflowRoute=p.match(/^\/api\/departments\/runs\/([^/]+)\/workflow(?:\/(start|appoint|approve|revise|manual-start|manual-result|control|retry|agent-start-confirm|acceptance))?$/);
+  if(workflowRoute){
+    try{
+      const fresh=readStore(),run=getRun(fresh,workflowRoute[1]);
+      if(method==='GET'&&!workflowRoute[2])return sendJson(res,200,projectWorkflow.projection(fresh,run));
+      if(method!=='POST'||!workflowRoute[2]||!isLoopback(req))return sendJson(res,403,{error:'workflow_local_only'});
+      if(require('./lib/chairman-auth').ACTIONS.has(workflowRoute[2])){
+        const identity=await chairmanAuth.verify(req);if(!identity.ok){req.resume();return sendJson(res,403,{error:identity.error});}
+      }
+      const body=await readBody(req)||{},latest=readStore(),current=getRun(latest,run.id);
+      const result=projectWorkflow.command(latest,current,workflowRoute[2],body);writeStore(latest);
+      workflowManager.tick();return sendJson(res,200,result);
+    }catch(error){return sendJson(res,409,{error:error.code||error.message});}
+  }
+  if(method==='POST'&&lockedRun){
+    const current=(readStore().departmentRuns||[]).find(r=>r.id===lockedRun[1]);
+    if(projectWorkflow.isNew(current)){
+      const suffix=p.slice(lockedRun[0].length);
+      if(/^(execution\/(control|reconcile|skills)|delivery\/configure)$/.test(suffix)){
+        const identity=await chairmanAuth.verify(req);if(!identity.ok){req.resume();return sendJson(res,403,{error:identity.error});}
+      }
+      const supported=/^(messages|chat-jobs\/[^/]+\/retry|artifacts|delivery(?:\/(configure|generate|retry|open))?|execution(?:\/(control|skills|reconcile|started|result))?)$/.test(suffix);
+      if(!supported)return sendJson(res,409,{error:'use_project_workflow'});
+    }
+  }
   const executionRoute=p.match(/^\/api\/departments\/runs\/([^/]+)\/execution(?:\/(control|skills|reconcile|retry|result|started|policy|assign|approve|failover))?$/);
   if(executionRoute){
     try{
       let fresh=readStore(),run=getRun(fresh,executionRoute[1]);
-      if(method==='GET'&&!executionRoute[2])return sendJson(res,200,{run:{id:run.id,automationPaused:!!run.automationPaused,resumeRequired:!!run.resumeRequired,archived:!!run.archived,controlGeneration:run.controlGeneration||0,externalAutomation:!!run.externalAutomation,writingApproved:!!run.writingApproved,requiresWritingApproval:run.requiresWritingApproval!==false,recoveryPolicy:workflowRecovery.policy(run),dutyPolicy:dutyCoordinator.policy(fresh,run.id),coordinatorLastTickAt:fresh.coordinator?.lastTickAt||null,items:run.items},attempts:(fresh.executionAttempts||[]).filter(a=>a.runId===run.id),legacyJobs:[...(fresh.codexJobs||[]),...(fresh.externalJobs||[])].filter(j=>j.runId===run.id&&!j.attemptId),skills:(fresh.skillLibrary||[]).filter(s=>!inactive(s)&&s.state==='published').map(s=>({id:s.id,name:s.draft.name,versions:s.versions,currentVersionId:s.currentVersionId})),channels:extensions.snapshot(fresh,{dataDir:DATA,automation:process.env.BENCH_DATA_DIR?null:extensions.workbuddyAutomation()}).agents,limits:{concurrentPerAgent:1,attemptsPerInput:3,reviewRounds:3,usage:'unknown'}});
+      if(method==='GET'&&!executionRoute[2])return sendJson(res,200,{run:{id:run.id,workflowVersion:run.workflowVersion,automationPaused:!!run.automationPaused,resumeRequired:!!run.resumeRequired,archived:!!run.archived,controlGeneration:run.controlGeneration||0,externalAutomation:!!run.externalAutomation,writingApproved:!!run.writingApproved,requiresWritingApproval:run.requiresWritingApproval!==false,recoveryPolicy:workflowRecovery.policy(run),dutyPolicy:dutyCoordinator.policy(fresh,run.id),coordinatorLastTickAt:fresh.coordinator?.lastTickAt||null,items:run.items},attempts:(fresh.executionAttempts||[]).filter(a=>a.runId===run.id),legacyJobs:[...(fresh.codexJobs||[]),...(fresh.externalJobs||[])].filter(j=>j.runId===run.id&&!j.attemptId),skills:(fresh.skillLibrary||[]).filter(s=>!inactive(s)&&s.state==='published').map(s=>({id:s.id,name:s.draft.name,versions:s.versions,currentVersionId:s.currentVersionId})),channels:extensions.snapshot(fresh,{dataDir:DATA,automation:process.env.BENCH_DATA_DIR?null:extensions.workbuddyAutomation()}).agents,limits:{concurrentPerAgent:1,attemptsPerInput:3,reviewRounds:3,usage:'unknown'}});
       if(method!=='POST'||!isLoopback(req))return sendJson(res,403,{error:'execution_local_only'});
       const body=await readBody(req)||{};fresh=readStore();run=getRun(fresh,run.id);
       const scope=run.id+'/'+executionRoute[2],old=executionCommands.receipt(fresh,scope,body);if(old)return sendJson(res,200,old);
@@ -343,7 +377,7 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
       const queue=require('./lib/workbuddy-queue');
       const result=queue.claim(path.join(DATA,'workbuddy-queue'),{eligible:r=>queue.eligibleRequest(fresh,r),onClaim:r=>{
         const a=governance.get(fresh,r.attemptId);if(a.jobId!==r.jobId||a.agentId!=='workbuddy')throw governance.error('result_identity_mismatch');
-        if(a.purpose==='stage')agentDispatch.claim(fresh,{agentId:'workbuddy',runId:a.runId,attemptId:a.id,idempotencyKey:body.idempotencyKey});else governance.claim(fresh,a,{claimKey:body.idempotencyKey,workerId:body.workerId||'workbuddy-desktop'});
+        if(a.purpose==='stage'&&getRun(fresh,a.runId).workflowVersion!==2)agentDispatch.claim(fresh,{agentId:'workbuddy',runId:a.runId,attemptId:a.id,idempotencyKey:body.idempotencyKey});else governance.claim(fresh,a,{claimKey:body.idempotencyKey,workerId:body.workerId||'workbuddy-desktop'});
         const j=[...(fresh.externalJobs||[]),...(fresh.chatJobs||[]),...(fresh.agendaReportJobs||[])].find(j=>j.id===a.jobId||j.attemptId===a.id);if(j)j.status='doing';writeStore(fresh);return {attemptId:a.id,claimId:a.claimId,inputHash:a.inputHash};
       }});
       executionCommands.remember(fresh,'workbuddy-claim',body,result);writeStore(fresh);return sendJson(res,200,result);
@@ -375,12 +409,16 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
   if (method === "PUT" && p === "/api/state") {
     if (!isLoopback(req)) return sendJson(res, 403, { error: "state_local_only" });
     const body = await readBody(req);
+    if([...(store.departmentRuns||[]),...(body?.departmentRuns||[])].some(r=>r.workflowVersion===2)){
+      const identity=await chairmanAuth.verify(req);if(!identity.ok)return sendJson(res,403,{error:identity.error});
+    }
     if (!body || typeof body !== "object") return sendJson(res, 400, { error: "invalid_store" });
     writeStore(body);
     return sendJson(res, 200, body);
   }
 
   if (method === "POST" && p === "/api/reset") {
+    if((store.departmentRuns||[]).some(r=>r.workflowVersion===2)){const identity=await chairmanAuth.verify(req);if(!identity.ok){req.resume();return sendJson(res,403,{error:identity.error});}}
     if (!isLoopback(req)) return sendJson(res, 403, { error: "state_local_only" });
     const fresh = buildDefaultStore();
     writeStore(fresh);
@@ -418,6 +456,7 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
 
   if (method === "POST" && p === "/api/departments/runs") {
     const body = await readBody(req) || {};
+    if(body.workflowVersion===2){const identity=await chairmanAuth.verify(req);if(!identity.ok)return sendJson(res,403,{error:identity.error});}
     try {
       const run = createDepartmentRun(store, body);
       store.events.unshift({
@@ -488,7 +527,7 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
     try {
       const run = getRun(store, departmentRunMatch[1]);
       if (body.roleOwners && typeof body.roleOwners === "object") {
-        if(run.workflowVersion===2)throw governance.error("workflow_read_only_after_rollback");
+        if(run.workflowVersion===2)throw governance.error('use_project_workflow');
         if(inactive(run))return sendJson(res,409,{error:"project_paused_or_archived"});
         const changes = Object.entries(body.roleOwners);
         for (const [role, agentId] of changes) {
@@ -955,7 +994,7 @@ function createServer({ reportExecute, paperFetchBytes, externalLaunch = {} } = 
       }
       if (!serveStatic(req, res, url)) notFound(res);
     } catch (err) {
-      sendJson(res, 500, { error: String(err && err.message ? err.message : err) });
+      sendJson(res, err.status || 500, { error: String(err && err.message ? err.message : err) });
     }
   });
 }
@@ -965,6 +1004,7 @@ async function main() {
   ensureDirs();
   codexManager.recover();
   {const s=readStore();if(governance.recover(s))writeStore(s);}
+  workflowManager.recover();
   providerManager.recover();
   skillManager.recover();
   agendaReportManager.recover();
@@ -991,7 +1031,7 @@ async function main() {
     dutyManager.tick();
     setInterval(()=>{try{dutyManager.tick();}catch(err){console.error('值班巡检错误：',err.message);}},60000);
     deliveryManager.recover();
-    setInterval(() => { try { deliveryManager.tick(); codexManager.tick(); externalRuntime.tick(); preparationFlow.tick(); } catch (err) { console.error("成员调度错误：", err.message); } }, 5000);
+    setInterval(() => { try { deliveryManager.tick(); codexManager.tick(); externalRuntime.tick(); preparationFlow.tick(); workflowManager.tick(); } catch (err) { console.error("成员调度错误：", err.message); } }, 5000);
     setInterval(() => void dispatchDueAgendaReminders(), 60 * 1000);
   });
 }

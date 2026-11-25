@@ -39,7 +39,7 @@ const disk = () => JSON.parse(fs.readFileSync(file, "utf8"));
   assert.strictEqual(ledger.stats.hits, 1, "a new day re-runs normalization");
 }
 
-// Stale writers: different sections both survive; the same section keeps the latest writer and is reported.
+// Stale writers: different sections survive; conflicting edits are rejected without overwriting.
 {
   const ledger = fresh({ tasks: [], events: [], agendas: [] });
   const slow = read(ledger);
@@ -58,8 +58,8 @@ const disk = () => JSON.parse(fs.readFileSync(file, "utf8"));
   first.agendas.push({ id: "a-first" });
   ledger.write(first);
   second.agendas.push({ id: "a-second" });
-  ledger.write(second);
-  assert.deepStrictEqual(disk().agendas, [{ id: "a-second" }], "same-section clash: latest writer wins as before");
+  assert.throws(()=>ledger.write(second),/ledger_write_conflict/);
+  assert.deepStrictEqual(disk().agendas, [{ id: "a-first" }], "a stale writer cannot silently overwrite another edit");
   assert.strictEqual(ledger.stats.conflicts, 1);
   assert.match(warnings.join("\n"), /concurrent edits to agendas/);
 

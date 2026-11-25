@@ -21,6 +21,20 @@ export function getStore() {
 }
 
 const executionRequests = new Map();
+function chairmanPassphrase(){
+  return new Promise(resolve=>{
+    const dialog=document.createElement('dialog');
+    const form=document.createElement('form');form.method='dialog';
+    const label=document.createElement('label');label.textContent=tr('请输入董事长操作口令');
+    const input=document.createElement('input');input.type='password';input.autocomplete='off';input.required=true;input.setAttribute('data-chairman-secret','');label.append(input);
+    const accept=document.createElement('button');accept.type='submit';accept.textContent=tr('确认');
+    const cancel=document.createElement('button');cancel.type='button';cancel.textContent=tr('取消');
+    let finished=false;
+    const finish=value=>{if(finished)return;finished=true;input.value='';dialog.close();dialog.remove();resolve(value);};
+    form.onsubmit=e=>{e.preventDefault();finish(input.value);};cancel.onclick=()=>finish(null);dialog.oncancel=e=>{e.preventDefault();finish(null);};
+    form.append(label,accept,cancel);dialog.append(form);document.body.append(dialog);dialog.showModal();input.focus();
+  });
+}
 export async function api(path, opts = {}) {
   let requestKey;
   if(opts.method==='POST'&&/\/(?:automation|auto-run|model-execute|chat-jobs\/[^/]+\/retry)$|^\/api\/codex\/jobs$/.test(path)&&!opts.body?.idempotencyKey){
@@ -33,7 +47,16 @@ export async function api(path, opts = {}) {
     ...opts,
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok){
+    const raw=await res.text();let error;try{error=JSON.parse(raw).error;}catch{}
+    if(res.status===403&&error==='chairman_auth_required'&&!opts.chairmanRetried){
+      const secret=await chairmanPassphrase();if(!secret)throw new Error(tr('已取消董事长操作'));
+      const encoded=btoa(String.fromCharCode(...new TextEncoder().encode(secret))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+      return api(path,{...opts,chairmanRetried:true,headers:{'Content-Type':'application/json',...opts.headers,'X-Workbench-Chairman-Secret':encoded}});
+    }
+    if(error==='chairman_auth_setup_required')throw new Error(tr('请先在本机终端设置董事长操作口令：node scripts/chairman-auth.cjs setup'));
+    throw new Error(error||raw);
+  }
   const result=await res.json();
   if(requestKey)executionRequests.delete(requestKey);
   return result;

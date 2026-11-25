@@ -4,6 +4,7 @@ import { t as tr } from './i18n.js';
 // Everything waiting on the chairman, read from GET /api/decisions. Each entry links to where the
 // decision is made; nothing here approves, retries or starts a member.
 const KIND = {
+  plan_approval:"方案批准", project_acceptance:"项目验收", agent_start_request:"人工启动协助",
   reconcile: '待核对', held_result: '迟到成果', start_writing: 'Start Writing', budget_exhausted: '重试预算用尽',
   delivery_failed: '交付失败', review_waiting: '待复核', automation_paused: '已暂停', chat_failed: '群聊失败',
   task_review: '待核验', task_blocked: '任务受阻', report_ready: '报告待确认',
