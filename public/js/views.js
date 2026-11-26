@@ -417,7 +417,21 @@ export function departmentView(runId = "all", draft = {}) {
   if (!selected) {
     if (runId === "new") return intake;
     const visible = runs.filter(r => !r.archived).slice().sort((a,b) => Number(!!b.pinned) - Number(!!a.pinned) || String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)));
-    return ui`<section class="section-head"><div><div class="eyebrow">VIRTUAL DEPARTMENT</div><h2>项目工作区</h2></div><button type="button" class="solid" data-sec="new">＋ 新建项目 · New project</button></section>${[['置顶', visible.filter(r => r.pinned)], ['进行中', visible.filter(r => !r.pinned && r.status !== 'completed')], ['已完成', visible.filter(r => !r.pinned && r.status === 'completed')], ['已归档', runs.filter(r => r.archived)]].map(([label,items]) => `<h3>${tr(label)}</h3><div class="project-list">${items.length ? items.map(run => `<article class="project-list-row card"><button type="button" class="project-open" data-sec="${esc(run.id)}"><b>${run.pinned ? '📌 ' : ''}${esc(run.title)}</b><small>${esc(fmt(run.updatedAt || run.createdAt))}</small></button>${projectMenu(run)}</article>`).join('') : systemFragment('<p class="k">暂无项目</p>')}</div>`).join('')}<p class="k">归档保留完整记录，可通过管理与归档恢复。</p>`;
+    return ui`<section class="section-head"><div><div class="eyebrow">VIRTUAL DEPARTMENT</div><h2>项目工作区</h2></div><button type="button" class="solid" data-sec="new">＋ 新建项目 · New project</button></section>${[['置顶', visible.filter(r => r.pinned)], ['进行中', visible.filter(r => !r.pinned && r.status !== 'completed')], ['已完成', visible.filter(r => !r.pinned && r.status === 'completed')], ['已归档', runs.filter(r => r.archived)]].map(([label,items]) => `<h3>${tr(label)}</h3><div class="project-list">${items.length ? items.map(run => {
+          const isV2 = run.workflowVersion === 2;
+          const v2StatusLabels = {planning:'方案协商',awaiting_plan_approval:'待批准方案',active:'执行中',review:'独立审核',awaiting_files:'生成交付文件',awaiting_acceptance:'待最终验收',blocked:'负责人处理中',completed:'已完成'};
+          const v2StatusEn = {planning:'Planning',awaiting_plan_approval:'Plan approval',active:'In progress',review:'Independent review',awaiting_files:'Preparing files',awaiting_acceptance:'Final acceptance',blocked:'Lead handling',completed:'Completed'};
+          const statusLabel = isV2 ? (v2StatusLabels[run.status] || run.status) : '';
+          const statusLabelEn = isV2 ? (v2StatusEn[run.status] || run.status) : '';
+          const lead = isV2 ? run.roleAppointments?.roles?.director : null;
+          const leadName = lead ? (agent(lead).name || lead) : null;
+          const next = isV2 ? (run.items||[]).find(i => ['queued','doing'].includes(i.status)) : null;
+          const nextRoleLabels = {director:'负责人',executor:'执行人',reviewer:'审核人'};
+          const nextRoleEn = {director:'Lead',executor:'Executor',reviewer:'Reviewer'};
+          const nextLabel = next ? `${nextRoleLabels[next.role]||next.role} · ${esc(agent(next.ownerAgentId).name || next.ownerAgentId)}` : '';
+          const nextLabelEn = next ? `${nextRoleEn[next.role]||next.role} · ${esc(agent(next.ownerAgentId).name || next.ownerAgentId)}` : '';
+          return `<article class="project-list-row card${isV2?' v2-project':''}"><button type="button" class="project-open" data-sec="${esc(run.id)}"><b>${run.pinned ? '📌 ' : ''}${esc(run.title)}</b>${isV2 ? `<span class="project-list-meta"><span class="chip">${tr(statusLabel,statusLabelEn)}</span>${leadName ? `<span>${tr('负责人','Lead')}: ${esc(leadName)}</span>` : ''}${next ? `<span>${tr('等待','Waiting')}: ${tr(nextLabel,nextLabelEn)}</span>` : ''}</span>` : ''}<small>${esc(fmt(run.updatedAt || run.createdAt))}</small></button>${projectMenu(run)}</article>`;
+        }).join('') : systemFragment('<p class="k">暂无项目</p>')}</div>`).join('')}<p class="k">归档保留完整记录，可通过管理与归档恢复。</p>`;
   }
   const externalJobs = (s.externalJobs || []).filter(j => j.runId === selected.id);
   const externalStatus = externalJobs.length ? ui`<section class="card"><h3>成员自动执行</h3>${selected.workbuddyTransport === 'desktop-scheduled' ? systemFragment('<p class="k">WorkBuddy 桌面自动化每小时领取一次；等待领取期间无需转发提示词。请保持 WorkBuddy 登录并运行，预计等待最多约 1 小时，执行耗时另计。</p>') : ''}${externalJobs.slice(0,3).map(j => `<p>${esc(j.agentId)} · ${esc(j.status)}${j.error ? " · " + esc(j.error) : ""}</p>`).join("")}</section>` : "";

@@ -8,6 +8,7 @@ export const EN = {
 
   '负责人拟案、协调执行与独立审核，按批准节点交付。':'The lead plans, coordinates execution and independent review, and delivers against approved milestones.',
   '方案批准':'Plan approval','项目验收':'Project acceptance','人工启动协助':'Manual agent start',
+  '负责人':'Lead','等待':'Waiting',
   '四种配色、界面密度、装饰图与跟随系统明暗，只保存在当前浏览器。':'Four palettes, density, artwork and system appearance are saved in this browser only.',
   '自动恢复与人工控制':'Automatic recovery and manual controls',
   '当前分工与恢复进展':'Assignments and recovery progress',

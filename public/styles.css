@@ -56,6 +56,10 @@ table.deck{width:100%;border-collapse:separate;border-spacing:0;background:var(-
 .project-open { flex:1; min-width:0; background:transparent; border:0; color:inherit; text-align:left; padding:8px; cursor:pointer; }
 .project-open b,.project-open small { display:block; }
 .project-open small { margin-top:8px; opacity:.65; }
+.project-list-meta { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:5px; font-size:.82em; opacity:.8; }
+.project-list-meta .chip { font-size:.78em; padding:2px 7px; }
+.v2-project .project-open b { margin-bottom:2px; }
+.project-list { display:flex; flex-direction:column; gap:4px; }
 /* Project group chat: stable sender positions, scoped to this room. */
 .room-chat .project-messages{background:var(--paper-soft);padding:16px 12px;border-radius:12px;max-height:560px;overflow-anchor:none}
 .chat-message{display:flex;align-items:flex-start;gap:9px;margin:16px 0;min-width:0}
