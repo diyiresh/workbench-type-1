@@ -32,6 +32,31 @@ test('withdrawal journal repairs a crash before the ledger commit without re-ope
 test('board is read-only and reports actual ownership rather than resolving unknown work',t=>{
  const f=fixture(t),s=f.readStore(),before=JSON.stringify(s);const b=duty.board(s);assert(b.entries.some(e=>e.stepId===f.stepId&&e.waitingOn==='workbuddy'));assert.equal(JSON.stringify(s),before);f.manager.tick();assert(duty.board(f.readStore()).lastTickAt);
 });
+test('v2 project board entry shows active step owner, pending events and overdue flag',()=>{
+  const data=require('../lib/default-store').buildDefaultStore();
+  const flow=require('../lib/project-workflow');
+  const run=require('../lib/department').createDepartmentRun(data,{workflowVersion:2,goal:'test board v2',roles:{director:'codex',executor:'workbuddy',reviewer:'cursor'},delivery:{mode:'text'}});
+  // No pending events, executor is the active step (queued)
+  run.items.find(i=>i.role==='executor').status='queued';
+  const b1=duty.board(data);
+  const e1=b1.entries.find(e=>e.runId===run.id&&e.stepId===run.items.find(i=>i.role==='executor').id);
+  assert.ok(e1,'board has executor entry');
+  assert.equal(e1.waitingOn,'workbuddy','active step owner shown for executor');
+  assert.ok(e1.nextAction.includes('执行人'),'next action labels role');
+  // Add a pending supervision event (not overdue)
+  run.supervision.events.push({key:'m1:check:0',milestoneId:'m1',state:'pending',at:new Date().toISOString()});
+  run.items.find(i=>i.role==='executor').status='blocked';
+  const b2=duty.board(data);
+  const e2=b2.entries.find(e=>e.runId===run.id&&e.stepId===run.items.find(i=>i.role==='executor').id);
+  assert.ok(e2.nextAction.includes('1 个待处理事项'),'pending event count shown');
+  assert.equal(e2.waitingOn,'codex','lead is waitingOn when there are pending events');
+  // Overdue event
+  run.supervision.events[0].key='m1:deadline';
+  const b3=duty.board(data);
+  const e3=b3.entries.find(e=>e.runId===run.id&&e.stepId===run.items.find(i=>i.role==='executor').id);
+  assert.equal(e3.waitingOn,'chairman','chairman alerted when overdue');
+  assert.ok(e3.nextAction.includes('逾期'),'overdue message shown');
+});
 test('supplementary evidence reaches the handoff without leaking another project or claiming verification',t=>{
  const f=fixture(t),s=f.readStore(),r=dept.getRun(s,f.runId);s.artifacts=[{runId:r.id,name:'S1 actual source',path:'C:/synthetic/S1.txt',sha256:'recorded-hash',reviewStatus:'pending'},{runId:'other-project',name:'Foreign private material',path:'C:/other/private.txt'}];const prompt=dept.rolePrompt(r,dept.getItem(r,'executor'),s).prompt;assert.match(prompt,/S1 actual source/);assert.match(prompt,/登记不等于验收通过/);assert(!prompt.includes('Foreign private material'));assert(!prompt.includes('C:/other/private.txt'));
 });
