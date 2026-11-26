@@ -454,6 +454,38 @@ async function handleApi(req, res, url, reportManager = agendaReportManager, pap
     return sendJson(res,200,require('./lib/workbuddy-queue').status(path.join(DATA,'workbuddy-queue')));
   }
 
+  // Doubao desktop queue — same file-queue protocol as WorkBuddy, local-only write paths
+  if(method==='GET'&&p==='/api/doubao/tasks'){
+    if(!isLoopback(req))return sendJson(res,403,{error:'doubao_local_only'});
+    const doubao=require('./lib/providers/doubao');
+    return sendJson(res,200,{tasks:doubao.tasks(store,doubao.root(ROOT))});
+  }
+  if(method==='POST'&&p==='/api/doubao/claim'){
+    if(!isLoopback(req))return sendJson(res,403,{error:'doubao_local_only'});
+    try{
+      const body=await readBody(req)||{};
+      const fresh=readStore();
+      const doubao=require('./lib/providers/doubao');
+      const dir=doubao.root(ROOT);
+      const receipt=doubao.claim(fresh,dir,body.jobId,body);
+      doubao.writeClaim(dir,body.jobId,receipt);
+      writeStore(fresh);
+      return sendJson(res,200,receipt);
+    }catch(e){return sendJson(res,409,{error:e.code||e.message});}
+  }
+  if(method==='POST'&&p==='/api/doubao/submit'){
+    if(!isLoopback(req))return sendJson(res,403,{error:'doubao_local_only'});
+    try{
+      const body=await readBody(req)||{};
+      const fresh=readStore();
+      const doubao=require('./lib/providers/doubao');
+      const result=doubao.submit(fresh,doubao.root(ROOT),body.jobId,body);
+      writeStore(fresh);
+      workflowManager.tick();
+      return sendJson(res,200,result);
+    }catch(e){return sendJson(res,409,{error:e.code||e.message});}
+  }
+
   if (method === "POST" && p === "/api/departments/runs") {
     const body = await readBody(req) || {};
     if(body.workflowVersion===2){const identity=await chairmanAuth.verify(req);if(!identity.ok)return sendJson(res,403,{error:identity.error});}
